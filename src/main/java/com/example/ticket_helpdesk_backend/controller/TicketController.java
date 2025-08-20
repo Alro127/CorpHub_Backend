@@ -1,14 +1,16 @@
 package com.example.ticket_helpdesk_backend.controller;
 
-import com.example.ticket_helpdesk_backend.dto.TicketDto;
+import com.example.ticket_helpdesk_backend.dto.ApiResponse;
+import com.example.ticket_helpdesk_backend.dto.TicketCategoryDto;
+import com.example.ticket_helpdesk_backend.dto.TicketRequest;
+import com.example.ticket_helpdesk_backend.dto.TicketResponse;
 import com.example.ticket_helpdesk_backend.service.TicketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -19,14 +21,40 @@ public class TicketController {
     private final TicketService ticketService;
 
     @GetMapping("/get-all")
-    public ResponseEntity<List<TicketDto>> getAll() {
-        try {
-            List<TicketDto> ticketDtoList = ticketService.getAll();
-            return new ResponseEntity<>(ticketDtoList, HttpStatus.OK);
-        }
-        catch (Exception e) {
-            e.printStackTrace();
-            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+    public ResponseEntity<ApiResponse<List<TicketResponse>>> getAll() {
+        List<TicketResponse> ticketResponseList = ticketService.getAll();
+        ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "All tickets found",
+                LocalDateTime.now(),
+                ticketResponseList
+        );
+        return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/categories")
+    public ResponseEntity<ApiResponse<List<TicketCategoryDto>>> getCategories() {
+        List<TicketCategoryDto> ticketCategoryDtoList = ticketService.getCategories();
+        ApiResponse<List<TicketCategoryDto>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "All categories found",
+                LocalDateTime.now(),
+                ticketCategoryDtoList
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/save")
+    public ResponseEntity<ApiResponse<TicketResponse>> createOrUpdate(@RequestBody TicketRequest request) {
+        ApiResponse<TicketResponse> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Ticket saved successfully",
+                LocalDateTime.now(),
+                ticketService.createOrUpdateTicket(request)
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+
 }
