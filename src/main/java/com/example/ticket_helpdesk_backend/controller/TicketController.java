@@ -6,6 +6,7 @@ import com.example.ticket_helpdesk_backend.dto.TicketRequest;
 import com.example.ticket_helpdesk_backend.dto.TicketResponse;
 import com.example.ticket_helpdesk_backend.service.TicketService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,7 +18,6 @@ import java.util.List;
 @RequestMapping("/api/tickets")
 @RequiredArgsConstructor
 public class TicketController {
-
     private final TicketService ticketService;
 
     @GetMapping("/get-all")
@@ -26,6 +26,39 @@ public class TicketController {
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "All tickets found",
+                LocalDateTime.now(),
+                ticketResponseList
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/my-ticket/{id}")
+    public ResponseEntity<ApiResponse<List<TicketResponse>>> getMyTicket(@PathVariable Integer id) {
+        List<TicketResponse> ticketResponseList = ticketService.getMyTicket(id);
+        ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "My tickets found",
+                LocalDateTime.now(),
+                ticketResponseList
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<ApiResponse<List<TicketResponse>>> searchTickets(
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) Integer category,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) Integer requesterId,
+            @RequestParam(required = false) Integer assignedToId
+/*            @RequestParam(required = false) LocalDateTime createdAt,
+            @RequestParam(required = false) LocalDateTime updatedAt*/
+    ) {
+        List<TicketResponse> ticketResponseList = ticketService.searchTickets(title, category,status, priority, requesterId, assignedToId);
+        ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "My tickets found",
                 LocalDateTime.now(),
                 ticketResponseList
         );
