@@ -4,6 +4,9 @@ import com.example.ticket_helpdesk_backend.entity.UserDb;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Optional;
+
 @Repository
 public interface UserDbRepository extends JpaRepository<UserDb, Integer> {
+    Optional<UserDb> findUserDbByEmail(String email);
 }

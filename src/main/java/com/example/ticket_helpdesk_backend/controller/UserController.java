@@ -23,7 +23,7 @@ public class UserController {
     UserService userService;
 
     @GetMapping("/name-info")
-    public ResponseEntity<ApiResponse<List<NameInfoDto>>> getUser() {
+    public ResponseEntity<?> getUser() {
         List<NameInfoDto> nameInfoDtoList = userService.getNameInfo();
         ApiResponse<List<NameInfoDto>> apiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(),

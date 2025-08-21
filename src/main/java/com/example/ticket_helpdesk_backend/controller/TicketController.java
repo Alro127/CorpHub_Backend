@@ -21,7 +21,7 @@ public class TicketController {
     private final TicketService ticketService;
 
     @GetMapping("/get-all")
-    public ResponseEntity<ApiResponse<List<TicketResponse>>> getAll() {
+    public ResponseEntity<?> getAll() {
         List<TicketResponse> ticketResponseList = ticketService.getAll();
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -33,7 +33,7 @@ public class TicketController {
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<ApiResponse<List<TicketCategoryDto>>> getCategories() {
+    public ResponseEntity<?> getCategories() {
         List<TicketCategoryDto> ticketCategoryDtoList = ticketService.getCategories();
         ApiResponse<List<TicketCategoryDto>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -45,7 +45,7 @@ public class TicketController {
     }
 
     @PostMapping("/save")
-    public ResponseEntity<ApiResponse<TicketResponse>> createOrUpdate(@RequestBody TicketRequest request) {
+    public ResponseEntity<?> createOrUpdate(@RequestBody TicketRequest request) {
         ApiResponse<TicketResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Ticket saved successfully",
@@ -57,13 +57,13 @@ public class TicketController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> deleteById(@PathVariable Integer id) {
+    public ResponseEntity<?> deleteById(@PathVariable Integer id) {
         ticketService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<Void> deleteMany(@RequestParam("ids") List<Integer> ids) {
+    public ResponseEntity<?> deleteMany(@RequestParam("ids") List<Integer> ids) {
         ticketService.deleteMany(ids);
         return ResponseEntity.noContent().build();
     }
