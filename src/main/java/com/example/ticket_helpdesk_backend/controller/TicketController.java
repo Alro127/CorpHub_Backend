@@ -56,5 +56,15 @@ public class TicketController {
         return ResponseEntity.ok(response);
     }
 
+    @DeleteMapping("/delete/{id}")
+    public ResponseEntity<Void> deleteById(@PathVariable Integer id) {
+        ticketService.deleteById(id);
+        return ResponseEntity.noContent().build();
+    }
 
+    @DeleteMapping("/delete")
+    public ResponseEntity<Void> deleteMany(@RequestParam("ids") List<Integer> ids) {
+        ticketService.deleteMany(ids);
+        return ResponseEntity.noContent().build();
+    }
 }

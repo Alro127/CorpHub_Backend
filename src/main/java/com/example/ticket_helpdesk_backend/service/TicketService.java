@@ -10,6 +10,7 @@ import com.example.ticket_helpdesk_backend.repository.UserDbRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.io.Console;
 import java.time.LocalDateTime;
@@ -73,9 +74,25 @@ public class TicketService {
 
         Ticket savedTicket = ticketRepository.save(ticket);
 
-        System.out.println(ticketRequest.getAssignedToId());
-        //System.out.println(savedTicket.getAssignedTo().getId());
-
         return modelMapper.map(savedTicket, TicketResponse.class);
+    }
+
+    @Transactional
+    public void deleteById(Integer id) {
+        if (!ticketRepository.existsById(id)) {
+            throw new RuntimeException("Ticket id \" + id + \" does not exist");
+        }
+        ticketRepository.deleteById(id);
+    }
+
+    @Transactional
+    public void deleteMany(List<Integer> ids) {
+        List<Integer> missing = ids.stream()
+                .filter(id -> !ticketRepository.existsById(id))
+                .toList();
+        if (!missing.isEmpty()) {
+            throw new RuntimeException("Tickets not found: " + missing);
+        }
+        ticketRepository.deleteAllById(ids);
     }
 }
