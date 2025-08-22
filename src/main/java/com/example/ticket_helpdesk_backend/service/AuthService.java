@@ -1,6 +1,7 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.dto.LoginRequest;
+import com.example.ticket_helpdesk_backend.dto.LoginResponse;
 import com.example.ticket_helpdesk_backend.dto.RegisterRequest;
 import com.example.ticket_helpdesk_backend.entity.Department;
 import com.example.ticket_helpdesk_backend.entity.UserDb;
@@ -29,14 +30,16 @@ public class AuthService {
     @Autowired
     private JwtUtil jwtUtil;
 
-    public String login(LoginRequest request) {
+    public LoginResponse login(LoginRequest request) {
         Authentication auth = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassWord())
         );
 
         String role = auth.getAuthorities().iterator().next().getAuthority();
+        String token = jwtUtil.generateToken(request.getEmail(), role);
+        UserDb userDb = userService.getUserByEmail(request.getEmail());
 
-        return jwtUtil.generateToken(request.getEmail(), role);
+        return new LoginResponse(userDb.getId(), userDb.getFullName(), userDb.getRole(), token, userDb.getStatus());
     }
 
     public boolean register(RegisterRequest registerRequest) {

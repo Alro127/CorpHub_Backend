@@ -8,23 +8,13 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TicketRequest implements Serializable {
+public class DepartmentBasicInfoDto implements Serializable {
     Integer id;
     @NotNull
-    @Size(max = 255)
-    String title;
-    String description;
-    @NotNull
-    @Size(max = 10)
-    String priority;
-    @NotNull
-    Integer categoryId;
-    @NotNull
-    Integer requesterId;
-    @NotNull
-    Integer departmentId;
-    Integer assignedToId;
+    @Size(max = 100)
+    String departmentName;
 }

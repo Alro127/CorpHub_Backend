@@ -21,6 +21,16 @@ public class TicketComment {
     private Integer id;
 
     @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ticket_id", nullable = false)
+    private Ticket ticket;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "user_id", nullable = false)
+    private UserDb user;
+
+    @NotNull
     @Nationalized
     @Lob
     @Column(name = "comment_text", nullable = false)
