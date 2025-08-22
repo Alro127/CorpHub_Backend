@@ -28,4 +28,9 @@ public class Department {
     @Column(name = "description")
     private String description;
 
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "manager_id", nullable = false)
+    private UserDb manager;
+
 }

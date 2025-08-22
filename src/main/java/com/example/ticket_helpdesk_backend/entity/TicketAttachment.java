@@ -21,6 +21,11 @@ public class TicketAttachment {
     @Column(name = "attachment_id", nullable = false)
     private Integer id;
 
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "ticket_id", nullable = false)
+    private com.example.ticket_helpdesk_backend.entity.Ticket ticket;
+
     @Size(max = 255)
     @NotNull
     @Nationalized

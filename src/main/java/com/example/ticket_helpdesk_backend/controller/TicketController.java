@@ -4,11 +4,13 @@ import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import com.example.ticket_helpdesk_backend.dto.TicketCategoryDto;
 import com.example.ticket_helpdesk_backend.dto.TicketRequest;
 import com.example.ticket_helpdesk_backend.dto.TicketResponse;
+import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.TicketService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -20,8 +22,9 @@ import java.util.List;
 public class TicketController {
     private final TicketService ticketService;
 
+    @PreAuthorize("@securityService.hasRole('ADMIN')")
     @GetMapping("/get-all")
-    public ResponseEntity<ApiResponse<List<TicketResponse>>> getAll() {
+    public ResponseEntity<?> getAll() {
         List<TicketResponse> ticketResponseList = ticketService.getAll();
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -32,8 +35,20 @@ public class TicketController {
         return ResponseEntity.ok(response);
     }
 
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerOfDepartment(#id)")
+    @GetMapping("department/{id}")
+    public ResponseEntity<?> getByDepartmentId(@PathVariable Integer id) throws ResourceNotFoundException {
+        List<TicketResponse> ticketResponseList = ticketService.getTicketByDepartmentId(id);
+        ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "All tickets found",
+                LocalDateTime.now(),
+                ticketResponseList
+        );
+        return ResponseEntity.ok(response);
+    }
     @GetMapping("/my-ticket/{id}")
-    public ResponseEntity<ApiResponse<List<TicketResponse>>> getMyTicket(@PathVariable Integer id) {
+    public ResponseEntity<?> getMyTicket(@PathVariable Integer id) {
         List<TicketResponse> ticketResponseList = ticketService.getMyTicket(id);
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -45,7 +60,7 @@ public class TicketController {
     }
 
     @GetMapping("/search")
-    public ResponseEntity<ApiResponse<List<TicketResponse>>> searchTickets(
+    public ResponseEntity<?> searchTickets(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) Integer category,
             @RequestParam(required = false) String status,
@@ -66,7 +81,7 @@ public class TicketController {
     }
 
     @GetMapping("/categories")
-    public ResponseEntity<ApiResponse<List<TicketCategoryDto>>> getCategories() {
+    public ResponseEntity<?> getCategories() {
         List<TicketCategoryDto> ticketCategoryDtoList = ticketService.getCategories();
         ApiResponse<List<TicketCategoryDto>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -78,7 +93,7 @@ public class TicketController {
     }
 
     @PostMapping("/save")
-    public ResponseEntity<ApiResponse<TicketResponse>> createOrUpdate(@RequestBody TicketRequest request) {
+    public ResponseEntity<?> createOrUpdate(@RequestBody TicketRequest request) {
         ApiResponse<TicketResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Ticket saved successfully",
@@ -90,13 +105,13 @@ public class TicketController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<Void> deleteById(@PathVariable Integer id) {
+    public ResponseEntity<?> deleteById(@PathVariable Integer id) {
         ticketService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<Void> deleteMany(@RequestParam("ids") List<Integer> ids) {
+    public ResponseEntity<?> deleteMany(@RequestParam("ids") List<Integer> ids) {
         ticketService.deleteMany(ids);
         return ResponseEntity.noContent().build();
     }

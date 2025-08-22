@@ -7,8 +7,12 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import java.util.List;
 
+import java.util.Arrays;
+import java.util.List;
+
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket, Integer> {
+    List<Ticket> findByDepartmentId(Integer id);
     @Query("SELECT t FROM Ticket t WHERE t.requester.id = :userId OR t.assignedTo.id = :userId")
     public List<Ticket> findMyTicketsByUserId(@Param("userId") Integer userId);
 

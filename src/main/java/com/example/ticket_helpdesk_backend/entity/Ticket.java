@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.entity;
 
+import com.example.ticket_helpdesk_backend.consts.TicketStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -10,6 +11,7 @@ import org.hibernate.annotations.Nationalized;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.OffsetDateTime;
 
 @Getter
 @Setter
@@ -41,9 +43,9 @@ public class Ticket {
     @Size(max = 20)
     @NotNull
     @Nationalized
-    @ColumnDefault("'open'")
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private TicketStatus status;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
@@ -70,6 +72,18 @@ public class Ticket {
     private LocalDateTime updatedAt;
 
     @Column(name = "resolved_at")
-    private Instant resolvedAt;
+    private OffsetDateTime resolvedAt;
+
+    @NotNull
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "department_id", nullable = false)
+    private Department department;
+
+    @Column(name = "assigned_at")
+    private LocalDateTime assignedAt;
+
+    @ColumnDefault("1")
+    @Column(name = "active")
+    private Boolean active;
 
 }
