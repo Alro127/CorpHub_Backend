@@ -56,6 +56,19 @@ public class TicketService {
     }
 
 
+    public List<TicketResponse> getMyTicket(Integer id) {
+        return ticketRepository.findMyTicketsByUserId(id).stream()
+                .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
+                .collect(Collectors.toList());
+    }
+
+    public List<TicketResponse> searchTickets(String title, Integer category, String status, String priority,
+                                              Integer requesterId, Integer assignedToId) {
+        return ticketRepository.searchTickets(title, category, status, priority, requesterId, assignedToId).stream()
+                .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
+                .collect(Collectors.toList());
+    }
+
     public List<TicketCategoryDto> getCategories() {
         return ticketCategoryRepository.findAll().stream()
                 .map((element) -> modelMapper.map(element, TicketCategoryDto.class))
