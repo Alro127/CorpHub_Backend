@@ -2,11 +2,15 @@ package com.example.ticket_helpdesk_backend.controller;
 
 import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import com.example.ticket_helpdesk_backend.dto.NameInfoDto;
+import com.example.ticket_helpdesk_backend.dto.UserDbDto;
+import com.example.ticket_helpdesk_backend.entity.UserDb;
 import com.example.ticket_helpdesk_backend.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -29,6 +33,19 @@ public class UserController {
                 "All user found",
                 LocalDateTime.now(),
                 nameInfoDtoList
+        );
+
+        return ResponseEntity.ok(apiResponse);
+    }
+    @GetMapping("/my-info")
+    public ResponseEntity<?> getUserInfo() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserDbDto userDbDto = userService.getUserDtoByEmail(authentication.getPrincipal().toString());
+        ApiResponse<UserDbDto> apiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "User info",
+                LocalDateTime.now(),
+                userDbDto
         );
 
         return ResponseEntity.ok(apiResponse);
