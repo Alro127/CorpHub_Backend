@@ -40,7 +40,6 @@ public class Ticket {
     @Column(name = "priority", nullable = false, length = 10)
     private String priority;
 
-    @Size(max = 20)
     @NotNull
     @Nationalized
     @Enumerated(EnumType.STRING)

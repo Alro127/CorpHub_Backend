@@ -1,6 +1,7 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.dto.NameInfoDto;
+import com.example.ticket_helpdesk_backend.dto.UserDbDto;
 import com.example.ticket_helpdesk_backend.entity.UserDb;
 import com.example.ticket_helpdesk_backend.repository.UserDbRepository;
 import org.modelmapper.ModelMapper;
@@ -23,6 +24,10 @@ public class UserService {
         return userDbRepository.findAll().stream()
                 .map(user -> modelMapper.map(user, NameInfoDto.class))
                 .collect(Collectors.toList());
+    }
+
+    public UserDbDto getUserDtoByEmail(String email) {
+        return userDbRepository.findUserDbByEmail(email).map((element) -> modelMapper.map(element, UserDbDto.class)).orElse(null);
     }
 
     public UserDb getUserByEmail(String email) {
