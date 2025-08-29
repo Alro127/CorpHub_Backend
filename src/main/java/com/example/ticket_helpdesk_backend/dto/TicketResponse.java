@@ -1,47 +1,37 @@
 package com.example.ticket_helpdesk_backend.dto;
 
-import com.example.ticket_helpdesk_backend.consts.TicketStatus;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.validation.constraints.NotNull;
+import com.example.ticket_helpdesk_backend.entity.Ticket;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.Value;
 
 import java.io.Serializable;
 import java.time.Instant;
-import java.time.LocalDateTime;
+import java.util.UUID;
 
+/**
+ * DTO for {@link Ticket}
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class TicketResponse implements Serializable {
-    Integer id;
-    @NotNull
+    UUID id;
+    TicketCategoryDto category;
+    NameInfoDto requester;
+    NameInfoDto assignee;
+    DepartmentDto department;
     @Size(max = 255)
     String title;
     String description;
-    @NotNull
-    @Size(max = 10)
+    @Size(max = 50)
     String priority;
-    @NotNull
-    @Enumerated(EnumType.STRING)
-    TicketStatus status;
-    @NotNull
-    TicketCategoryDto category;
-    @NotNull
-    NameInfoDto requester;
-    NameInfoDto assignedTo;
-    @NotNull
-    DepartmentBasicInfoDto department;
-    @NotNull
-    LocalDateTime createdAt;
-    @NotNull
-    LocalDateTime updatedAt;
-    LocalDateTime assignedAt;
+    @Size(max = 50)
+    String status;
+    Instant assignedAt;
     Instant resolvedAt;
-    @NotNull
-    Boolean active;
-
+    Instant createdAt;
+    Instant updatedAt;
 }

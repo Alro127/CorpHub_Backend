@@ -1,6 +1,5 @@
 package com.example.ticket_helpdesk_backend.dto;
 
-import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -10,13 +9,15 @@ import lombok.Value;
 import java.io.Serializable;
 import java.util.UUID;
 
+/**
+ * DTO for {@link com.example.ticket_helpdesk_backend.entity.Department}
+ */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class TicketCategoryDto implements Serializable {
-    private UUID id;
-
-    @NotNull
+public class DepartmentDto implements Serializable {
+    UUID id;
     @Size(max = 100)
-    private String categoryName;
+    String name;
+    String description;
 }

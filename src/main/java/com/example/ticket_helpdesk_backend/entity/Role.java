@@ -1,35 +1,30 @@
 package com.example.ticket_helpdesk_backend.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.LocalTime;
 import java.util.UUID;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "shift")
-public class Shift {
+@Table(name = "role")
+public class Role {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @ColumnDefault("newid()")
     @Column(name = "id", nullable = false)
     private UUID id;
 
-    @Size(max = 100)
+    @Size(max = 50)
+    @NotNull
     @Nationalized
-    @Column(name = "name", length = 100)
+    @Column(name = "name", nullable = false, length = 50)
     private String name;
-
-    @Column(name = "start_time")
-    private LocalTime startTime;
-
-    @Column(name = "end_time")
-    private LocalTime endTime;
 
 }

@@ -1,30 +1,25 @@
 package com.example.ticket_helpdesk_backend.dto;
 
-import jakarta.validation.constraints.NotNull;
+import com.example.ticket_helpdesk_backend.entity.Ticket;
 import jakarta.validation.constraints.Size;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.Value;
 
 import java.io.Serializable;
+import java.util.UUID;
 
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
+/**
+ * DTO for {@link Ticket}
+ */
+@Value
 public class TicketRequest implements Serializable {
-    Integer id;
-    @NotNull
+    UUID id;
+    UUID categoryId;
+    UUID requesterId;
+    UUID assigneeId;
+    UUID departmentId;
     @Size(max = 255)
     String title;
     String description;
-    @NotNull
-    @Size(max = 10)
+    @Size(max = 50)
     String priority;
-    @NotNull
-    Integer categoryId;
-    @NotNull
-    Integer requesterId;
-    @NotNull
-    Integer departmentId;
-    Integer assignedToId;
 }

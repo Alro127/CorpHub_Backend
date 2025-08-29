@@ -44,7 +44,7 @@ public class AuthController {
 
         System.out.println(request);
         boolean success = authService.register(request);
-        String message = success ? "Login Successfully" : "Login Failed";
+        String message = success ? "Register Successfully" : "Register Failed";
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 message,

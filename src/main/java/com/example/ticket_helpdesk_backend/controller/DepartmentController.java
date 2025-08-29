@@ -1,7 +1,7 @@
 package com.example.ticket_helpdesk_backend.controller;
 
 import com.example.ticket_helpdesk_backend.dto.ApiResponse;
-import com.example.ticket_helpdesk_backend.dto.DepartmentBasicInfoDto;
+import com.example.ticket_helpdesk_backend.dto.DepartmentDto;
 import com.example.ticket_helpdesk_backend.service.DepartmentService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,12 +23,12 @@ public class DepartmentController {
 
     @GetMapping("/get-all")
     public ResponseEntity<?> getAllDepartments() {
-        List<DepartmentBasicInfoDto> departmentBasicInfoDtoList = departmentService.getDepartmentBasicInfoDtoList();
-        ApiResponse<List<DepartmentBasicInfoDto>> apiResponse = new ApiResponse<>(
+        List<DepartmentDto> departmentDtoList = departmentService.getDepartmentDtoList();
+        ApiResponse<List<DepartmentDto>> apiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "All departments found",
                 LocalDateTime.now(),
-                departmentBasicInfoDtoList);
+                departmentDtoList);
 
         return ResponseEntity.ok(apiResponse);
     }

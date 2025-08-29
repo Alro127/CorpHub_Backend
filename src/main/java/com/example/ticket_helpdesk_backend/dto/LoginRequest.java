@@ -17,5 +17,5 @@ public class LoginRequest {
     private String email;
     @NotNull
     @Size(max = 100)
-    private String passWord;
+    private String password;
 }

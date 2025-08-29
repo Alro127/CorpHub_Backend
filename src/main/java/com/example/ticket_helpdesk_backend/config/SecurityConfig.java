@@ -1,8 +1,10 @@
 package com.example.ticket_helpdesk_backend.config;
-import com.example.ticket_helpdesk_backend.entity.UserDb;
+import com.example.ticket_helpdesk_backend.entity.Account;
+import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.CustomAccessDeniedHandler;
 import com.example.ticket_helpdesk_backend.exception.CustomAuthenticationEntryPoint;
 import com.example.ticket_helpdesk_backend.filter.JwtAuthFilter;
+import com.example.ticket_helpdesk_backend.service.AccountService;
 import com.example.ticket_helpdesk_backend.service.UserService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -13,13 +15,9 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.core.userdetails.User;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
-import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 @EnableMethodSecurity
@@ -68,16 +66,17 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(UserService userService) {
+    public UserDetailsService userDetailsService(UserService userService, AccountService accountService) {
         return username -> {
-            UserDb user = userService.getUserByEmail(username);
-            if (user == null) {
+            User user = userService.getUserByEmail(username);
+            Account account = accountService.getAccountById(user.getId());
+            if (account == null) {
                 throw new UsernameNotFoundException("User not found");
             }
             return org.springframework.security.core.userdetails.User
                     .withUsername(user.getEmail())
-                    .password(user.getPassWord())
-                    .authorities(user.getRole())
+                    .password(account.getPassword())
+                    .authorities(account.getRole().getName())
                     .build();
         };
     }

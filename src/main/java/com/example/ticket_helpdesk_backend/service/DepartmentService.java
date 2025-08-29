@@ -1,6 +1,6 @@
 package com.example.ticket_helpdesk_backend.service;
 
-import com.example.ticket_helpdesk_backend.dto.DepartmentBasicInfoDto;
+import com.example.ticket_helpdesk_backend.dto.DepartmentDto;
 import com.example.ticket_helpdesk_backend.entity.Department;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import org.modelmapper.ModelMapper;
@@ -8,7 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Service
 public class DepartmentService {
@@ -18,13 +18,13 @@ public class DepartmentService {
     @Autowired
     private ModelMapper modelMapper;
 
-    public Department getDepartmentById(Integer id) {
+    public Department getDepartmentById(UUID id) {
         return departmentRepository.findById(id).orElseThrow(() -> new RuntimeException("Department không tồn tại"));
     }
 
-    public List<DepartmentBasicInfoDto> getDepartmentBasicInfoDtoList() {
+    public List<DepartmentDto> getDepartmentDtoList() {
         return departmentRepository.findAll().stream()
-                .map(department -> modelMapper.map(department, DepartmentBasicInfoDto.class))
+                .map(department -> modelMapper.map(department, DepartmentDto.class))
                 .toList();
     }
 
