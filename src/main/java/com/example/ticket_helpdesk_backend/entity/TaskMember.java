@@ -1,33 +1,29 @@
 package com.example.ticket_helpdesk_backend.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
-import org.hibernate.annotations.Nationalized;
 
 import java.util.UUID;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "department")
-public class Department {
+@Table(name = "task_member")
+public class TaskMember {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @ColumnDefault("newid()")
     @Column(name = "id", nullable = false)
     private UUID id;
 
-    @Size(max = 100)
-    @Nationalized
-    @Column(name = "name", length = 100)
-    private String name;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "task_id")
+    private Task task;
 
-    @Nationalized
-    @Lob
-    @Column(name = "description")
-    private String description;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id")
+    private com.example.ticket_helpdesk_backend.entity.User user;
 
 }

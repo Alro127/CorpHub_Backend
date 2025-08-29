@@ -7,14 +7,13 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.time.LocalTime;
 import java.util.UUID;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "shift")
-public class Shift {
+@Table(name = "permission")
+public class Permission {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @ColumnDefault("newid()")
@@ -23,13 +22,12 @@ public class Shift {
 
     @Size(max = 100)
     @Nationalized
-    @Column(name = "name", length = 100)
-    private String name;
+    @Column(name = "\"function\"", length = 100)
+    private String function;
 
-    @Column(name = "start_time")
-    private LocalTime startTime;
-
-    @Column(name = "end_time")
-    private LocalTime endTime;
+    @Size(max = 50)
+    @Nationalized
+    @Column(name = "\"action\"", length = 50)
+    private String action;
 
 }

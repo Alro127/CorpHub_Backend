@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/tickets")
@@ -37,7 +38,7 @@ public class TicketController {
 
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerOfDepartment(#id)")
     @GetMapping("department/{id}")
-    public ResponseEntity<?> getByDepartmentId(@PathVariable Integer id) throws ResourceNotFoundException {
+    public ResponseEntity<?> getByDepartmentId(@PathVariable UUID id) throws ResourceNotFoundException {
         List<TicketResponse> ticketResponseList = ticketService.getTicketByDepartmentId(id);
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -48,7 +49,7 @@ public class TicketController {
         return ResponseEntity.ok(response);
     }
     @GetMapping("/my-ticket/{id}")
-    public ResponseEntity<?> getMyTicket(@PathVariable Integer id) {
+    public ResponseEntity<?> getMyTicket(@PathVariable UUID id) {
         List<TicketResponse> ticketResponseList = ticketService.getMyTicket(id);
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -59,26 +60,26 @@ public class TicketController {
         return ResponseEntity.ok(response);
     }
 
-    @GetMapping("/search")
-    public ResponseEntity<?> searchTickets(
-            @RequestParam(required = false) String title,
-            @RequestParam(required = false) Integer category,
-            @RequestParam(required = false) String status,
-            @RequestParam(required = false) String priority,
-            @RequestParam(required = false) Integer requesterId,
-            @RequestParam(required = false) Integer assignedToId
-/*            @RequestParam(required = false) LocalDateTime createdAt,
-            @RequestParam(required = false) LocalDateTime updatedAt*/
-    ) {
-        List<TicketResponse> ticketResponseList = ticketService.searchTickets(title, category,status, priority, requesterId, assignedToId);
-        ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
-                HttpStatus.OK.value(),
-                "My tickets found",
-                LocalDateTime.now(),
-                ticketResponseList
-        );
-        return ResponseEntity.ok(response);
-    }
+//    @GetMapping("/search")
+//    public ResponseEntity<?> searchTickets(
+//            @RequestParam(required = false) String title,
+//            @RequestParam(required = false) Integer category,
+//            @RequestParam(required = false) String status,
+//            @RequestParam(required = false) String priority,
+//            @RequestParam(required = false) Integer requesterId,
+//            @RequestParam(required = false) Integer assignedToId
+///*            @RequestParam(required = false) LocalDateTime createdAt,
+//            @RequestParam(required = false) LocalDateTime updatedAt*/
+//    ) {
+//        List<TicketResponse> ticketResponseList = ticketService.searchTickets(title, category,status, priority, requesterId, assignedToId);
+//        ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
+//                HttpStatus.OK.value(),
+//                "My tickets found",
+//                LocalDateTime.now(),
+//                ticketResponseList
+//        );
+//        return ResponseEntity.ok(response);
+//    }
 
     @GetMapping("/categories")
     public ResponseEntity<?> getCategories() {
@@ -105,13 +106,13 @@ public class TicketController {
     }
 
     @DeleteMapping("/delete/{id}")
-    public ResponseEntity<?> deleteById(@PathVariable Integer id) {
+    public ResponseEntity<?> deleteById(@PathVariable UUID id) {
         ticketService.deleteById(id);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/delete")
-    public ResponseEntity<?> deleteMany(@RequestParam("ids") List<Integer> ids) {
+    public ResponseEntity<?> deleteMany(@RequestParam("ids") List<UUID> ids) {
         ticketService.deleteMany(ids);
         return ResponseEntity.noContent().build();
     }

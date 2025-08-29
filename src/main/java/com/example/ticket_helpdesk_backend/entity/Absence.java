@@ -1,21 +1,19 @@
 package com.example.ticket_helpdesk_backend.entity;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "attendance")
-public class Attendance {
+@Table(name = "absence")
+public class Absence {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @ColumnDefault("newid()")
@@ -30,18 +28,20 @@ public class Attendance {
     @JoinColumn(name = "shift_id")
     private Shift shift;
 
-    @Column(name = "checkin")
-    private LocalDateTime checkin;
-
-    @Column(name = "checkout")
-    private LocalDateTime checkout;
-
-    @Column(name = "latitude", precision = 9, scale = 6)
-    private BigDecimal latitude;
-
-    @Size(max = 50)
     @Nationalized
-    @Column(name = "status", length = 50)
-    private String status;
+    @Lob
+    @Column(name = "reason")
+    private String reason;
+
+    @Column(name = "\"date\"")
+    private LocalDate date;
+
+    @ColumnDefault("0")
+    @Column(name = "is_approved")
+    private Boolean isApproved;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "approve_by")
+    private User approveBy;
 
 }

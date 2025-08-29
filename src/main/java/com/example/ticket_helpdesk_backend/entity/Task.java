@@ -1,7 +1,5 @@
 package com.example.ticket_helpdesk_backend.entity;
 
-import com.example.ticket_helpdesk_backend.consts.TicketStatus;
-import com.example.ticket_helpdesk_backend.entity.Department;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -15,17 +13,16 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "ticket")
-public class Ticket {
+@Table(name = "task")
+public class Task {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @ColumnDefault("newid()")
     @Column(name = "id", nullable = false)
     private UUID id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "category_id")
-    private TicketCategory category;
+    @Column(name = "category_id")
+    private UUID categoryId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requester_id")
@@ -36,8 +33,8 @@ public class Ticket {
     private com.example.ticket_helpdesk_backend.entity.User assignee;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
-    private Department department;
+    @JoinColumn(name = "project_id")
+    private Project project;
 
     @Size(max = 255)
     @Nationalized
@@ -56,9 +53,8 @@ public class Ticket {
 
     @Size(max = 50)
     @Nationalized
-    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50)
-    private TicketStatus status;
+    private String status;
 
     @Column(name = "assigned_at")
     private LocalDateTime assignedAt;

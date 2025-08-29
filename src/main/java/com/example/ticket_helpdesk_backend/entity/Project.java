@@ -7,27 +7,42 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
+import java.time.LocalDate;
 import java.util.UUID;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "department")
-public class Department {
+@Table(name = "project")
+public class Project {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @ColumnDefault("newid()")
     @Column(name = "id", nullable = false)
     private UUID id;
 
-    @Size(max = 100)
+    @Size(max = 255)
     @Nationalized
-    @Column(name = "name", length = 100)
-    private String name;
+    @Column(name = "title")
+    private String title;
 
     @Nationalized
     @Lob
     @Column(name = "description")
     private String description;
+
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
+    @Column(name = "end_date")
+    private LocalDate endDate;
+
+    @Size(max = 50)
+    @Nationalized
+    @Column(name = "status", length = 50)
+    private String status;
+
+    @Column(name = "deadline")
+    private LocalDate deadline;
 
 }
