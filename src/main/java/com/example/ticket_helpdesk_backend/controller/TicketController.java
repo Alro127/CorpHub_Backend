@@ -6,11 +6,13 @@ import com.example.ticket_helpdesk_backend.dto.TicketRequest;
 import com.example.ticket_helpdesk_backend.dto.TicketResponse;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.TicketService;
+import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -22,6 +24,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TicketController {
     private final TicketService ticketService;
+    private final JwtUtil jwtUtil;
 
     @PreAuthorize("@securityService.hasRole('ADMIN')")
     @GetMapping("/get-all")
@@ -94,12 +97,14 @@ public class TicketController {
     }
 
     @PostMapping("/save")
-    public ResponseEntity<?> createOrUpdate(@RequestBody TicketRequest request) {
+    public ResponseEntity<?> createOrUpdate(@RequestBody TicketRequest request, @RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.substring(7);
+        UUID requesterId = jwtUtil.getUserId(token);
         ApiResponse<TicketResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Ticket saved successfully",
                 LocalDateTime.now(),
-                ticketService.createOrUpdateTicket(request)
+                ticketService.createOrUpdateTicket(request, requesterId)
         );
 
         return ResponseEntity.ok(response);

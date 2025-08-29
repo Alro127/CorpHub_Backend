@@ -55,9 +55,9 @@ public class AuthService {
         );
 
         String role = auth.getAuthorities().iterator().next().getAuthority();
-        String token = jwtUtil.generateToken(request.getEmail(), role);
         User user = userRepository.findByEmail(request.getEmail()).orElse(null);
         assert user != null;
+        String token = jwtUtil.generateToken(user.getId(),user.getEmail(), role);
         Account account = accountRepository.findById(user.getId()).orElse(null);
         assert account != null;
 

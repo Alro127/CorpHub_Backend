@@ -76,7 +76,7 @@ public class TicketService {
                 .collect(Collectors.toList());
     }
 
-    public TicketResponse createOrUpdateTicket(TicketRequest ticketRequest) {
+    public TicketResponse createOrUpdateTicket(TicketRequest ticketRequest, UUID requesterId) {
         Ticket ticket;
         if (ticketRequest.getId() != null) {
             // Update
@@ -95,7 +95,7 @@ public class TicketService {
 
         ticket.setCategory(ticketCategoryRepository.findById(ticketRequest.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found")));
-        ticket.setRequester(userRepository.findById(ticketRequest.getRequesterId())
+        ticket.setRequester(userRepository.findById(requesterId)
                 .orElseThrow(() -> new RuntimeException("Requester not found")));
         ticket.setDepartment(departmentRepository.findById(ticketRequest.getDepartmentId())
                 .orElseThrow(() -> new RuntimeException("Department not found")));
@@ -106,7 +106,18 @@ public class TicketService {
         } else {
             ticket.setAssignee(null);
         }
-
+        // ✅ Log toàn bộ dữ liệu để debug
+        System.out.println("---- DEBUG TICKET BEFORE SAVE ----");
+        System.out.println("Title: " + ticket.getTitle());
+        System.out.println("Description: " + ticket.getDescription());
+        System.out.println("Priority: " + ticket.getPriority());
+        System.out.println("Requester: " + (ticket.getRequester() != null ? ticket.getRequester().getId() : "null"));
+        System.out.println("Category: " + (ticket.getCategory() != null ? ticket.getCategory().getId() : "null"));
+        System.out.println("Department: " + (ticket.getDepartment() != null ? ticket.getDepartment().getId() : "null"));
+        System.out.println("Assignee: " + (ticket.getAssignee() != null ? ticket.getAssignee().getId() : "null"));
+        System.out.println("CreatedAt: " + ticket.getCreatedAt());
+        System.out.println("UpdatedAt: " + ticket.getUpdatedAt());
+        System.out.println("----------------------------------");
         Ticket savedTicket = ticketRepository.save(ticket);
 
         return modelMapper.map(savedTicket, TicketResponse.class);
