@@ -1,10 +1,12 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.TicketStatus;
+import com.example.ticket_helpdesk_backend.dto.AssignTicketRequest;
 import com.example.ticket_helpdesk_backend.dto.TicketCategoryDto;
 import com.example.ticket_helpdesk_backend.dto.TicketRequest;
 import com.example.ticket_helpdesk_backend.dto.TicketResponse;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
+import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.TicketCategoryRepository;
@@ -82,11 +84,14 @@ public class TicketService {
             // Update
             ticket = ticketRepository.findById(ticketRequest.getId())
                     .orElseThrow(() -> new RuntimeException("Ticket not found"));
+            if (ticket.getStatus() != TicketStatus.OPEN) {
+                throw new RuntimeException("Ticket status is not OPEN status");
+            }
         } else {
             // Create mới
             ticket = new Ticket();
             ticket.setCreatedAt(LocalDateTime.now());
-            ticket.setStatus(TicketStatus.WAITING);
+            ticket.setStatus(TicketStatus.OPEN);
         }
         ticket.setTitle(ticketRequest.getTitle());
         ticket.setDescription(ticketRequest.getDescription());
@@ -133,5 +138,45 @@ public class TicketService {
             throw new RuntimeException("Tickets not found: " + missing);
         }
         ticketRepository.deleteAllById(ids);
+    }
+
+    public void assign(AssignTicketRequest request) {
+        Ticket ticket = ticketRepository.findById(request.getTicketId()).orElseThrow(() -> new RuntimeException("Ticket not found"));
+        if (!ticket.getStatus().equals(TicketStatus.WAITING)) {
+            throw new RuntimeException("Ticket is not waiting status");
+        }
+        User assignee = userRepository.findById(request.getAssigneeId()).orElseThrow(() -> new RuntimeException("Assigned user not found"));
+        ticket.setAssignee(assignee);
+        ticket.setStatus(TicketStatus.ACCEPTED);
+        ticket.setAssignedAt(LocalDateTime.now());
+        ticketRepository.save(ticket);
+    }
+
+    public void confirm(UUID ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new RuntimeException("Ticket not found"));
+        if (!ticket.getStatus().equals(TicketStatus.OPEN)) {
+            throw new RuntimeException("Ticket is not open status");
+        }
+        ticket.setStatus(TicketStatus.WAITING);
+        ticketRepository.save(ticket);
+    }
+
+    public void takeOver(UUID ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new RuntimeException("Ticket not found"));
+        if (!ticket.getStatus().equals(TicketStatus.ACCEPTED)) {
+            throw new RuntimeException("Ticket is not accepted status");
+        }
+        ticket.setStatus(TicketStatus.IN_PROGRESS);
+        ticketRepository.save(ticket);
+    }
+
+    public void complete(UUID ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new RuntimeException("Ticket not found"));
+        if (!ticket.getStatus().equals(TicketStatus.IN_PROGRESS)) {
+            throw new RuntimeException("Ticket is not in in-progress status");
+        }
+        ticket.setStatus(TicketStatus.DONE);
+        ticket.setResolvedAt(LocalDateTime.now());
+        ticketRepository.save(ticket);
     }
 }

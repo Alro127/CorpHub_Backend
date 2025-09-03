@@ -1,13 +1,9 @@
 package com.example.ticket_helpdesk_backend.controller;
 
-import com.example.ticket_helpdesk_backend.dto.ApiResponse;
-import com.example.ticket_helpdesk_backend.dto.TicketCategoryDto;
-import com.example.ticket_helpdesk_backend.dto.TicketRequest;
-import com.example.ticket_helpdesk_backend.dto.TicketResponse;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.TicketService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -114,6 +110,34 @@ public class TicketController {
     @DeleteMapping("/delete")
     public ResponseEntity<?> deleteMany(@RequestParam("ids") List<UUID> ids) {
         ticketService.deleteMany(ids);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerReceiveTicket(request.ticketId)")
+    @PostMapping("/assign")
+    public ResponseEntity<?> assign(@RequestBody AssignTicketRequest request) {
+        ticketService.assign(request);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerOfTicketOwner(#ticketId)")
+    @PostMapping("/confirm/{ticketId}")
+    public ResponseEntity<?> confirm(@PathVariable UUID ticketId) {
+        ticketService.confirm(ticketId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isAssigneeOfTicket(#ticketId)")
+    @PostMapping("/take-over/{ticketId}")
+    public ResponseEntity<?> takeOver(@PathVariable UUID ticketId) {
+        ticketService.takeOver(ticketId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isAssigneeOfTicket(#ticketId)")
+    @PostMapping("/complete/{ticketId}")
+    public ResponseEntity<?> complete(@PathVariable UUID ticketId) {
+        ticketService.complete(ticketId);
         return ResponseEntity.noContent().build();
     }
 }
