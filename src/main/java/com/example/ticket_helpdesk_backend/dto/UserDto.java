@@ -31,5 +31,5 @@ public class UserDto implements Serializable {
     @Size(max = 50)
     String type;
     LocalDate startDate;
-    UUID departmentId;
+    DepartmentDto department;
 }

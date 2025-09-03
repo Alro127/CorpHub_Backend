@@ -9,6 +9,7 @@ import lombok.Value;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -26,12 +27,10 @@ public class TicketResponse implements Serializable {
     @Size(max = 255)
     String title;
     String description;
-    @Size(max = 50)
     String priority;
-    @Size(max = 50)
     String status;
-    Instant assignedAt;
-    Instant resolvedAt;
-    Instant createdAt;
-    Instant updatedAt;
+    LocalDateTime assignedAt;
+    LocalDateTime resolvedAt;
+    LocalDateTime createdAt;
+    LocalDateTime updatedAt;
 }

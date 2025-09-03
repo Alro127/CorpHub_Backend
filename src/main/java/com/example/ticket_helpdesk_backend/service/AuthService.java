@@ -61,7 +61,7 @@ public class AuthService {
         Account account = accountRepository.findById(user.getId()).orElse(null);
         assert account != null;
 
-        return new LoginResponse(user.getId(), user.getEmail(), user.getFullname(), account.getRole().getName(), token );
+        return new LoginResponse(user.getId(), user.getFullname(), user.getEmail(), account.getRole().getName(), token );
     }
 
     @Transactional

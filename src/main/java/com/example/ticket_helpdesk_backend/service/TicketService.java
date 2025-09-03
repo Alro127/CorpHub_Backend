@@ -106,8 +106,12 @@ public class TicketService {
         } else {
             ticket.setAssignee(null);
         }
-
-        Ticket savedTicket = ticketRepository.save(ticket);
+        Ticket savedTicket = null;
+        try {
+            savedTicket = ticketRepository.save(ticket);
+        } catch ( Exception e ) {
+            e.printStackTrace();
+        }
 
         return modelMapper.map(savedTicket, TicketResponse.class);
     }
