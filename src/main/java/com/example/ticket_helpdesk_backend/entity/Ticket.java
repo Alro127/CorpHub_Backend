@@ -49,12 +49,10 @@ public class Ticket {
     @Column(name = "description")
     private String description;
 
-    @Size(max = 50)
     @Nationalized
     @Column(name = "priority", length = 50)
     private String priority;
 
-    @Size(max = 50)
     @Nationalized
     @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50)

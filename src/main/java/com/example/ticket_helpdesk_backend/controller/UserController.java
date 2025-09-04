@@ -7,6 +7,7 @@ import com.example.ticket_helpdesk_backend.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -22,6 +23,20 @@ public class UserController {
 
     @Autowired
     UserService userService;
+
+    @PreAuthorize("@securityService.hasRole('ADMIN')")
+    @GetMapping("/get-all")
+    public ResponseEntity<?> getAllUser() {
+        List<UserDto> userDtoList = userService.getAllUser();
+        ApiResponse<List<UserDto>> apiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "All user found",
+                LocalDateTime.now(),
+                userDtoList
+        );
+
+        return ResponseEntity.ok(apiResponse);
+    }
 
     @GetMapping("/name-info")
     public ResponseEntity<?> getUser() {

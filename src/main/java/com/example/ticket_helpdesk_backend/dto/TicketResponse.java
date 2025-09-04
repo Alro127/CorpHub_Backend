@@ -27,9 +27,7 @@ public class TicketResponse implements Serializable {
     @Size(max = 255)
     String title;
     String description;
-    @Size(max = 50)
     String priority;
-    @Size(max = 50)
     String status;
     LocalDateTime assignedAt;
     LocalDateTime resolvedAt;

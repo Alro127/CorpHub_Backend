@@ -39,4 +39,7 @@ public class UserService {
         return userRepository.save(user);
     }
 
+    public List<UserDto> getAllUser() {
+        return userRepository.findAll().stream().map((element) -> modelMapper.map(element, UserDto.class)).collect(Collectors.toList());
+    }
 }
