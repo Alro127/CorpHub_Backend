@@ -33,7 +33,7 @@ public class TicketController {
     }
 
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerOfDepartment(#id)")
-    @GetMapping("department/{id}")
+    @GetMapping("/department/{id}")
     public ResponseEntity<?> getByDepartmentId(@PathVariable UUID id) throws ResourceNotFoundException {
         List<TicketResponse> ticketResponseList = ticketService.getTicketByDepartmentId(id);
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
