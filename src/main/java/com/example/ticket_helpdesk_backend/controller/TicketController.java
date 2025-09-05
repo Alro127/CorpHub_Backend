@@ -3,10 +3,12 @@ package com.example.ticket_helpdesk_backend.controller;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.TicketService;
+import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -18,6 +20,7 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class TicketController {
     private final TicketService ticketService;
+    private final JwtUtil jwtUtil;
 
     @PreAuthorize("@securityService.hasRole('ADMIN')")
     @GetMapping("/get-all")
@@ -32,10 +35,11 @@ public class TicketController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerOfDepartment(#id)")
-    @GetMapping("/department/{id}")
-    public ResponseEntity<?> getByDepartmentId(@PathVariable UUID id) throws ResourceNotFoundException {
-        List<TicketResponse> ticketResponseList = ticketService.getTicketByDepartmentId(id);
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
+    @GetMapping("/department")
+    public ResponseEntity<?> getByDepartmentId(@RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
+        String token = authHeader.substring(7);
+        List<TicketResponse> ticketResponseList = ticketService.getTicketByDepartmentId(token);
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "All tickets found",
@@ -114,7 +118,7 @@ public class TicketController {
         return ResponseEntity.noContent().build();
     }
 
-    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerReceiveTicket(request.ticketId)")
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerReceiveTicket(#request.ticketId)")
     @PostMapping("/assign")
     public ResponseEntity<?> assign(@RequestBody AssignTicketRequest request) {
         ticketService.assign(request);
