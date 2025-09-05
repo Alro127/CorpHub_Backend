@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.util;
 
+import com.example.ticket_helpdesk_backend.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -9,6 +10,7 @@ import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.UUID;
 
 @Component
 public class JwtUtil {
@@ -21,10 +23,11 @@ public class JwtUtil {
         this.expiration = expiration;
     }
 
-    public String generateToken(String username, String role) {
+    public String generateToken(String username, UUID userId, String role) {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("role", role)
+                .claim("userId", userId)
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
@@ -50,6 +53,17 @@ public class JwtUtil {
     public String getRole(String token) {
         return extractAllClaims(token).get("role", String.class);
     }
+
+    public UUID getUserId(String token) {
+        Claims claims = extractAllClaims(token);
+        System.out.println("JWT claims: " + claims);
+        String userIdStr = claims.get("userId", String.class);
+        if (userIdStr == null) {
+            return null;
+        }
+        return UUID.fromString(userIdStr);
+    }
+
 
     public Date getExpirationDate(String token) {
         return extractAllClaims(token).getExpiration();

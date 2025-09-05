@@ -12,6 +12,7 @@ import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.TicketCategoryRepository;
 import com.example.ticket_helpdesk_backend.repository.TicketRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
+import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -35,6 +36,9 @@ public class TicketService {
 
     @Autowired
     DepartmentRepository departmentRepository;
+
+    @Autowired
+    JwtUtil jwtUtil;
 
     @Autowired
     private ModelMapper modelMapper;
@@ -78,7 +82,7 @@ public class TicketService {
                 .collect(Collectors.toList());
     }
 
-    public TicketResponse createOrUpdateTicket(TicketRequest ticketRequest) {
+    public TicketResponse createOrUpdateTicket(TicketRequest ticketRequest, String token) {
         Ticket ticket;
         if (ticketRequest.getId() != null) {
             // Update
@@ -100,8 +104,13 @@ public class TicketService {
 
         ticket.setCategory(ticketCategoryRepository.findById(ticketRequest.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found")));
-        ticket.setRequester(userRepository.findById(ticketRequest.getRequesterId())
-                .orElseThrow(() -> new RuntimeException("Requester not found")));
+        UUID userId = jwtUtil.getUserId(token);
+        if (userId == null) {
+            throw new RuntimeException("Invalid token, user id is null");
+        }
+        System.out.println("UserId from token: " + userId);
+        ticket.setRequester(userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found")));
         ticket.setDepartment(departmentRepository.findById(ticketRequest.getDepartmentId())
                 .orElseThrow(() -> new RuntimeException("Department not found")));
 

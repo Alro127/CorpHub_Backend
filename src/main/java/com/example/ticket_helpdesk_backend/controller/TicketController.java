@@ -90,12 +90,13 @@ public class TicketController {
     }
 
     @PostMapping("/save")
-    public ResponseEntity<?> createOrUpdate(@RequestBody TicketRequest request) {
+    public ResponseEntity<?> createOrUpdate(@RequestBody TicketRequest request, @RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.substring(7);
         ApiResponse<TicketResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Ticket saved successfully",
                 LocalDateTime.now(),
-                ticketService.createOrUpdateTicket(request)
+                ticketService.createOrUpdateTicket(request, token)
         );
 
         return ResponseEntity.ok(response);

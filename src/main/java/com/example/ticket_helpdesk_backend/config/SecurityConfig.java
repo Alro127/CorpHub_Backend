@@ -1,8 +1,6 @@
 package com.example.ticket_helpdesk_backend.config;
 import com.example.ticket_helpdesk_backend.entity.Account;
 import com.example.ticket_helpdesk_backend.entity.User;
-import com.example.ticket_helpdesk_backend.exception.CustomAccessDeniedHandler;
-import com.example.ticket_helpdesk_backend.exception.CustomAuthenticationEntryPoint;
 import com.example.ticket_helpdesk_backend.filter.JwtAuthFilter;
 import com.example.ticket_helpdesk_backend.service.AccountService;
 import com.example.ticket_helpdesk_backend.service.UserService;
@@ -25,14 +23,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
-    private final CustomAccessDeniedHandler customAccessDeniedHandler;
-    private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter,
-                          CustomAccessDeniedHandler customAccessDeniedHandler, CustomAuthenticationEntryPoint customAuthenticationEntryPoint) {
+    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
-        this.customAccessDeniedHandler = customAccessDeniedHandler;
-        this.customAuthenticationEntryPoint = customAuthenticationEntryPoint;
     }
 
 
@@ -55,8 +48,6 @@ public class SecurityConfig {
                 .anyRequest().authenticated()
                 .and()
                 .exceptionHandling( )
-                .accessDeniedHandler(customAccessDeniedHandler)
-                .authenticationEntryPoint(customAuthenticationEntryPoint)
                 .and()
                 .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS);
 
