@@ -48,6 +48,19 @@ public class TicketController {
         );
         return ResponseEntity.ok(response);
     }
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
+    @GetMapping("/department/sent")
+    public ResponseEntity<?> getSentTicketByDepartmentId(@RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
+        String token = authHeader.substring(7);
+        List<TicketResponse> ticketResponseList = ticketService.getSentTicketByDepartmentId(token);
+        ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "All tickets found",
+                LocalDateTime.now(),
+                ticketResponseList
+        );
+        return ResponseEntity.ok(response);
+    }
     @GetMapping("/my-ticket/{id}")
     public ResponseEntity<?> getMyTicket(@PathVariable UUID id) {
         List<TicketResponse> ticketResponseList = ticketService.getMyTicket(id);
