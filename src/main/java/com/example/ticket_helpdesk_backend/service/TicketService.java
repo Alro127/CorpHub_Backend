@@ -45,14 +45,23 @@ public class TicketService {
                 .collect(Collectors.toList());
     }
 
-    public List<TicketResponse> getTicketByDepartmentId(UUID id) throws ResourceNotFoundException {
-        List<TicketResponse> tickets = ticketRepository.findByDepartmentId(id)
+    public List<TicketResponse> getTicketByDepartmentId(UUID userId) throws ResourceNotFoundException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+
+        if (user.getDepartment() == null) {
+            throw new ResourceNotFoundException("User with id " + userId + " has no department assigned");
+        }
+
+        UUID departmentId = user.getDepartment().getId();
+
+        List<TicketResponse> tickets = ticketRepository.findByDepartmentId(departmentId)
                 .stream()
                 .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
                 .toList();
 
         if (tickets.isEmpty()) {
-            throw new ResourceNotFoundException("No tickets found for department " + id);
+            throw new ResourceNotFoundException("No tickets found for department " + departmentId);
         }
 
         return tickets;
