@@ -35,10 +35,11 @@ public class TicketController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerOfDepartment(#id)")
-    @GetMapping("/department/{id}")
-    public ResponseEntity<?> getByDepartmentId(@PathVariable UUID id) throws ResourceNotFoundException {
-        List<TicketResponse> ticketResponseList = ticketService.getTicketByDepartmentId(id);
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
+    @GetMapping("/department")
+    public ResponseEntity<?> getByDepartmentId(@RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
+        String token = authHeader.substring(7);
+        List<TicketResponse> ticketResponseList = ticketService.getTicketByDepartmentId(token);
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "All tickets found",
@@ -95,12 +96,11 @@ public class TicketController {
     @PostMapping("/save")
     public ResponseEntity<?> createOrUpdate(@RequestBody TicketRequest request, @RequestHeader("Authorization") String authHeader) {
         String token = authHeader.substring(7);
-        UUID requesterId = jwtUtil.getUserId(token);
         ApiResponse<TicketResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Ticket saved successfully",
                 LocalDateTime.now(),
-                ticketService.createOrUpdateTicket(request, requesterId)
+                ticketService.createOrUpdateTicket(request, token)
         );
 
         return ResponseEntity.ok(response);
@@ -118,7 +118,7 @@ public class TicketController {
         return ResponseEntity.noContent().build();
     }
 
-    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerReceiveTicket(request.ticketId)")
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerReceiveTicket(#request.ticketId)")
     @PostMapping("/assign")
     public ResponseEntity<?> assign(@RequestBody AssignTicketRequest request) {
         ticketService.assign(request);

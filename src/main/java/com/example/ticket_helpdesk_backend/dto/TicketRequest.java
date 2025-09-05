@@ -19,6 +19,7 @@ import java.util.UUID;
 public class TicketRequest implements Serializable {
     UUID id;
     UUID categoryId;
+//    UUID requesterId;
     UUID assigneeId;
     UUID departmentId;
     @Size(max = 255)

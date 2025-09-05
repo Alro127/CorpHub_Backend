@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.util;
 
+import com.example.ticket_helpdesk_backend.entity.User;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
@@ -22,11 +23,12 @@ public class JwtUtil {
         this.expiration = expiration;
     }
 
-    public String generateToken(UUID userId, String username, String role) {
+    public String generateToken(String username, UUID userId, String role) {
         return Jwts.builder()
                 .setSubject(username)
                 .claim("userId", userId.toString())
                 .claim("role", role)
+                .claim("userId", userId)
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
@@ -49,14 +51,20 @@ public class JwtUtil {
         return extractAllClaims(token).getSubject();
     }
 
-    public UUID getUserId(String token) {
-        String userIdStr = extractAllClaims(token).get("userId", String.class);
-        return UUID.fromString(userIdStr);
-    }
-
     public String getRole(String token) {
         return extractAllClaims(token).get("role", String.class);
     }
+
+    public UUID getUserId(String token) {
+        Claims claims = extractAllClaims(token);
+        System.out.println("JWT claims: " + claims);
+        String userIdStr = claims.get("userId", String.class);
+        if (userIdStr == null) {
+            return null;
+        }
+        return UUID.fromString(userIdStr);
+    }
+
 
     public Date getExpirationDate(String token) {
         return extractAllClaims(token).getExpiration();

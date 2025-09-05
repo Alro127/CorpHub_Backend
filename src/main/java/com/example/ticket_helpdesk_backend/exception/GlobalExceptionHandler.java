@@ -14,10 +14,27 @@ import java.time.LocalDateTime;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<String> handleRuntimeException(RuntimeException ex) {
+    public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {
+        ApiResponse apiResponse = new ApiResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                LocalDateTime.now(),
+                null
+        );
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
-                .body(ex.getMessage());
+                .body(apiResponse);
+    }
+
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<ApiResponse> handleAuthException(AuthException ex) {
+        ApiResponse apiResponse = new ApiResponse(
+                HttpStatus.BAD_REQUEST.value(),
+                ex.getMessage(),
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity.badRequest().body(apiResponse);
     }
 
     @ExceptionHandler(ExpiredJwtException.class)
