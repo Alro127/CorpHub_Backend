@@ -34,3 +34,5 @@ build/
 
 
 application-secret.properties
+
+CorpHubDB.sql
