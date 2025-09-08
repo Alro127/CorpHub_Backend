@@ -209,6 +209,15 @@ public class TicketService {
         ticketRepository.save(ticket);
     }
 
+    public void reject(UUID ticketId) {
+        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new RuntimeException("Ticket not found"));
+        if (!ticket.getStatus().equals(TicketStatus.OPEN)) {
+            throw new RuntimeException("Ticket is not open status");
+        }
+        ticket.setStatus(TicketStatus.REJECTED);
+        ticketRepository.save(ticket);
+    }
+
     public void takeOver(UUID ticketId) {
         Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new RuntimeException("Ticket not found"));
         if (!ticket.getStatus().equals(TicketStatus.ACCEPTED)) {

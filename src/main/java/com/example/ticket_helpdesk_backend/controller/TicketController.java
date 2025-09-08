@@ -145,6 +145,13 @@ public class TicketController {
         return ResponseEntity.noContent().build();
     }
 
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerOfTicketOwner(#ticketId)")
+    @PostMapping("/reject/{ticketId}")
+    public ResponseEntity<?> reject(@PathVariable UUID ticketId) {
+        ticketService.reject(ticketId);
+        return ResponseEntity.noContent().build();
+    }
+
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isAssigneeOfTicket(#ticketId)")
     @PostMapping("/take-over/{ticketId}")
     public ResponseEntity<?> takeOver(@PathVariable UUID ticketId) {
