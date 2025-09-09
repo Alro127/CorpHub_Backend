@@ -1,19 +1,24 @@
 package com.example.ticket_helpdesk_backend.repository;
 
-import com.example.ticket_helpdesk_backend.entity.Department;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
 @Repository
 public interface TicketRepository extends JpaRepository<Ticket, UUID> {
-  List<Ticket> findByDepartmentId(UUID id);
+
+  @Query(value = """
+    SELECT t.* 
+    FROM ticket t
+    WHERE t.department_id = :departmentId
+        and t.status = 'WAITING'
+    """, nativeQuery = true)
+  List<Ticket> findReceivedTicketByDepartmentId(@Param("departmentId") UUID departmentId);
 
   @Query(value = """
     SELECT t.* 

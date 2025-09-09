@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.consts.TicketPriority;
 import com.example.ticket_helpdesk_backend.consts.TicketStatus;
 import com.example.ticket_helpdesk_backend.dto.AssignTicketRequest;
 import com.example.ticket_helpdesk_backend.dto.TicketCategoryDto;
@@ -49,7 +50,7 @@ public class TicketService {
                 .collect(Collectors.toList());
     }
 
-    public List<TicketResponse> getTicketByDepartmentId(String token) throws ResourceNotFoundException {
+    public List<TicketResponse> getReceivedTicketByDepartmentId(String token) throws ResourceNotFoundException {
         UUID userId = jwtUtil.getUserId(token);
         if (userId == null) {
             throw new RuntimeException("Invalid token, user id is null");
@@ -63,7 +64,7 @@ public class TicketService {
 
         UUID departmentId = user.getDepartment().getId();
 
-        List<TicketResponse> tickets = ticketRepository.findByDepartmentId(departmentId)
+        List<TicketResponse> tickets = ticketRepository.findReceivedTicketByDepartmentId(departmentId)
                 .stream()
                 .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
                 .toList();
@@ -138,7 +139,7 @@ public class TicketService {
         }
         ticket.setTitle(ticketRequest.getTitle());
         ticket.setDescription(ticketRequest.getDescription());
-        ticket.setPriority(ticketRequest.getPriority());
+        ticket.setPriority(TicketPriority.valueOf(ticketRequest.getPriority()));
         ticket.setUpdatedAt(LocalDateTime.now());
 
         ticket.setCategory(ticketCategoryRepository.findById(ticketRequest.getCategoryId())
