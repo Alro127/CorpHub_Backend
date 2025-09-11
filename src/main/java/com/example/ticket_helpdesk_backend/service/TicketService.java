@@ -10,17 +10,24 @@ import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.*;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.modelmapper.ModelMapper;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 public class TicketService {
+
+    private static final Logger log = LoggerFactory.getLogger(TicketService.class);
+
     @Autowired
     TicketRepository ticketRepository;
 
@@ -37,96 +44,30 @@ public class TicketService {
     TicketRejectionRepository ticketRejectionRepository;
 
     @Autowired
-    JwtUtil jwtUtil;
+    UserService userService;
 
     @Autowired
     private ModelMapper modelMapper;
 
-    public List<TicketResponse> getAll() {
-        return ticketRepository.findAll().stream()
-                .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
-                .collect(Collectors.toList());
+    // ================== Helper Methods ==================
+
+    private Ticket getTicket(UUID id) throws ResourceNotFoundException {
+        return ticketRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id " + id));
     }
 
-    public List<TicketResponse> getReceivedTicketByDepartmentId(String token) throws ResourceNotFoundException {
-        UUID userId = jwtUtil.getUserId(token);
-        if (userId == null) {
-            throw new RuntimeException("Invalid token, user id is null");
-        }
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
-
-        if (user.getDepartment() == null) {
-            throw new ResourceNotFoundException("User with id " + userId + " has no department assigned");
-        }
-
-        UUID departmentId = user.getDepartment().getId();
-
-        List<TicketResponse> tickets = ticketRepository.findReceivedTicketByDepartmentId(departmentId)
-                .stream()
-                .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
-                .toList();
-
-        return tickets;
-    }
-    public List<TicketResponse> getSentTicketByDepartmentId(String token) throws ResourceNotFoundException {
-        UUID userId = jwtUtil.getUserId(token);
-        if (userId == null) {
-            throw new RuntimeException("Invalid token, user id is null");
-        }
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
-
-        if (user.getDepartment() == null) {
-            throw new ResourceNotFoundException("User with id " + userId + " has no department assigned");
-        }
-
-        UUID departmentId = user.getDepartment().getId();
-
-        List<TicketResponse> tickets = ticketRepository.findSentTicketByDepartmentId(departmentId)
-                .stream()
-                .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
-                .toList();
-
-        return tickets;
+    private Ticket createTicket(TicketRequest ticketRequest, UUID userId) {
+        Ticket ticket = new Ticket();
+        ticket.setCreatedAt(LocalDateTime.now());
+        ticket.setStatus(TicketStatus.OPEN);
+        return updateTicket(ticket, ticketRequest, userId);
     }
 
-
-
-    public List<TicketResponse> getMyTicket(UUID id) {
-        return ticketRepository.findMyTickets(id).stream()
-                .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
-                .collect(Collectors.toList());
-    }
-
-//    public List<TicketResponse> searchTickets(String title, Integer category, String status, String priority,
-//                                              Integer requesterId, Integer assignedToId) {
-//        return ticketRepository.searchTickets(title, category, status, priority, requesterId, assignedToId).stream()
-//                .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
-//                .collect(Collectors.toList());
-//    }
-
-    public List<TicketCategoryDto> getCategories() {
-        return ticketCategoryRepository.findAll().stream()
-                .map((element) -> modelMapper.map(element, TicketCategoryDto.class))
-                .collect(Collectors.toList());
-    }
-
-    public TicketResponse createOrUpdateTicket(TicketRequest ticketRequest, UUID userId) {
-        Ticket ticket;
-        if (ticketRequest.getId() != null) {
-            // Update
-            ticket = ticketRepository.findById(ticketRequest.getId())
-                    .orElseThrow(() -> new RuntimeException("Ticket not found"));
-            if (ticket.getStatus() != TicketStatus.OPEN) {
-                throw new RuntimeException("Ticket status is not OPEN status");
-            }
-        } else {
-            // Create mới
-            ticket = new Ticket();
-            ticket.setCreatedAt(LocalDateTime.now());
-            ticket.setStatus(TicketStatus.OPEN);
+    private Ticket updateTicket(Ticket ticket, TicketRequest ticketRequest, UUID userId) {
+        if (ticketRequest.getId() != null && ticket.getStatus() != TicketStatus.OPEN) {
+            throw new RuntimeException("Ticket status is not OPEN status");
         }
+
         ticket.setTitle(ticketRequest.getTitle());
         ticket.setDescription(ticketRequest.getDescription());
         ticket.setPriority(TicketPriority.valueOf(ticketRequest.getPriority()));
@@ -134,12 +75,16 @@ public class TicketService {
 
         ticket.setCategory(ticketCategoryRepository.findById(ticketRequest.getCategoryId())
                 .orElseThrow(() -> new RuntimeException("Category not found")));
+
         if (userId == null) {
             throw new RuntimeException("Invalid token, user id is null");
         }
-        System.out.println("UserId from token: " + userId);
+
+        log.debug("UserId from token: {}", userId);
+
         ticket.setRequester(userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found")));
+
         ticket.setDepartment(departmentRepository.findById(ticketRequest.getDepartmentId())
                 .orElseThrow(() -> new RuntimeException("Department not found")));
 
@@ -149,20 +94,68 @@ public class TicketService {
         } else {
             ticket.setAssignee(null);
         }
-        Ticket savedTicket = null;
-        try {
-            savedTicket = ticketRepository.save(ticket);
-        } catch ( Exception e ) {
-            e.printStackTrace();
+
+        return ticket;
+    }
+
+    // ================== Services ==================
+    public List<TicketResponse> getAll() {
+        return ticketRepository.findAll().stream()
+                .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
+                .collect(Collectors.toList());
+    }
+
+    public List<TicketResponse> getReceivedTicketByDepartmentId(String token) throws ResourceNotFoundException {
+        User user = userService.getUserFromToken(token);
+        UUID departmentId = Optional.ofNullable(user.getDepartment())
+                .orElseThrow(() -> new ResourceNotFoundException("User has no department assigned"))
+                .getId();
+
+        return ticketRepository.findReceivedTicketByDepartmentId(departmentId)
+                .stream().map(ticket -> modelMapper.map(ticket, TicketResponse.class))
+                .toList();
+    }
+
+    public List<TicketResponse> getSentTicketByDepartmentId(String token) throws ResourceNotFoundException {
+        User user = userService.getUserFromToken(token);
+        UUID departmentId = Optional.ofNullable(user.getDepartment())
+                .orElseThrow(() -> new ResourceNotFoundException("User has no department assigned"))
+                .getId();
+
+        return ticketRepository.findSentTicketByDepartmentId(departmentId)
+                .stream().map(ticket -> modelMapper.map(ticket, TicketResponse.class))
+                .toList();
+    }
+
+    public List<TicketResponse> getMyTicket(UUID id) {
+        return ticketRepository.findMyTickets(id).stream()
+                .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
+                .collect(Collectors.toList());
+    }
+
+    public List<TicketCategoryDto> getCategories() {
+        return ticketCategoryRepository.findAll().stream()
+                .map((element) -> modelMapper.map(element, TicketCategoryDto.class))
+                .collect(Collectors.toList());
+    }
+
+    public TicketResponse createOrUpdateTicket(TicketRequest ticketRequest, UUID userId) throws ResourceNotFoundException {
+        Ticket ticket;
+        if (ticketRequest.getId() != null) {
+            ticket = getTicket(ticketRequest.getId());
+            ticket = updateTicket(ticket, ticketRequest, userId);
+        } else {
+            ticket = createTicket(ticketRequest, userId);
         }
 
+        Ticket savedTicket = ticketRepository.save(ticket);
         return modelMapper.map(savedTicket, TicketResponse.class);
     }
 
     @Transactional
     public void deleteById(UUID id) {
         if (!ticketRepository.existsById(id)) {
-            throw new RuntimeException("Ticket id \" + id + \" does not exist");
+            throw new RuntimeException("Ticket id " + id + " does not exist");
         }
         ticketRepository.deleteById(id);
     }
@@ -178,36 +171,41 @@ public class TicketService {
         ticketRepository.deleteAllById(ids);
     }
 
-    public void assign(AssignTicketRequest request) {
-        Ticket ticket = ticketRepository.findById(request.getTicketId()).orElseThrow(() -> new RuntimeException("Ticket not found"));
-        if (ticket.getStatus().equals(TicketStatus.IN_PROGRESS) || ticket.getStatus().equals(TicketStatus.DONE)) {
+    @Transactional
+    public void assign(AssignTicketRequest request) throws ResourceNotFoundException {
+        Ticket ticket = getTicket(request.getTicketId());
+        if (EnumSet.of(TicketStatus.IN_PROGRESS, TicketStatus.DONE).contains(ticket.getStatus())) {
             throw new RuntimeException("Ticket is not valid status");
         }
-        User assignee = userRepository.findById(request.getAssigneeId()).orElseThrow(() -> new RuntimeException("Assigned user not found"));
+        User assignee = userRepository.findById(request.getAssigneeId())
+                .orElseThrow(() -> new RuntimeException("Assigned user not found"));
+
         ticket.setAssignee(assignee);
         ticket.setStatus(TicketStatus.ASSIGNING);
         ticket.setAssignedAt(LocalDateTime.now());
         ticketRepository.save(ticket);
     }
 
-    public void confirm(UUID ticketId) {
-        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new RuntimeException("Ticket not found"));
+    @Transactional
+    public void confirm(UUID ticketId) throws ResourceNotFoundException {
+        Ticket ticket = getTicket(ticketId);
         if (!ticket.getStatus().equals(TicketStatus.OPEN)) {
-            throw new RuntimeException("Ticket is not open status");
+            throw new RuntimeException("Ticket must be OPEN to confirm");
         }
         ticket.setStatus(TicketStatus.WAITING);
         ticketRepository.save(ticket);
     }
 
     @Transactional
-    public void reject(TicketRejectionDto request, UUID userId) {
-        Ticket ticket = ticketRepository.findById(request.getTicketId()).orElseThrow(() -> new RuntimeException("Ticket not found"));
-        if (ticket.getStatus().equals(TicketStatus.IN_PROGRESS) || ticket.getStatus().equals(TicketStatus.DONE)) {
+    public void reject(TicketRejectionDto request, UUID userId) throws ResourceNotFoundException {
+        Ticket ticket = getTicket(request.getTicketId());
+        if (EnumSet.of(TicketStatus.IN_PROGRESS, TicketStatus.DONE).contains(ticket.getStatus())) {
             throw new RuntimeException("Ticket is not valid status");
         }
         ticket.setStatus(TicketStatus.REJECTED);
 
-        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
         TicketRejection ticketRejection = new TicketRejection();
         ticketRejection.setTicket(ticket);
@@ -219,19 +217,21 @@ public class TicketService {
         ticketRejectionRepository.save(ticketRejection);
     }
 
-    public void takeOver(UUID ticketId) {
-        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new RuntimeException("Ticket not found"));
+    @Transactional
+    public void takeOver(UUID ticketId) throws ResourceNotFoundException {
+        Ticket ticket = getTicket(ticketId);
         if (!ticket.getStatus().equals(TicketStatus.ASSIGNING)) {
-            throw new RuntimeException("Ticket is not accepted status");
+            throw new RuntimeException("Ticket must be in ASSIGNING state to take over");
         }
         ticket.setStatus(TicketStatus.IN_PROGRESS);
         ticketRepository.save(ticket);
     }
 
-    public void complete(UUID ticketId) {
-        Ticket ticket = ticketRepository.findById(ticketId).orElseThrow(() -> new RuntimeException("Ticket not found"));
+    @Transactional
+    public void complete(UUID ticketId) throws ResourceNotFoundException {
+        Ticket ticket = getTicket(ticketId);
         if (!ticket.getStatus().equals(TicketStatus.IN_PROGRESS)) {
-            throw new RuntimeException("Ticket is not in in-progress status");
+            throw new RuntimeException("Ticket must be in IN_PROGRESS state to complete");
         }
         ticket.setStatus(TicketStatus.DONE);
         ticket.setResolvedAt(LocalDateTime.now());

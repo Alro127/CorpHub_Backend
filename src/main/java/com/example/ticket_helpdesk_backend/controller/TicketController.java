@@ -75,27 +75,6 @@ public class TicketController {
         return ResponseEntity.ok(response);
     }
 
-//    @GetMapping("/search")
-//    public ResponseEntity<?> searchTickets(
-//            @RequestParam(required = false) String title,
-//            @RequestParam(required = false) Integer category,
-//            @RequestParam(required = false) String status,
-//            @RequestParam(required = false) String priority,
-//            @RequestParam(required = false) Integer requesterId,
-//            @RequestParam(required = false) Integer assignedToId
-///*            @RequestParam(required = false) LocalDateTime createdAt,
-//            @RequestParam(required = false) LocalDateTime updatedAt*/
-//    ) {
-//        List<TicketResponse> ticketResponseList = ticketService.searchTickets(title, category,status, priority, requesterId, assignedToId);
-//        ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
-//                HttpStatus.OK.value(),
-//                "My tickets found",
-//                LocalDateTime.now(),
-//                ticketResponseList
-//        );
-//        return ResponseEntity.ok(response);
-//    }
-
     @GetMapping("/categories")
     public ResponseEntity<?> getCategories() {
         List<TicketCategoryDto> ticketCategoryDtoList = ticketService.getCategories();
@@ -109,7 +88,7 @@ public class TicketController {
     }
 
     @PostMapping("/save")
-    public ResponseEntity<?> createOrUpdate(@RequestBody TicketRequest request, @RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> createOrUpdate(@RequestBody TicketRequest request, @RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
         String token = authHeader.substring(7);
         UUID userId = jwtUtil.getUserId(token);
         ApiResponse<TicketResponse> response = new ApiResponse<>(
@@ -136,39 +115,70 @@ public class TicketController {
 
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerReceiveTicket(#request.ticketId)")
     @PostMapping("/assign")
-    public ResponseEntity<?> assign(@RequestBody AssignTicketRequest request) {
+    public ResponseEntity<?> assign(@RequestBody AssignTicketRequest request) throws ResourceNotFoundException {
         ticketService.assign(request);
-        return ResponseEntity.noContent().build();
+        ApiResponse<String> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Ticket assigned successfully",
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity.ok(response);
     }
 
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerOfTicketOwner(#ticketId)")
     @PostMapping("/confirm/{ticketId}")
-    public ResponseEntity<?> confirm(@PathVariable UUID ticketId) {
+    public ResponseEntity<?> confirm(@PathVariable UUID ticketId) throws ResourceNotFoundException {
         ticketService.confirm(ticketId);
-        return ResponseEntity.noContent().build();
+        ApiResponse<String> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Ticket confirmed successfully",
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity.ok(response);
     }
 
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerOfTicketOwner(#request.ticketId) or @securityService.isAssigneeOfTicket(#request.ticketId)")
     @PostMapping("/reject")
-    public ResponseEntity<?> reject(@RequestHeader("Authorization") String authHeader, @RequestBody TicketRejectionDto request) {
-        String token = authHeader.substring(7);
+    public ResponseEntity<?> reject(@RequestHeader("Authorization") String authHeader,
+                                    @RequestBody TicketRejectionDto request) throws ResourceNotFoundException {
+        String token = jwtUtil.extractToken(authHeader);
         UUID userId = jwtUtil.getUserId(token);
+
         ticketService.reject(request, userId);
-        return ResponseEntity.noContent().build();
+        ApiResponse<String> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Ticket rejected successfully",
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity.ok(response);
     }
 
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isAssigneeOfTicket(#ticketId)")
     @PostMapping("/take-over/{ticketId}")
-    public ResponseEntity<?> takeOver(@PathVariable UUID ticketId) {
-
+    public ResponseEntity<?> takeOver(@PathVariable UUID ticketId) throws ResourceNotFoundException {
         ticketService.takeOver(ticketId);
-        return ResponseEntity.noContent().build();
+        ApiResponse<String> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Ticket taken over successfully",
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity.ok(response);
     }
 
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isAssigneeOfTicket(#ticketId)")
     @PostMapping("/complete/{ticketId}")
-    public ResponseEntity<?> complete(@PathVariable UUID ticketId) {
+    public ResponseEntity<?> complete(@PathVariable UUID ticketId) throws ResourceNotFoundException {
         ticketService.complete(ticketId);
-        return ResponseEntity.noContent().build();
+        ApiResponse<String> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Ticket completed successfully",
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity.ok(response);
     }
 }

@@ -29,7 +29,6 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
 
         LoginResponse loginResponse = authService.login(request);
-
         ApiResponse<LoginResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Login Successfully",
@@ -41,8 +40,6 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
-
-        System.out.println(request);
         boolean success = authService.register(request);
         String message = success ? "Register Successfully" : "Register Failed";
         ApiResponse<String> response = new ApiResponse<>(

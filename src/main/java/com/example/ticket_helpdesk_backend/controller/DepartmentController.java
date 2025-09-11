@@ -6,6 +6,7 @@ import com.example.ticket_helpdesk_backend.dto.TicketResponse;
 import com.example.ticket_helpdesk_backend.dto.UserDto;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.DepartmentService;
+import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -25,6 +26,8 @@ import java.util.UUID;
 public class DepartmentController {
     @Autowired
     private final DepartmentService departmentService;
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @GetMapping("/get-all")
     public ResponseEntity<?> getAllDepartments() {
@@ -40,7 +43,8 @@ public class DepartmentController {
     @GetMapping("/users")
     public ResponseEntity<?> getUsersDepartment(@RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
         String token = authHeader.substring(7);
-        List<UserDto> usersDepartmentList = departmentService.getUsersByDepartment(token);
+        UUID userId = jwtUtil.getUserId(token);
+        List<UserDto> usersDepartmentList = departmentService.getUsersByDepartment(userId);
         ApiResponse<List<UserDto>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "All users of Department found",

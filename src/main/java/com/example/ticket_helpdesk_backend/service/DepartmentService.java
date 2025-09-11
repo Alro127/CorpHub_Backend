@@ -40,8 +40,7 @@ public class DepartmentService {
     }
 
     @Cacheable(value = "usersByDepartment", key = "#departmentId")
-    public List<UserDto> getUsersByDepartment(String token) throws ResourceNotFoundException {
-        UUID userId = jwtUtil.getUserId(token);
+    public List<UserDto> getUsersByDepartment(UUID userId) throws ResourceNotFoundException {
         if (userId == null) {
             throw new RuntimeException("Invalid token, user id is null");
         }
