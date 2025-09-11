@@ -16,7 +16,7 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     SELECT t.* 
     FROM ticket t
     WHERE t.department_id = :departmentId
-        and t.status = 'WAITING'
+        and t.status != 'OPEN'
     """, nativeQuery = true)
   List<Ticket> findReceivedTicketByDepartmentId(@Param("departmentId") UUID departmentId);
 
@@ -28,6 +28,10 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     """, nativeQuery = true)
   List<Ticket> findSentTicketByDepartmentId(@Param("departmentId") UUID departmentId);
 
-
-  List<Ticket> findMyTicketsByRequesterId(UUID id);
+  @Query(value = """
+    SELECT t.* 
+    FROM ticket t
+    WHERE t.requester_id = :userId OR t.assignee_id = :userId
+    """, nativeQuery = true)
+  List<Ticket> findMyTickets(@Param("userId") UUID id);
 }
