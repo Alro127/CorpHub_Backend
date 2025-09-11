@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.entity;
 
+import com.example.ticket_helpdesk_backend.consts.TicketPriority;
 import com.example.ticket_helpdesk_backend.consts.TicketStatus;
 import com.example.ticket_helpdesk_backend.entity.Department;
 import jakarta.persistence.*;
@@ -50,8 +51,9 @@ public class Ticket {
     private String description;
 
     @Nationalized
+    @Enumerated(EnumType.STRING)
     @Column(name = "priority", length = 50)
-    private String priority;
+    private TicketPriority priority;
 
     @Nationalized
     @Enumerated(EnumType.STRING)

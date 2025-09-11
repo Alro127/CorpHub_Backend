@@ -8,7 +8,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -36,10 +35,10 @@ public class TicketController {
     }
 
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
-    @GetMapping("/department")
+    @GetMapping("/department/received")
     public ResponseEntity<?> getByDepartmentId(@RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
         String token = authHeader.substring(7);
-        List<TicketResponse> ticketResponseList = ticketService.getTicketByDepartmentId(token);
+        List<TicketResponse> ticketResponseList = ticketService.getReceivedTicketByDepartmentId(token);
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "All tickets found",
@@ -61,8 +60,11 @@ public class TicketController {
         );
         return ResponseEntity.ok(response);
     }
-    @GetMapping("/my-ticket/{id}")
-    public ResponseEntity<?> getMyTicket(@PathVariable UUID id) {
+    @GetMapping("/my-tickets")
+    public ResponseEntity<?> getMyTicket(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.substring(7);
+        UUID id = jwtUtil.getUserId(token);
+
         List<TicketResponse> ticketResponseList = ticketService.getMyTicket(id);
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -109,11 +111,12 @@ public class TicketController {
     @PostMapping("/save")
     public ResponseEntity<?> createOrUpdate(@RequestBody TicketRequest request, @RequestHeader("Authorization") String authHeader) {
         String token = authHeader.substring(7);
+        UUID userId = jwtUtil.getUserId(token);
         ApiResponse<TicketResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Ticket saved successfully",
                 LocalDateTime.now(),
-                ticketService.createOrUpdateTicket(request, token)
+                ticketService.createOrUpdateTicket(request, userId)
         );
 
         return ResponseEntity.ok(response);
@@ -145,16 +148,19 @@ public class TicketController {
         return ResponseEntity.noContent().build();
     }
 
-    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerOfTicketOwner(#ticketId)")
-    @PostMapping("/reject/{ticketId}")
-    public ResponseEntity<?> reject(@PathVariable UUID ticketId) {
-        ticketService.reject(ticketId);
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isManagerOfTicketOwner(#request.ticketId) or @securityService.isAssigneeOfTicket(#request.ticketId)")
+    @PostMapping("/reject")
+    public ResponseEntity<?> reject(@RequestHeader("Authorization") String authHeader, @RequestBody TicketRejectionDto request) {
+        String token = authHeader.substring(7);
+        UUID userId = jwtUtil.getUserId(token);
+        ticketService.reject(request, userId);
         return ResponseEntity.noContent().build();
     }
 
     @PreAuthorize("@securityService.isAssigneeOfTicket(#ticketId)")
     @PostMapping("/take-over/{ticketId}")
     public ResponseEntity<?> takeOver(@PathVariable UUID ticketId) {
+
         ticketService.takeOver(ticketId);
         return ResponseEntity.noContent().build();
     }
