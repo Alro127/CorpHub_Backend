@@ -39,18 +39,5 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
 
-        System.out.println(request);
-        boolean success = authService.register(request);
-        String message = success ? "Register Successfully" : "Register Failed";
-        ApiResponse<String> response = new ApiResponse<>(
-                HttpStatus.OK.value(),
-                message,
-                LocalDateTime.now(),
-                null
-        );
-        return ResponseEntity.ok(response);
-    }
 }

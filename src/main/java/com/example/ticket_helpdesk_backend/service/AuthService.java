@@ -32,12 +32,6 @@ public class AuthService {
     private UserRepository userRepository;
 
     @Autowired
-    private DepartmentRepository departmentRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
-
-    @Autowired
     private AuthenticationManager authenticationManager;
 
     @Autowired
@@ -45,12 +39,6 @@ public class AuthService {
 
     @Autowired
     private JwtUtil jwtUtil;
-    @Autowired
-    private UserService userService;
-    @Autowired
-    private ModelMapper modelMapper;
-    @Autowired
-    private RoleRepository roleRepository;
 
     public LoginResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.getEmail())
@@ -74,30 +62,4 @@ public class AuthService {
         return new LoginResponse(user.getId(), user.getFullname(), user.getEmail(), account.getRole().getName(), token );
     }
 
-    @Transactional
-    public boolean register(RegisterRequest registerRequest) {
-        if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
-            throw new RuntimeException("Email đã tồn tại");
-        }
-
-        Department department = departmentRepository.findById(registerRequest.getDepartmentId())
-                .orElseThrow(() -> new RuntimeException("Department không tồn tại"));
-
-        User user = new User();
-        user.setFullname(registerRequest.getFullName());
-        user.setEmail(registerRequest.getEmail());
-        user.setDepartment(department);
-
-        User savedUser = userRepository.save(user);
-
-        Account account = new Account();
-        account.setUser(savedUser);
-        account.setRole(roleRepository.findByName(registerRequest.getRole()).orElseThrow(() -> new RuntimeException("Role không tồn tại")));
-        account.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        account.setActive(true);
-
-        accountRepository.save(account);
-
-        return true;
-    }
 }

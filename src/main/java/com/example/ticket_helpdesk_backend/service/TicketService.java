@@ -8,6 +8,7 @@ import com.example.ticket_helpdesk_backend.entity.TicketRejection;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.*;
+import com.example.ticket_helpdesk_backend.util.DynamicSearchUtil;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -99,12 +101,22 @@ public class TicketService {
                 .collect(Collectors.toList());
     }
 
-//    public List<TicketResponse> searchTickets(String title, Integer category, String status, String priority,
-//                                              Integer requesterId, Integer assignedToId) {
-//        return ticketRepository.searchTickets(title, category, status, priority, requesterId, assignedToId).stream()
-//                .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
-//                .collect(Collectors.toList());
-//    }
+    @Autowired
+    private DynamicSearchUtil dynamicSearchService;
+
+    private static final Set<String> ALLOWED_FILTERS = Set.of("status", "priority", "assignee");
+    private static final Set<String> ALLOWED_SORTS = Set.of("createDate", "priority", "status");
+
+    public List<Ticket> searchTickets(TicketFilterRequest request) {
+        return dynamicSearchService.search(
+                Ticket.class,
+                request.getFilters(),
+                request.getSort(),
+                request.getPagination(),
+                ALLOWED_FILTERS,
+                ALLOWED_SORTS
+        );
+    }
 
     public List<TicketCategoryDto> getCategories() {
         return ticketCategoryRepository.findAll().stream()
