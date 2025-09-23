@@ -2,10 +2,13 @@ package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.AttendeeStatus;
 import com.example.ticket_helpdesk_backend.dto.MeetingRequest;
+import com.example.ticket_helpdesk_backend.dto.MeetingResponse;
 import com.example.ticket_helpdesk_backend.entity.Attendee;
 import com.example.ticket_helpdesk_backend.entity.Meeting;
 import com.example.ticket_helpdesk_backend.repository.AttendeeRepository;
 import com.example.ticket_helpdesk_backend.repository.MeetingRepository;
+import org.modelmapper.ModelMapper;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,9 +16,13 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class MeetingService {
+
+    @Autowired
+    ModelMapper modelMapper;
 
     private final MeetingRepository meetingRepository;
     private final AttendeeRepository attendeeRepository;
@@ -65,8 +72,20 @@ public class MeetingService {
     }
 
     // Lấy danh sách tất cả cuộc họp
-    public List<Meeting> getAllMeetings() {
-        return meetingRepository.findAll();
+    public List<MeetingResponse> getAllMeetings() {
+        return meetingRepository.findAll().stream()
+                .map((meeting) -> {
+                    MeetingResponse dto = modelMapper.map(meeting, MeetingResponse.class);
+
+                    List<String> emails = meeting.getAttendees().stream()
+                            .map(Attendee::getEmail)
+                            .collect(Collectors.toList());
+
+                    dto.setAttendeesEmails(emails);
+                    return dto;
+
+                })
+                .collect(Collectors.toList());
     }
 
     // Lấy chi tiết 1 cuộc họp

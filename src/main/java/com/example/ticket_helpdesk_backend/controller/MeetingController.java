@@ -2,6 +2,7 @@ package com.example.ticket_helpdesk_backend.controller;
 
 import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import com.example.ticket_helpdesk_backend.dto.MeetingRequest;
+import com.example.ticket_helpdesk_backend.dto.MeetingResponse;
 import com.example.ticket_helpdesk_backend.entity.Meeting;
 import com.example.ticket_helpdesk_backend.service.EmailService;
 import com.example.ticket_helpdesk_backend.service.MeetingService;
@@ -49,7 +50,7 @@ public class MeetingController {
     }
 
     @GetMapping
-    public ApiResponse<List<Meeting>> getAllMeetings() {
+    public ApiResponse<List<MeetingResponse>> getAllMeetings() {
         return new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Fetched meetings successfully",
