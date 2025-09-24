@@ -86,34 +86,14 @@ public class MeetingController {
         }
     }
 
-    @PutMapping("/{id}")
-    public ApiResponse<Meeting> updateMeeting(@PathVariable UUID id, @RequestBody MeetingRequest req) {
-        try {
-            Meeting updated = meetingService.updateMeeting(id, req);
-            return new ApiResponse<>(
-                    HttpStatus.OK.value(),
-                    "Updated meeting successfully",
-                    LocalDateTime.now(),
-                    updated
-            );
-        } catch (IllegalArgumentException e) {
-            return new ApiResponse<>(
-                    HttpStatus.NOT_FOUND.value(),
-                    e.getMessage(),
-                    LocalDateTime.now(),
-                    null
-            );
-        }
-    }
-
     @DeleteMapping("/{id}")
-    public ApiResponse<String> deleteMeeting(@PathVariable UUID id) {
+    public ApiResponse<UUID> deleteMeeting(@PathVariable UUID id) {
         boolean ok = meetingService.deleteMeeting(id);
         return new ApiResponse<>(
                 ok ? HttpStatus.OK.value() : HttpStatus.NOT_FOUND.value(),
                 ok ? "Meeting deleted successfully" : "Meeting not found",
                 LocalDateTime.now(),
-                ok ? "deleted_id=" + id : null
+                ok ? id : null
         );
     }
 }
