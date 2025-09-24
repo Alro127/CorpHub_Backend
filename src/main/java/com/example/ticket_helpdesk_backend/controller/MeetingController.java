@@ -35,13 +35,12 @@ public class MeetingController {
     }
 
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
-    @PostMapping("/invite")
-    public ApiResponse<String> sendInvite(@RequestHeader("Authorization") String authHeader, @RequestBody MeetingRequest request) throws Exception {
+    @PostMapping("/save")
+    public ApiResponse<MeetingResponse> saveMeeting(@RequestHeader("Authorization") String authHeader, @RequestBody MeetingRequest request) throws Exception {
         String token = authHeader.substring(7);
-
         User user = userService.getUserFromToken(token);
 
-        Meeting saved = meetingService.createMeeting(request, user.getEmail());
+        MeetingResponse saved = meetingService.saveMeeting(request, user.getEmail());
 
         // Tạm thời bỏ qua để tạo dữ liệu
         //emailService.sendMeetingInvite(request, user.getEmail());
@@ -50,7 +49,7 @@ public class MeetingController {
                 HttpStatus.OK.value(),
                 "Meeting invite sent & saved successfully",
                 LocalDateTime.now(),
-                "meeting_id=" + saved.getId()
+                saved
         );
     }
 

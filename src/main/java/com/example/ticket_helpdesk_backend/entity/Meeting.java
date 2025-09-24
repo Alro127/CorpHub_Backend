@@ -31,6 +31,12 @@ public class Meeting {
     @Column(name = "title", nullable = false)
     private String title;
 
+    @NotNull
+    @Size(max = 255)
+    @Nationalized
+    @Column(name = "subject", nullable = false)
+    private String subject;
+
     @Nationalized
     @Lob
     @Column(name = "description")

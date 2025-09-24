@@ -39,20 +39,20 @@ public class MeetingService {
         this.userRepository = userRepository;
     }
 
-    private List<MeetingResponse> mapToMeetingResponse(List<Meeting> meetings) {
-        return meetings.stream()
-                .map((meeting) -> {
-                    MeetingResponse dto = modelMapper.map(meeting, MeetingResponse.class);
+    private MeetingResponse mapToMeetingResponse(Meeting meeting) {
+        if (meeting == null) return null;
 
-                    List<String> emails = meeting.getAttendees().stream()
-                            .map(Attendee::getEmail)
-                            .collect(Collectors.toList());
+        MeetingResponse dto = modelMapper.map(meeting, MeetingResponse.class);
 
-                    dto.setAttendeesEmails(emails);
-                    return dto;
-
-                })
+        List<String> emails = (meeting.getAttendees() == null)
+                ? Collections.emptyList()
+                : meeting.getAttendees().stream()
+                .map(Attendee::getEmail)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList());
+
+        dto.setAttendeesEmails(emails);
+        return dto;
     }
 
     /**
@@ -61,38 +61,72 @@ public class MeetingService {
      * - Lưu danh sách Attendees (PENDING) gắn với Meeting
      */
     @Transactional
-    public Meeting createMeeting(MeetingRequest req, String organizerEmail) {
-        // Map request -> entity Meeting
-        Meeting meeting = new Meeting();
+    public MeetingResponse saveMeeting(MeetingRequest req, String organizerEmail) {
+        // 1. Lấy hoặc tạo meeting
+        Meeting meeting;
+        if (req.getId() == null) {
+            meeting = new Meeting();
+            meeting.setCreatedAt(LocalDateTime.now());
+        } else {
+            meeting = meetingRepository.findById(req.getId())
+                    .orElseThrow(() -> new RuntimeException("Không tìm thấy meeting"));
+        }
 
+        // 2. Cập nhật các trường
         meeting.setTitle(req.getTitle());
+        meeting.setSubject(req.getSubject());
         meeting.setDescription(req.getDescription());
         meeting.setLocation(req.getLocation());
         meeting.setOnlineLink(req.getOnlineLink());
         meeting.setStartTime(req.getStart());
         meeting.setEndTime(req.getEnd());
         meeting.setOrganizerEmail(organizerEmail);
-        meeting.setCreatedAt(LocalDateTime.now());
         meeting.setUpdatedAt(LocalDateTime.now());
 
-        // Lưu meeting trước để có meetingId
+        // 3. Lưu meeting trước để có ID
         Meeting saved = meetingRepository.save(meeting);
 
-        // Lưu attendees
-        if (req.getTo() != null && !req.getTo().isEmpty()) {
-            List<Attendee> list = new ArrayList<>();
-            for (String email : req.getTo()) {
-                Attendee a = new Attendee();
-                a.setEmail(email);
-                a.setStatus(AttendeeStatus.PENDING); // mặc định pending
-                a.setMeeting(saved);
-                list.add(a);
-            }
-            attendeeRepository.saveAll(list);
+        // 4. Đồng bộ attendees (nếu có truyền danh sách)
+        List<String> newEmails = req.getTo() != null ? req.getTo() : Collections.emptyList();
+
+        // Lấy danh sách cũ
+        List<Attendee> oldAttendees = attendeeRepository.findByMeeting(saved);
+        List<String> oldEmails = oldAttendees.stream()
+                .map(Attendee::getEmail)
+                .toList();
+
+        // Tìm người cần xóa
+        List<Attendee> toRemove = oldAttendees.stream()
+                .filter(a -> !newEmails.contains(a.getEmail()))
+                .toList();
+
+        // Tìm người cần thêm
+        List<String> toAdd = newEmails.stream()
+                .filter(email -> !oldEmails.contains(email))
+                .toList();
+
+        // Xóa những người không còn trong danh sách
+        if (!toRemove.isEmpty()) {
+            attendeeRepository.deleteAll(toRemove);
         }
 
-        return saved;
+        // Thêm người mới
+        if (!toAdd.isEmpty()) {
+            List<Attendee> newAttendees = new ArrayList<>();
+            for (String email : toAdd) {
+                Attendee a = new Attendee();
+                a.setEmail(email);
+                a.setStatus(AttendeeStatus.PENDING);
+                a.setMeeting(saved);
+                newAttendees.add(a);
+            }
+            attendeeRepository.saveAll(newAttendees);
+        }
+
+        // 5. Trả về response
+        return mapToMeetingResponse(saved);
     }
+
 
     public List<MeetingResponse> getMeetings(UUID userId) {
         if (userId == null) {
@@ -131,7 +165,7 @@ public class MeetingService {
     // Lấy danh sách tất cả cuộc họp
     public List<MeetingResponse> getAllMeetings() {
         List<Meeting> meetings = meetingRepository.findAll();
-        return mapToMeetingResponse(meetings);
+        return meetings.stream().map(this::mapToMeetingResponse).collect(Collectors.toList());
     }
 
     public List<MeetingResponse> getAllMeetingsByEmail(String email) {
@@ -140,7 +174,7 @@ public class MeetingService {
         attendees.forEach(attendee -> {
             meetings.add(attendee.getMeeting());
         });
-        return mapToMeetingResponse(meetings);
+        return meetings.stream().map(this::mapToMeetingResponse).collect(Collectors.toList());
     }
 
     public List<MeetingResponse> getAllMeetingByEmails(List<String> emails) {
@@ -164,7 +198,7 @@ public class MeetingService {
                 .toList();
 
         // 4. Map sang response
-        return mapToMeetingResponse(combinedMeetings);
+        return combinedMeetings.stream().map(this::mapToMeetingResponse).collect(Collectors.toList());
     }
 
     // Lấy chi tiết 1 cuộc họp
@@ -176,25 +210,6 @@ public class MeetingService {
     // Lấy attendees theo meeting
     public List<Attendee> getAttendeesByMeeting(UUID meetingId) {
         return attendeeRepository.findByMeeting_Id(meetingId);
-    }
-
-    /**
-     * Cập nhật thông tin meeting (KHÔNG đụng tới attendees ở đây).
-     */
-    @Transactional
-    public Meeting updateMeeting(UUID meetingId, MeetingRequest req) {
-        Meeting meeting = getMeetingOrThrow(meetingId);
-
-        // Update các trường; chỉ update nếu request có (tuỳ nhu cầu, ở đây update thẳng)
-        meeting.setTitle(req.getTitle());
-        meeting.setDescription(req.getDescription());
-        meeting.setLocation(req.getLocation());
-        meeting.setOnlineLink(req.getOnlineLink());
-        meeting.setStartTime(req.getStart());
-        meeting.setEndTime(req.getEnd());
-        meeting.setUpdatedAt(LocalDateTime.now());
-
-        return meetingRepository.save(meeting);
     }
 
     @Transactional
