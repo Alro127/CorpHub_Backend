@@ -31,7 +31,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
-    public void sendMeetingInvite(MeetingRequest req) throws Exception {
+    public void sendMeetingInvite(MeetingRequest req, String organizerEmail) throws Exception {
         String uid = UUID.randomUUID().toString();
 
         String[] attendees = req.getTo().toArray(new String[0]);
@@ -44,7 +44,7 @@ public class EmailService {
                 req.getOnlineLink(),
                 req.getStart().atZone(ZoneId.systemDefault()),
                 req.getEnd().atZone(ZoneId.systemDefault()),
-                req.getOrganizer(),
+                organizerEmail,
                 attendees
         );
 

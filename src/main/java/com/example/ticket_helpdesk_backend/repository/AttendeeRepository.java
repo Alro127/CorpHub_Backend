@@ -10,4 +10,8 @@ import java.util.UUID;
 @Repository
 public interface AttendeeRepository extends JpaRepository<Attendee, UUID> {
     List<Attendee> findByMeeting_Id(UUID meetingId);
+
+    List<Attendee> findByEmail(String email);
+
+    List<Attendee> findByEmailIn(List<String> emails);
 }

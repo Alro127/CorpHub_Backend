@@ -11,4 +11,7 @@ import java.util.UUID;
 @Repository
 public interface MeetingRepository extends JpaRepository<Meeting, UUID> {
 
+    List<Meeting> findAllByOrganizerEmail(String email);
+
+    List<Meeting> findAllByOrganizerEmailIn(List<String> emails);
 }

@@ -4,9 +4,14 @@ import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import com.example.ticket_helpdesk_backend.dto.MeetingRequest;
 import com.example.ticket_helpdesk_backend.dto.MeetingResponse;
 import com.example.ticket_helpdesk_backend.entity.Meeting;
+import com.example.ticket_helpdesk_backend.entity.User;
+import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.EmailService;
 import com.example.ticket_helpdesk_backend.service.MeetingService;
+import com.example.ticket_helpdesk_backend.service.UserService;
+import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -19,43 +24,44 @@ public class MeetingController {
 
     private final EmailService emailService;
     private final MeetingService meetingService;
+    private final JwtUtil jwtUtil;
+    private final UserService userService;
 
-    public MeetingController(EmailService emailService, MeetingService meetingService) {
+    public MeetingController(EmailService emailService, MeetingService meetingService, JwtUtil jwtUtil, UserService userService) {
         this.emailService = emailService;
         this.meetingService = meetingService;
+        this.jwtUtil = jwtUtil;
+        this.userService = userService;
     }
 
-    // Tạo + Lưu DB + Gửi invite (.ics)
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
     @PostMapping("/invite")
-    public ApiResponse<String> sendInvite(@RequestBody MeetingRequest request) {
-        try {
-            Meeting saved = meetingService.createMeeting(request);
-            emailService.sendMeetingInvite(request);
+    public ApiResponse<String> sendInvite(@RequestHeader("Authorization") String authHeader, @RequestBody MeetingRequest request) throws Exception {
+        String token = authHeader.substring(7);
 
-            return new ApiResponse<>(
-                    HttpStatus.OK.value(),
-                    "Meeting invite sent & saved successfully",
-                    LocalDateTime.now(),
-                    "meeting_id=" + saved.getId()
-            );
-        } catch (Exception e) {
-            System.out.println(e.getMessage());
-            return new ApiResponse<>(
-                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                    "Failed to send invite: " + e.getMessage(),
-                    LocalDateTime.now(),
-                    null
-            );
-        }
+        User user = userService.getUserFromToken(token);
+
+        Meeting saved = meetingService.createMeeting(request, user.getEmail());
+        emailService.sendMeetingInvite(request, user.getEmail());
+
+        return new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Meeting invite sent & saved successfully",
+                LocalDateTime.now(),
+                "meeting_id=" + saved.getId()
+        );
     }
 
     @GetMapping
-    public ApiResponse<List<MeetingResponse>> getAllMeetings() {
+    public ApiResponse<List<MeetingResponse>> getAllMeetings(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.substring(7);
+        UUID userId = jwtUtil.getUserId(token);
+
         return new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Fetched meetings successfully",
                 LocalDateTime.now(),
-                meetingService.getAllMeetings()
+                meetingService.getMeetings(userId)
         );
     }
 

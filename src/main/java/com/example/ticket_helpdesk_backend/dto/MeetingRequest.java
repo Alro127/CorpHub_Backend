@@ -14,5 +14,4 @@ public class MeetingRequest {
     private String onlineLink;     // link họp online
     private LocalDateTime start;   // thời gian bắt đầu
     private LocalDateTime end;     // thời gian kết thúc
-    private String organizer;      // email người tổ chức
 }
