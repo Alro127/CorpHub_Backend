@@ -12,10 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -80,6 +77,19 @@ public class UserController {
                 "User info",
                 LocalDateTime.now(),
                 userDto
+        );
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
+    @GetMapping("/search")
+    public ResponseEntity<?> getUsersBySearch(@RequestParam("keyword") String keyword) {
+        ApiResponse<List<UserDto>> apiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "User list",
+                LocalDateTime.now(),
+                userService.getUsersBySearch(keyword)
         );
 
         return ResponseEntity.ok(apiResponse);

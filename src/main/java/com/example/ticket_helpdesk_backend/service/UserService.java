@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -84,5 +85,9 @@ public class UserService {
         } catch (IllegalArgumentException e) {
             throw new ResourceNotFoundException("Invalid role " + role);
         }
+    }
+
+    public List<UserDto> getUsersBySearch(String keyword) {
+        return userRepository.searchByeFullNameOrEmail(keyword).stream().map((element) -> modelMapper.map(element, UserDto.class)).collect(Collectors.toList());
     }
 }

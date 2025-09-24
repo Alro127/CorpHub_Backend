@@ -42,7 +42,9 @@ public class MeetingController {
         User user = userService.getUserFromToken(token);
 
         Meeting saved = meetingService.createMeeting(request, user.getEmail());
-        emailService.sendMeetingInvite(request, user.getEmail());
+
+        // Tạm thời bỏ qua để tạo dữ liệu
+        //emailService.sendMeetingInvite(request, user.getEmail());
 
         return new ApiResponse<>(
                 HttpStatus.OK.value(),
