@@ -29,7 +29,6 @@ public class AuthController {
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
 
         LoginResponse loginResponse = authService.login(request);
-
         ApiResponse<LoginResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Login Successfully",
@@ -38,6 +37,5 @@ public class AuthController {
         );
         return ResponseEntity.ok(response);
     }
-
 
 }

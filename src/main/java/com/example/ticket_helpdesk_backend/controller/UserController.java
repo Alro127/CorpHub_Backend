@@ -3,6 +3,7 @@ package com.example.ticket_helpdesk_backend.controller;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.UserService;
+import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,6 +22,9 @@ public class UserController {
 
     @Autowired
     UserService userService;
+
+    @Autowired
+    JwtUtil jwtUtil;
 
     @PreAuthorize("@securityService.hasRole('ADMIN')")
     @GetMapping("/get-all")
@@ -64,7 +68,7 @@ public class UserController {
         return ResponseEntity.ok(apiResponse);
     }
     @GetMapping("/my-info")
-    public ResponseEntity<?> getUserInfo() {
+    public ResponseEntity<?> getUserInfo() throws ResourceNotFoundException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         UserDto userDto = userService.getUserDtoByEmail(authentication.getPrincipal().toString());
         ApiResponse<UserDto> apiResponse = new ApiResponse<>(
@@ -104,6 +108,19 @@ public class UserController {
                 "User found",
                 LocalDateTime.now(),
                 user
+        );
+
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
+    @GetMapping("/search")
+    public ResponseEntity<?> getUsersBySearch(@RequestParam("keyword") String keyword) {
+        ApiResponse<List<UserDto>> apiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "User list",
+                LocalDateTime.now(),
+                userService.getUsersBySearch(keyword)
         );
 
         return ResponseEntity.ok(apiResponse);

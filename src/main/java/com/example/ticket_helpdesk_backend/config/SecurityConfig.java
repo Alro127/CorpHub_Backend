@@ -4,7 +4,8 @@ import com.example.ticket_helpdesk_backend.entity.Account;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.security.handler.CustomAccessDeniedHandler;
 import com.example.ticket_helpdesk_backend.security.handler.CustomAuthenticationEntryPoint;
-import com.example.ticket_helpdesk_backend.security.filter.JwtAuthFilter;
+import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
+import com.example.ticket_helpdesk_backend.filter.JwtAuthFilter;
 import com.example.ticket_helpdesk_backend.service.AccountService;
 import com.example.ticket_helpdesk_backend.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -107,7 +108,12 @@ public class SecurityConfig {
     @Bean
     public UserDetailsService userDetailsService(UserService userService, AccountService accountService) {
         return username -> {
-            User user = userService.getUserByEmail(username);
+            User user = null;
+            try {
+                user = userService.getUserByEmail(username);
+            } catch (ResourceNotFoundException e) {
+                throw new RuntimeException(e);
+            }
             Account account = accountService.getAccountById(user.getId());
             if (account == null) {
                 throw new UsernameNotFoundException("User not found");

@@ -65,6 +65,12 @@ public class JwtUtil {
         return UUID.fromString(userIdStr);
     }
 
+    public String extractToken(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new RuntimeException("Invalid Authorization header");
+        }
+        return authHeader.substring(7);
+    }
 
     public Date getExpirationDate(String token) {
         return extractAllClaims(token).getExpiration();
@@ -77,5 +83,4 @@ public class JwtUtil {
                 .parseClaimsJws(token)
                 .getBody();
     }
-
 }
