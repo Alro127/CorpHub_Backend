@@ -10,6 +10,7 @@ import com.example.ticket_helpdesk_backend.service.EmailService;
 import com.example.ticket_helpdesk_backend.service.MeetingService;
 import com.example.ticket_helpdesk_backend.service.UserService;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -54,36 +55,38 @@ public class MeetingController {
     }
 
     @GetMapping
-    public ApiResponse<List<MeetingResponse>> getAllMeetings(@RequestHeader("Authorization") String authHeader) {
+    public ApiResponse<List<MeetingResponse>> getAllMeetings(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
+            @RequestParam(required = false)
+            @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
+            @RequestParam(required = false) List<String> emails
+    ) {
         String token = authHeader.substring(7);
         UUID userId = jwtUtil.getUserId(token);
+
+        List<MeetingResponse> meetings = meetingService.getMeetings(userId, startTime, endTime, emails);
 
         return new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Fetched meetings successfully",
                 LocalDateTime.now(),
-                meetingService.getMeetings(userId)
+                meetings
         );
     }
 
+
     @GetMapping("/{id}")
     public ApiResponse<Meeting> getMeeting(@PathVariable UUID id) {
-        try {
-            Meeting m = meetingService.getMeetingOrThrow(id);
-            return new ApiResponse<>(
-                    HttpStatus.OK.value(),
-                    "Fetched meeting successfully",
-                    LocalDateTime.now(),
-                    m
-            );
-        } catch (IllegalArgumentException e) {
-            return new ApiResponse<>(
-                    HttpStatus.NOT_FOUND.value(),
-                    e.getMessage(),
-                    LocalDateTime.now(),
-                    null
-            );
-        }
+        Meeting m = meetingService.getMeetingOrThrow(id);
+        return new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Fetched meeting successfully",
+                LocalDateTime.now(),
+                m
+        );
+
     }
 
     @DeleteMapping("/{id}")
@@ -94,6 +97,19 @@ public class MeetingController {
                 ok ? "Meeting deleted successfully" : "Meeting not found",
                 LocalDateTime.now(),
                 ok ? id : null
+        );
+    }
+
+    @PutMapping("/{id}/confirm")
+    public ApiResponse<MeetingResponse> confirmAttend(@RequestHeader("Authorization") String authHeader, @PathVariable UUID id, @RequestParam Boolean isAccepted) throws ResourceNotFoundException {
+        String token = authHeader.substring(7);
+        User user = userService.getUserFromToken(token);
+        MeetingResponse saved = meetingService.setStatus(id, isAccepted, user);
+        return new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Meeting updates status successfully",
+                LocalDateTime.now(),
+                saved
         );
     }
 }

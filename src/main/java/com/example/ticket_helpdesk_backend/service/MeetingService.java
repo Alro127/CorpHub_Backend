@@ -1,17 +1,22 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.AttendeeStatus;
+import com.example.ticket_helpdesk_backend.dto.AttendeeResponse;
 import com.example.ticket_helpdesk_backend.dto.MeetingRequest;
 import com.example.ticket_helpdesk_backend.dto.MeetingResponse;
 import com.example.ticket_helpdesk_backend.entity.Attendee;
 import com.example.ticket_helpdesk_backend.entity.Meeting;
 import com.example.ticket_helpdesk_backend.entity.User;
+import com.example.ticket_helpdesk_backend.exception.AuthException;
 import com.example.ticket_helpdesk_backend.repository.AttendeeRepository;
 import com.example.ticket_helpdesk_backend.repository.MeetingRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
 
+import com.example.ticket_helpdesk_backend.specification.MeetingSpecifications;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +24,8 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
+
+import static com.example.ticket_helpdesk_backend.specification.MeetingSpecifications.*;
 
 @Service
 public class MeetingService {
@@ -42,24 +49,32 @@ public class MeetingService {
     private MeetingResponse mapToMeetingResponse(Meeting meeting) {
         if (meeting == null) return null;
 
+        // Dùng ModelMapper để map các trường cơ bản
         MeetingResponse dto = modelMapper.map(meeting, MeetingResponse.class);
 
-        List<String> emails = (meeting.getAttendees() == null)
+        List<AttendeeResponse> attendees = (meeting.getAttendees() == null)
                 ? Collections.emptyList()
                 : meeting.getAttendees().stream()
-                .map(Attendee::getEmail)
                 .filter(Objects::nonNull)
+                .map(attendee -> {
+                    AttendeeResponse ar = new AttendeeResponse();
+                    ar.setEmail(attendee.getEmail());
+                    ar.setStatus(attendee.getStatus());
+                    return ar;
+                })
                 .collect(Collectors.toList());
 
-        dto.setAttendeesEmails(emails);
+        dto.setAttendees(attendees);
         return dto;
     }
 
-    /**
-     * Tạo mới cuộc họp từ MeetingRequest:
-     * - Lưu Meeting (title, description, location, onlineLink, start/end, organizer)
-     * - Lưu danh sách Attendees (PENDING) gắn với Meeting
-     */
+
+    private List<MeetingResponse> mapMeetingsToResponse(List<Meeting> meetings) {
+        return meetings.stream()
+                .map(this::mapToMeetingResponse)
+                .toList();
+    }
+
     @Transactional
     public MeetingResponse saveMeeting(MeetingRequest req, String organizerEmail) {
         // 1. Lấy hoặc tạo meeting
@@ -70,6 +85,10 @@ public class MeetingService {
         } else {
             meeting = meetingRepository.findById(req.getId())
                     .orElseThrow(() -> new RuntimeException("Không tìm thấy meeting"));
+
+            if (!meeting.getOrganizerEmail().equals(organizerEmail)) {
+                throw new AuthException("Không đúng người dùng");
+            }
         }
 
         // 2. Cập nhật các trường
@@ -108,6 +127,8 @@ public class MeetingService {
         // Xóa những người không còn trong danh sách
         if (!toRemove.isEmpty()) {
             attendeeRepository.deleteAll(toRemove);
+            attendeeRepository.flush();
+            System.out.println("đã xóa" + toRemove.stream().map(Attendee::getEmail).toList());
         }
 
         // Thêm người mới
@@ -128,77 +149,70 @@ public class MeetingService {
     }
 
 
-    public List<MeetingResponse> getMeetings(UUID userId) {
-        if (userId == null) {
-            System.out.println("userId is null");
-            return Collections.emptyList();
-        }
+    public List<MeetingResponse> getMeetings(UUID userId,
+                                             LocalDateTime startTime,
+                                             LocalDateTime endTime,
+                                             List<String> emails) {
+        if (userId == null) return Collections.emptyList();
+
         if (accountService.isAdmin(userId)) {
-            System.out.println("account is admin");
-            return getAllMeetings();
+            return getAllMeetings(startTime, endTime, emails);
         }
+
         if (accountService.isManager(userId)) {
-            System.out.println("account is manager");
             User manager = userRepository.findById(userId).orElse(null);
-            if (manager == null) {
-                return Collections.emptyList();
-            }
+            if (manager == null) return Collections.emptyList();
+
             UUID departmentId = manager.getDepartment().getId();
-            List<User> employees = userRepository.findByDepartment_Id(departmentId);
-            List<String> emails = employees.stream()
-                    .map(User::getEmail)
-                    .toList();
-            return getAllMeetingByEmails(emails);
-        }
-        if (accountService.isUser(userId)) {
-            System.out.println("account is user");
-            User employee = userRepository.findById(userId).orElse(null);
-            if (employee == null) {
-                return Collections.emptyList();
+            if (emails == null || emails.isEmpty()) {
+                emails = userRepository.findByDepartment_Id(departmentId)
+                        .stream()
+                        .map(User::getEmail)
+                        .toList();
             }
-            return getAllMeetingsByEmail(employee.getEmail());
+            return getAllMeetingByEmails(startTime, endTime, emails);
         }
-        System.out.println("nothing to show");
+
+        if (accountService.isUser(userId)) {
+            User employee = userRepository.findById(userId).orElse(null);
+            if (employee == null) return Collections.emptyList();
+            return getAllMeetingsByEmail(employee.getEmail(), startTime, endTime);
+        }
+
         return Collections.emptyList();
     }
 
-    // Lấy danh sách tất cả cuộc họp
-    public List<MeetingResponse> getAllMeetings() {
-        List<Meeting> meetings = meetingRepository.findAll();
-        return meetings.stream().map(this::mapToMeetingResponse).collect(Collectors.toList());
+    public List<MeetingResponse> getAllMeetings(LocalDateTime startTime,
+                                                LocalDateTime endTime,
+                                                List<String> emails) {
+        Specification<Meeting> spec = Specification.where(startAfter(startTime))
+                .and(endBefore(endTime))
+                .and(hasEmails(emails));
+
+        return mapMeetingsToResponse(meetingRepository.findAll(spec, Sort.by("startTime")));
     }
 
-    public List<MeetingResponse> getAllMeetingsByEmail(String email) {
-        List<Meeting> meetings = meetingRepository.findAllByOrganizerEmail(email);
-        List<Attendee> attendees = attendeeRepository.findByEmail(email);
-        attendees.forEach(attendee -> {
-            meetings.add(attendee.getMeeting());
-        });
-        return meetings.stream().map(this::mapToMeetingResponse).collect(Collectors.toList());
+    public List<MeetingResponse> getAllMeetingsByEmail(String email,
+                                                       LocalDateTime startTime,
+                                                       LocalDateTime endTime) {
+        Specification<Meeting> spec = organizedBy(email)
+                .or(joinedBy(email))
+                .and(startAfter(startTime))
+                .and(endBefore(endTime));
+
+        return mapMeetingsToResponse(meetingRepository.findAll(spec, Sort.by("startTime")));
     }
 
-    public List<MeetingResponse> getAllMeetingByEmails(List<String> emails) {
-        if (emails == null || emails.isEmpty()) {
-            return Collections.emptyList();
-        }
+    public List<MeetingResponse> getAllMeetingByEmails(LocalDateTime startTime,
+                                                       LocalDateTime endTime,
+                                                       List<String> emails) {
+        if (emails == null || emails.isEmpty()) return Collections.emptyList();
 
-        // 1. Lấy meetings mà người tổ chức nằm trong danh sách email
-        List<Meeting> organizerMeetings = meetingRepository.findAllByOrganizerEmailIn(emails);
+        Specification<Meeting> spec = organizedOrJoinedBy(emails)
+                .and(startAfter(startTime))
+                .and(endBefore(endTime));
 
-        // 2. Lấy tất cả attendees thuộc danh sách email (tránh query từng email)
-        List<Attendee> attendees = attendeeRepository.findByEmailIn(emails);
-        List<Meeting> attendeeMeetings = attendees.stream()
-                .map(Attendee::getMeeting)
-                .toList();
-
-        // 3. Gộp 2 danh sách và loại bỏ trùng bằng Set
-        Set<UUID> uniqueMeetingIds = new HashSet<>();
-        List<Meeting> combinedMeetings = Stream.concat(organizerMeetings.stream(), attendeeMeetings.stream())
-                .filter(meeting -> uniqueMeetingIds.add(meeting.getId())) // chỉ giữ meeting chưa xuất hiện
-                .toList();
-
-        // 4. Map sang response
-        return combinedMeetings.stream().map(this::mapToMeetingResponse).collect(Collectors.toList());
+        return mapMeetingsToResponse(meetingRepository.findAll(spec, Sort.by("startTime")));
     }
 
     // Lấy chi tiết 1 cuộc họp
@@ -219,5 +233,14 @@ public class MeetingService {
             return true;
         }
         return false;
+    }
+
+    public MeetingResponse setStatus(UUID id, boolean isAccepted, User user) {
+        Attendee attendee = attendeeRepository.findByMeeting_IdAndEmail(id, user.getEmail());
+        if (attendee == null)
+            throw new IllegalArgumentException("Attendee not found: " + id);
+        attendee.setStatus(isAccepted ? AttendeeStatus.ACCEPTED : AttendeeStatus.REJECTED);
+
+        return mapToMeetingResponse(attendeeRepository.save(attendee).getMeeting());
     }
 }
