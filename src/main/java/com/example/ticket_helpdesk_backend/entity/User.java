@@ -9,56 +9,43 @@ import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
+@Entity
+@Table(name = "[user]")
 @Getter
 @Setter
-@Entity
-@Table(name = "\"user\"")
 public class User {
     @Id
-    @GeneratedValue(generator = "UUID")
-    @org.hibernate.annotations.GenericGenerator(
-            name = "UUID",
-            strategy = "org.hibernate.id.UUIDGenerator"
-    )
-    @Column(name = "id", updatable = false, nullable = false)
+    @GeneratedValue(strategy = GenerationType.UUID)
+    @Column(columnDefinition = "uniqueidentifier")
     private UUID id;
 
-    @Size(max = 100)
+    @Column(nullable = false, unique = true, length = 100)
+    private String username; // hoặc workEmail
+
+    @Column(nullable = false)
+    private String password; // hashed (BCrypt)
+
+    @Column(nullable = false)
+    private Boolean active = true;
+
     @NotNull
-    @Nationalized
-    @Column(name = "fullname", nullable = false, length = 100)
-    private String fullname;
-
-    @Size(max = 10)
-    @Nationalized
-    @Column(name = "gender", length = 10)
-    private String gender;
-
-    @Column(name = "dob")
-    private LocalDate dob;
-
-    @Size(max = 255)
-    @Nationalized
-    @Column(name = "email")
-    private String email;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "role_id", nullable = false)
+    private Role role;
 
     @Size(max = 20)
     @Nationalized
-    @Column(name = "phone", length = 20)
-    private String phone;
+    @Column(name = "otp", length = 20)
+    private String otp;
 
-    @Size(max = 50)
-    @Nationalized
-    @Column(name = "type", length = 50)
-    private String type;
+    @Column(name = "expired", nullable = false)
+    private LocalDateTime expired;
 
-    @Column(name = "start_date")
-    private LocalDate startDate;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
-    private Department department;
-
+    // Liên kết 1-1 tới EmployeeProfile
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "employee_id", unique = true)
+    private EmployeeProfile employeeProfile;
 }

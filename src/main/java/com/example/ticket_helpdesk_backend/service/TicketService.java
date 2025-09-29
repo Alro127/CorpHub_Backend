@@ -103,37 +103,74 @@ public class TicketService {
     // ================== Services ==================
     public List<TicketResponse> getAll() {
         return ticketRepository.findAll().stream()
-                .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
+                .map(this::toResponse)
                 .collect(Collectors.toList());
     }
 
     public List<TicketResponse> getReceivedTicketByDepartmentId(String token) throws ResourceNotFoundException {
         User user = userService.getUserFromToken(token);
-        UUID departmentId = Optional.ofNullable(user.getDepartment())
+        UUID departmentId = Optional.ofNullable(user.getEmployeeProfile().getDepartment())
                 .orElseThrow(() -> new ResourceNotFoundException("User has no department assigned"))
                 .getId();
 
         return ticketRepository.findReceivedTicketByDepartmentId(departmentId)
-                .stream().map(ticket -> modelMapper.map(ticket, TicketResponse.class))
+                .stream()
+                .map(this::toResponse)
                 .toList();
     }
 
     public List<TicketResponse> getSentTicketByDepartmentId(String token) throws ResourceNotFoundException {
         User user = userService.getUserFromToken(token);
-        UUID departmentId = Optional.ofNullable(user.getDepartment())
+        UUID departmentId = Optional.ofNullable(user.getEmployeeProfile().getDepartment())
                 .orElseThrow(() -> new ResourceNotFoundException("User has no department assigned"))
                 .getId();
 
         return ticketRepository.findSentTicketByDepartmentId(departmentId)
-                .stream().map(ticket -> modelMapper.map(ticket, TicketResponse.class))
+                .stream()
+                .map(this::toResponse)
                 .toList();
     }
 
     public List<TicketResponse> getMyTicket(UUID id) {
         return ticketRepository.findMyTickets(id).stream()
-                .map(ticket -> modelMapper.map(ticket, TicketResponse.class))
+                .map(this::toResponse)
                 .collect(Collectors.toList());
     }
+    public TicketResponse toResponse(Ticket ticket) {
+        TicketResponse dto = new TicketResponse();
+        dto.setId(ticket.getId());
+        dto.setCategory(new TicketCategoryDto(ticket.getCategory().getId(), ticket.getCategory().getName()));
+        dto.setDepartment(new DepartmentDto(ticket.getDepartment().getId(), ticket.getDepartment().getName(), ticket.getDepartment().getDescription()));
+        dto.setTitle(ticket.getTitle());
+        dto.setDescription(ticket.getDescription());
+        dto.setPriority(ticket.getPriority().name());
+        dto.setStatus(ticket.getStatus().name());
+        dto.setAssignedAt(ticket.getAssignedAt());
+        dto.setResolvedAt(ticket.getResolvedAt());
+        dto.setCreatedAt(ticket.getCreatedAt());
+        dto.setUpdatedAt(ticket.getUpdatedAt());
+
+        // requester (luôn có)
+        User requester = ticket.getRequester();
+        dto.setRequester(new NameInfoDto(
+                requester.getId(),
+                requester.getEmployeeProfile().getFullName()
+        ));
+
+        // assignee (có thể null)
+        User assignee = ticket.getAssignee();
+        if (assignee != null) {
+            dto.setAssignee(new NameInfoDto(
+                    assignee.getId(),
+                    assignee.getEmployeeProfile().getFullName()
+            ));
+        } else {
+            dto.setAssignee(null);
+        }
+
+        return dto;
+    }
+
 
     @Autowired
     private DynamicSearchUtil dynamicSearchService;
@@ -168,7 +205,7 @@ public class TicketService {
         }
 
         Ticket savedTicket = ticketRepository.save(ticket);
-        return modelMapper.map(savedTicket, TicketResponse.class);
+        return toResponse(savedTicket);
     }
 
     @Transactional

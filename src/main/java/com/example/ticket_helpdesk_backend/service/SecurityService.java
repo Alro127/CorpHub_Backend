@@ -1,11 +1,9 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.TicketStatus;
-import com.example.ticket_helpdesk_backend.entity.Account;
 import com.example.ticket_helpdesk_backend.entity.Department;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.entity.User;
-import com.example.ticket_helpdesk_backend.repository.AccountRepository;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.TicketRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
@@ -22,16 +20,13 @@ public class SecurityService {
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final TicketRepository ticketRepository;
-    private final AccountRepository accountRepository;
 
     public SecurityService(UserRepository userRepository,
                            DepartmentRepository departmentRepository,
-                           TicketRepository ticketRepository,
-                           AccountRepository accountRepository) {
+                           TicketRepository ticketRepository) {
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
         this.ticketRepository = ticketRepository;
-        this.accountRepository = accountRepository;
     }
 
     /** Lấy email hiện tại */
@@ -41,7 +36,7 @@ public class SecurityService {
 
     /** Lấy user hiện tại */
     private Optional<User> getCurrentUser() {
-        return userRepository.findByEmail(getCurrentEmail());
+        return userRepository.findByUsername(getCurrentEmail());
     }
 
     /** Lấy ticket theo id */
@@ -54,11 +49,6 @@ public class SecurityService {
         return departmentRepository.findById(departmentId);
     }
 
-    /** Lấy account theo user */
-    private Optional<Account> getAccount(User user) {
-        return accountRepository.findById(user.getId());
-    }
-
     public boolean hasRole(String role) {
         return SecurityContextHolder.getContext().getAuthentication()
                 .getAuthorities()
@@ -68,29 +58,30 @@ public class SecurityService {
 
     public boolean isManagerOfDepartment(UUID departmentId) {
         return getCurrentUser()
-                .flatMap(this::getAccount)
-                .filter(acc -> "ROLE_MANAGER".equals(acc.getRole().getName()))
-                .isPresent()
-                && getDepartment(departmentId).isPresent();
+                .filter(user -> "ROLE_MANAGER".equals(user.getRole().getName()))
+                .filter(user -> user.getEmployeeProfile().getDepartment() != null
+                        && user.getEmployeeProfile().getDepartment().getId().equals(departmentId))
+                .isPresent();
     }
+
 
     public boolean isManagerReceiveTicket(UUID ticketId) {
         return getCurrentUser()
-                .filter(user -> isManagerOfDepartment(user.getDepartment().getId()))
+                .filter(user -> isManagerOfDepartment(user.getEmployeeProfile().getDepartment().getId()))
                 .filter(user -> getTicket(ticketId)
                         .map(Ticket::getDepartment)
-                        .map(dep -> dep.equals(user.getDepartment()))
+                        .map(dep -> dep.equals(user.getEmployeeProfile().getDepartment()))
                         .orElse(false))
                 .isPresent();
     }
 
     public boolean isManagerOfTicketOwner(UUID ticketId) {
         return getCurrentUser()
-                .filter(user -> isManagerOfDepartment(user.getDepartment().getId()))
+                .filter(user -> isManagerOfDepartment(user.getEmployeeProfile().getDepartment().getId()))
                 .filter(user -> getTicket(ticketId)
                         .map(Ticket::getRequester)
-                        .map(User::getDepartment)
-                        .map(dep -> dep.equals(user.getDepartment()))
+                        .map(u -> u.getEmployeeProfile().getDepartment())
+                        .map(dep -> dep.equals(user.getEmployeeProfile().getDepartment()))
                         .orElse(false))
                 .isPresent();
     }

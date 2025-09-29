@@ -15,13 +15,16 @@ import java.util.UUID;
 
 @Repository
 public interface UserRepository extends JpaRepository<User, UUID> {
-    Optional<User> findByEmail(String email);
+    Optional<User> findByUsername(String username);
 
-    List<User> findByDepartment_Id(UUID departmentId);
+    // lấy danh sách user theo phòng ban
+    List<User> findByEmployeeProfile_Department_Id(UUID departmentId);
 
     @Query("SELECT u FROM User u " +
-            "WHERE LOWER(u.fullname) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
-            "   OR LOWER(u.email) LIKE LOWER(CONCAT('%', :keyword, '%'))")
-    List<User> searchByeFullNameOrEmail(@Param("keyword") String keyword);
+            "LEFT JOIN u.employeeProfile ep " +
+            "WHERE LOWER(ep.fullName) LIKE LOWER(CONCAT('%', :keyword, '%')) " +
+            "   OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))")
+    List<User> searchByFullNameOrUsername(@Param("keyword") String keyword);
+
 
 }

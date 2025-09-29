@@ -28,14 +28,14 @@ public class MeetingService {
 
     private final MeetingRepository meetingRepository;
     private final AttendeeRepository attendeeRepository;
-    private final AccountService accountService;
+    private final UserService userService;
     private final UserRepository userRepository;
 
     public MeetingService(MeetingRepository meetingRepository,
-                          AttendeeRepository attendeeRepository, AccountService accountService, UserRepository userRepository) {
+                          AttendeeRepository attendeeRepository, UserService userService, UserRepository userRepository) {
         this.meetingRepository = meetingRepository;
         this.attendeeRepository = attendeeRepository;
-        this.accountService = accountService;
+        this.userService = userService;
         this.userRepository = userRepository;
     }
 
@@ -133,30 +133,31 @@ public class MeetingService {
             System.out.println("userId is null");
             return Collections.emptyList();
         }
-        if (accountService.isAdmin(userId)) {
+        if (userService.isAdmin(userId)) {
             System.out.println("account is admin");
             return getAllMeetings();
         }
-        if (accountService.isManager(userId)) {
+        if (userService.isManager(userId)) {
             System.out.println("account is manager");
             User manager = userRepository.findById(userId).orElse(null);
             if (manager == null) {
                 return Collections.emptyList();
             }
-            UUID departmentId = manager.getDepartment().getId();
-            List<User> employees = userRepository.findByDepartment_Id(departmentId);
+            UUID departmentId = manager.getEmployeeProfile().getDepartment().getId();
+            List<User> employees = userRepository.findByEmployeeProfile_Department_Id(departmentId);
             List<String> emails = employees.stream()
-                    .map(User::getEmail)
+                    .map(u -> u.getEmployeeProfile().getPersonalEmail())
+                    .filter(Objects::nonNull) // tránh null email
                     .toList();
             return getAllMeetingByEmails(emails);
         }
-        if (accountService.isUser(userId)) {
+        if (userService.isUser(userId)) {
             System.out.println("account is user");
             User employee = userRepository.findById(userId).orElse(null);
             if (employee == null) {
                 return Collections.emptyList();
             }
-            return getAllMeetingsByEmail(employee.getEmail());
+            return getAllMeetingsByEmail(employee.getEmployeeProfile().getPersonalEmail());
         }
         System.out.println("nothing to show");
         return Collections.emptyList();

@@ -47,13 +47,13 @@ public class DepartmentService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
 
-        if (user.getDepartment() == null) {
+        if (user.getEmployeeProfile().getDepartment().getName() == null) {
             throw new ResourceNotFoundException("User with id " + userId + " has no department assigned");
         }
 
-        UUID departmentId = user.getDepartment().getId();
+        UUID departmentId = user.getEmployeeProfile().getDepartment().getId();
 
-        List<UserDto> usersDepartmentList = userRepository.findByDepartment_Id(departmentId)
+        List<UserDto> usersDepartmentList = userRepository.findByEmployeeProfile_Department_Id(departmentId)
                 .stream()
                 .map(users -> modelMapper.map(users, UserDto.class))
                 .toList();

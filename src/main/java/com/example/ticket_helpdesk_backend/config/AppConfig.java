@@ -1,5 +1,9 @@
 package com.example.ticket_helpdesk_backend.config;
 
+import com.example.ticket_helpdesk_backend.dto.NameInfoDto;
+import com.example.ticket_helpdesk_backend.dto.TicketResponse;
+import com.example.ticket_helpdesk_backend.entity.Ticket;
+import com.example.ticket_helpdesk_backend.entity.User;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.modelmapper.ModelMapper;
@@ -8,6 +12,8 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import java.util.UUID;
 
 @Configuration
 public class AppConfig {

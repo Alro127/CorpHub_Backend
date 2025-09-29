@@ -3,7 +3,6 @@ package com.example.ticket_helpdesk_backend.controller;
 import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import com.example.ticket_helpdesk_backend.dto.LoginRequest;
 import com.example.ticket_helpdesk_backend.dto.LoginResponse;
-import com.example.ticket_helpdesk_backend.dto.RegisterRequest;
 import com.example.ticket_helpdesk_backend.service.AuthService;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;

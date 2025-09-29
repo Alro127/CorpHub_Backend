@@ -30,11 +30,11 @@ public class Ticket {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "requester_id")
-    private com.example.ticket_helpdesk_backend.entity.User requester;
+    private User requester;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assignee_id")
-    private com.example.ticket_helpdesk_backend.entity.User assignee;
+    private User assignee;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")

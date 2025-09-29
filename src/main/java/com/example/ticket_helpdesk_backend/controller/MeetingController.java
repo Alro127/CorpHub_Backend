@@ -40,7 +40,7 @@ public class MeetingController {
         String token = authHeader.substring(7);
         User user = userService.getUserFromToken(token);
 
-        MeetingResponse saved = meetingService.saveMeeting(request, user.getEmail());
+        MeetingResponse saved = meetingService.saveMeeting(request, user.getEmployeeProfile().getPersonalEmail());
 
         // Tạm thời bỏ qua để tạo dữ liệu
         //emailService.sendMeetingInvite(request, user.getEmail());

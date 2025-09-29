@@ -19,7 +19,7 @@ public class RolePermission {
 
     @MapsId("permission")
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "permission", nullable = false)
+    @JoinColumn(name = "permission_id", nullable = false)
     private Permission permission;
 
 }

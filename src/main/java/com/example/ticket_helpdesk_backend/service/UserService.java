@@ -2,20 +2,16 @@ package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.UserRole;
 import com.example.ticket_helpdesk_backend.dto.NameInfoDto;
-import com.example.ticket_helpdesk_backend.dto.RegisterRequest;
-import com.example.ticket_helpdesk_backend.dto.UserDataResponse;
+import com.example.ticket_helpdesk_backend.dto.CreateUserRequest;
 import com.example.ticket_helpdesk_backend.dto.UserDto;
-import com.example.ticket_helpdesk_backend.entity.Account;
 import com.example.ticket_helpdesk_backend.entity.Department;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
-import com.example.ticket_helpdesk_backend.repository.AccountRepository;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.RoleRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.modelmapper.ModelMapper;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -35,8 +31,6 @@ public class UserService {
 
     @Autowired
     private RoleRepository roleRepository;
-    @Autowired
-    private AccountRepository accountRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
 
@@ -64,16 +58,16 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public UserDto getUserDtoByEmail(String email) throws ResourceNotFoundException {
-        return userRepository.findByEmail(email)
+    public UserDto getUserDtoByUsername(String username) throws ResourceNotFoundException {
+        return userRepository.findByUsername(username)
                 .map(user -> modelMapper.map(user, UserDto.class))
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email " + username));
     }
 
     @Transactional(readOnly = true)
-    public User getUserByEmail(String email) throws ResourceNotFoundException {
-        return userRepository.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with email " + email));
+    public User getUserByUsername(String username) throws ResourceNotFoundException {
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username " + username));
     }
 
     @Transactional
@@ -98,7 +92,7 @@ public class UserService {
             if (userRole == UserRole.ROLE_ADMIN) {
                 return this.getAllUser();
             }
-            return userRepository.findByDepartment_Id(user.getDepartment().getId()).stream()
+            return userRepository.findByEmployeeProfile_Department_Id(user.getEmployeeProfile().getDepartment().getId()).stream()
                     .map(emp -> modelMapper.map(emp, UserDto.class))
                     .toList();
         } catch (IllegalArgumentException e) {
@@ -107,47 +101,58 @@ public class UserService {
     }
 
     public List<UserDto> getUsersBySearch(String keyword) {
-        return userRepository.searchByeFullNameOrEmail(keyword).stream().map((element) -> modelMapper.map(element, UserDto.class)).collect(Collectors.toList());
+        return userRepository.searchByFullNameOrUsername(keyword).stream().map((element) -> modelMapper.map(element, UserDto.class)).collect(Collectors.toList());
     }
 
     @Transactional
-    public boolean createUser(RegisterRequest registerRequest) {
-        if (userRepository.findByEmail(registerRequest.getEmail()).isPresent()) {
-            throw new RuntimeException("Email đã tồn tại");
+    public boolean createUser(CreateUserRequest registerRequest) {
+        if (userRepository.findByUsername(registerRequest.getUserName()).isPresent()) {
+            throw new RuntimeException("UserName đã tồn tại");
         }
 
-        Department department = departmentRepository.findById(registerRequest.getDepartmentId())
-                .orElseThrow(() -> new RuntimeException("Department không tồn tại"));
-
         User user = new User();
-        user.setFullname(registerRequest.getFullName());
-        user.setEmail(registerRequest.getEmail());
-        user.setDepartment(department);
+        user.setUsername(registerRequest.getUserName());
+        user.setActive(true);
+        user.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
+        user.setRole(roleRepository.findById(registerRequest.getRoleId()).orElseThrow(() -> new RuntimeException("Role không tồn tại")));
 
         User savedUser = userRepository.save(user);
 
-        Account account = new Account();
-        account.setUser(savedUser);
-        account.setRole(roleRepository.findByName(registerRequest.getRole()).orElseThrow(() -> new RuntimeException("Role không tồn tại")));
-        account.setPassword(passwordEncoder.encode(registerRequest.getPassword()));
-        account.setActive(true);
-
-        accountRepository.save(account);
-
         return true;
     }
-    public UserDataResponse getEmployeeById(UUID userId) throws ResourceNotFoundException {
-        if (userId == null) {
-            throw new RuntimeException("Invalid input, user id is null");
-        }
+//    public UserDataResponse getEmployeeById(UUID userId) throws ResourceNotFoundException {
+//        if (userId == null) {
+//            throw new RuntimeException("Invalid input, user id is null");
+//        }
+//
+//        User user = userRepository.findById(userId)
+//                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+//
+//        Account account = accountRepository.findById(userId).orElse(null);
+//
+//        // Chuyển đổi entity sang DTO
+//        return UserDataResponse.fromEntity(user, account);
+//    }
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id " + userId));
+    public User getUserById(UUID userId) {
+        return userRepository.findById(userId).orElse(null);
+    }
 
-        Account account = accountRepository.findById(userId).orElse(null);
+    private String getRoleName(UUID userId) {
+        User user = getUserById(userId);
+        return user != null ? user.getRole().getName() : null;
+    }
 
-        // Chuyển đổi entity sang DTO
-        return UserDataResponse.fromEntity(user, account);
+    public boolean isAdmin(UUID userId) {
+        return "ROLE_ADMIN".equals(getRoleName(userId));
+    }
+
+    public boolean isManager(UUID userId) {
+        return "ROLE_MANAGER".equals(getRoleName(userId));
+    }
+
+    public boolean isUser(UUID userId) {
+        return "ROLE_USER".equals(getRoleName(userId));
     }
 
 }

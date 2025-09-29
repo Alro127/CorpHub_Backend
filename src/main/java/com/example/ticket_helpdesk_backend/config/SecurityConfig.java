@@ -1,12 +1,10 @@
 package com.example.ticket_helpdesk_backend.config;
 import com.example.ticket_helpdesk_backend.dto.ApiResponse;
-import com.example.ticket_helpdesk_backend.entity.Account;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.security.handler.CustomAccessDeniedHandler;
 import com.example.ticket_helpdesk_backend.security.handler.CustomAuthenticationEntryPoint;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
-import com.example.ticket_helpdesk_backend.filter.JwtAuthFilter;
-import com.example.ticket_helpdesk_backend.service.AccountService;
+import com.example.ticket_helpdesk_backend.security.filter.JwtAuthFilter;
 import com.example.ticket_helpdesk_backend.service.UserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -22,6 +20,8 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -97,7 +97,8 @@ public class SecurityConfig {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        //return new BCryptPasswordEncoder();
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder(); // test
     }
 
     @Bean
@@ -106,22 +107,21 @@ public class SecurityConfig {
     }
 
     @Bean
-    public UserDetailsService userDetailsService(UserService userService, AccountService accountService) {
+    public UserDetailsService userDetailsService(UserService userService) {
         return username -> {
             User user = null;
             try {
-                user = userService.getUserByEmail(username);
+                user = userService.getUserByUsername(username);
             } catch (ResourceNotFoundException e) {
                 throw new RuntimeException(e);
             }
-            Account account = accountService.getAccountById(user.getId());
-            if (account == null) {
+            if (user == null) {
                 throw new UsernameNotFoundException("User not found");
             }
             return org.springframework.security.core.userdetails.User
-                    .withUsername(user.getEmail())
-                    .password(account.getPassword())
-                    .authorities(account.getRole().getName())
+                    .withUsername(user.getUsername())
+                    .password(user.getPassword())
+                    .authorities(user.getRole().getName())
                     .build();
         };
     }

@@ -70,7 +70,7 @@ public class UserController {
     @GetMapping("/my-info")
     public ResponseEntity<?> getUserInfo() throws ResourceNotFoundException {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        UserDto userDto = userService.getUserDtoByEmail(authentication.getPrincipal().toString());
+        UserDto userDto = userService.getUserDtoByUsername(authentication.getPrincipal().toString());
         ApiResponse<UserDto> apiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "User info",
@@ -81,13 +81,13 @@ public class UserController {
         return ResponseEntity.ok(apiResponse);
     }
 
-    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')" )
+    //@PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')" )
     @PostMapping("/create")
-    public ResponseEntity<?> createUser(@RequestBody RegisterRequest request) {
+    public ResponseEntity<?> createUser(@RequestBody CreateUserRequest request) {
 
         System.out.println("Create User request: " + request);
         boolean success = userService.createUser(request);
-        String message = success ? "Register Successfully" : "Register Failed";
+        String message = success ? "Create User Successfully" : "Create User Failed";
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 message,
@@ -101,7 +101,9 @@ public class UserController {
     public ResponseEntity<?> getEmployeeById(@PathVariable("id") String id) throws ResourceNotFoundException {
         UUID userId = UUID.fromString(id);
 
-        UserDataResponse user = userService.getEmployeeById(userId);
+        //Chưa sửa xong;
+        //UserDataResponse user = userService.getEmployeeById(userId);
+        UserDataResponse user = new UserDataResponse();
 
         ApiResponse<UserDataResponse> apiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(),

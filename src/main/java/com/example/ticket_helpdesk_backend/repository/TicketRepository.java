@@ -24,7 +24,8 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     SELECT t.* 
     FROM ticket t
     JOIN [user] u ON t.requester_id = u.id
-    WHERE u.department_id = :departmentId
+    JOIN employee_profile e ON u.employee_id = e.id
+    WHERE e.department_id = :departmentId
     """, nativeQuery = true)
   List<Ticket> findSentTicketByDepartmentId(@Param("departmentId") UUID departmentId);
 
