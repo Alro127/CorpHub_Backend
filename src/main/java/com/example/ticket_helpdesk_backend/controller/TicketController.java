@@ -169,7 +169,7 @@ public class TicketController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.isAssigneeOfTicket(#ticketId)")
+    @PreAuthorize("@securityService.isAssigneeOfTicket(#ticketId)")
     @PostMapping("/complete/{ticketId}")
     public ResponseEntity<?> complete(@PathVariable UUID ticketId) throws ResourceNotFoundException {
         ticketService.complete(ticketId);
