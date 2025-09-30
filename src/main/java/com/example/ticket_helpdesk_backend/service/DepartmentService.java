@@ -55,7 +55,7 @@ public class DepartmentService {
 
         List<UserDto> usersDepartmentList = userRepository.findByEmployeeProfile_Department_Id(departmentId)
                 .stream()
-                .map(users -> modelMapper.map(users, UserDto.class))
+                .map(UserDto::toUserDto)
                 .toList();
 
         if (usersDepartmentList.isEmpty()) {

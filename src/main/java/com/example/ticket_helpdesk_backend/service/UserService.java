@@ -60,7 +60,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public UserDto getUserDtoByUsername(String username) throws ResourceNotFoundException {
         return userRepository.findByUsername(username)
-                .map(user -> modelMapper.map(user, UserDto.class))
+                .map(UserDto::toUserDto)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email " + username));
     }
 
@@ -78,7 +78,7 @@ public class UserService {
     @Transactional(readOnly = true)
     public List<UserDto> getAllUser() {
         return userRepository.findAll().stream()
-                .map(user -> modelMapper.map(user, UserDto.class))
+                .map(UserDto::toUserDto)
                 .toList();
     }
 
@@ -93,7 +93,7 @@ public class UserService {
                 return this.getAllUser();
             }
             return userRepository.findByEmployeeProfile_Department_Id(user.getEmployeeProfile().getDepartment().getId()).stream()
-                    .map(emp -> modelMapper.map(emp, UserDto.class))
+                    .map(UserDto::toUserDto)
                     .toList();
         } catch (IllegalArgumentException e) {
             throw new ResourceNotFoundException("Invalid role " + role);
@@ -101,7 +101,7 @@ public class UserService {
     }
 
     public List<UserDto> getUsersBySearch(String keyword) {
-        return userRepository.searchByFullNameOrUsername(keyword).stream().map((element) -> modelMapper.map(element, UserDto.class)).collect(Collectors.toList());
+        return userRepository.searchByFullNameOrUsername(keyword).stream().map(UserDto::toUserDto).collect(Collectors.toList());
     }
 
     @Transactional

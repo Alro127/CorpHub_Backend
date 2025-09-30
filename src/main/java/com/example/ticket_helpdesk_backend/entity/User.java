@@ -18,7 +18,6 @@ import java.util.UUID;
 @Setter
 public class User {
     @Id
-    @GeneratedValue(strategy = GenerationType.UUID)
     @Column(columnDefinition = "uniqueidentifier")
     private UUID id;
 
@@ -44,8 +43,7 @@ public class User {
     @Column(name = "expired", nullable = false)
     private LocalDateTime expired;
 
-    // Liên kết 1-1 tới EmployeeProfile
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "employee_id", unique = true)
+    // Quan hệ 1-1 với EmployeeProfile (mappedBy)
+    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, optional = false)
     private EmployeeProfile employeeProfile;
 }

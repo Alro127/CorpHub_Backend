@@ -13,10 +13,24 @@ import java.util.UUID;
 public interface TicketRepository extends JpaRepository<Ticket, UUID> {
 
   @Query(value = """
-    SELECT t.* 
+    SELECT t.*
     FROM ticket t
+    LEFT JOIN ticket_rejection tr ON tr.ticket_id = t.id
     WHERE t.department_id = :departmentId
-        and t.status != 'OPEN'
+      AND (
+        -- Lấy tất cả ticket không phải OPEN và không phải REJECTED
+        (t.status NOT IN ('OPEN', 'REJECTED'))
+        OR
+        -- Hoặc là REJECTED nhưng người reject thuộc cùng phòng ban
+        (t.status = 'REJECTED'
+         AND tr.rejected_by IN (
+            SELECT u.id
+            FROM "user" u
+            JOIN employee_profile e ON u.id = e.id
+            WHERE e.department_id = :departmentId
+         )
+        )
+      )
     """, nativeQuery = true)
   List<Ticket> findReceivedTicketByDepartmentId(@Param("departmentId") UUID departmentId);
 
@@ -24,7 +38,7 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     SELECT t.* 
     FROM ticket t
     JOIN [user] u ON t.requester_id = u.id
-    JOIN employee_profile e ON u.employee_id = e.id
+    JOIN employee_profile e ON u.id = e.id
     WHERE e.department_id = :departmentId
     """, nativeQuery = true)
   List<Ticket> findSentTicketByDepartmentId(@Param("departmentId") UUID departmentId);

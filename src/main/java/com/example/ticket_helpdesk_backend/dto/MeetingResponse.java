@@ -17,6 +17,6 @@ public class MeetingResponse {
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String organizerEmail;
-    private List<String> attendeesEmails;
+    private List<AttendeeResponse> attendees;
 }
 

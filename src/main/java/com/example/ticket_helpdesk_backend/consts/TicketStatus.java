@@ -6,5 +6,5 @@ public enum TicketStatus {
     ASSIGNING, // Ticket được trưởng phòng ban yêu cầu phân cho nhân viên
     REJECTED, // Ticket bị từ chối bởi các trường phòng ban
     IN_PROGRESS, // Ticket được assignee chấp nhận
-    DONE // Ticket hoàn thành
+    DONE // Ticket hoàn thàn
 }

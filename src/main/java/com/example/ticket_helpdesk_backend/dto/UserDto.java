@@ -1,5 +1,7 @@
 package com.example.ticket_helpdesk_backend.dto;
 
+import com.example.ticket_helpdesk_backend.entity.Ticket;
+import com.example.ticket_helpdesk_backend.entity.User;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -32,4 +34,32 @@ public class UserDto implements Serializable {
     String type;
     LocalDate startDate;
     DepartmentDto department;
+
+    static public UserDto toUserDto(User user) {
+        if (user == null) return null;
+
+        UserDto userDto = new UserDto();
+        userDto.setId(user.getId());
+
+        if (user.getEmployeeProfile() != null) {
+            userDto.setFullName(user.getEmployeeProfile().getFullName());
+            userDto.setDob(user.getEmployeeProfile().getDob());
+            userDto.setGender(user.getEmployeeProfile().getGender());
+            userDto.setPhone(user.getEmployeeProfile().getPhone());
+            // username là workemail
+            userDto.setEmail(user.getUsername());
+            userDto.setDepartment(
+                    user.getEmployeeProfile().getDepartment() != null
+                            ? new DepartmentDto(
+                            user.getEmployeeProfile().getDepartment().getId(),
+                            user.getEmployeeProfile().getDepartment().getName(),
+                            user.getEmployeeProfile().getDepartment().getDescription()
+                    )
+                            : null
+            );
+        }
+
+        return userDto;
+    }
+
 }
