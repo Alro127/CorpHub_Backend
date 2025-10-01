@@ -49,7 +49,7 @@ public class AuthService {
         UUID userId = user.getId();
         String token = jwtUtil.generateToken(request.getEmail(), userId, role);
         // Chỗ này chưa biết nên sửa thành mail cá nhân hay mail công ty nữa
-        return new LoginResponse(user.getId(), user.getEmployeeProfile().getFullName(), user.getUsername(), user.getRole().getName(), token );
+        return new LoginResponse(user.getId(), user.getEmployeeProfile().getFullName(), user.getUsername(), user.getEmployeeProfile().getAvatar(), user.getRole().getName(), token );
     }
 
 }

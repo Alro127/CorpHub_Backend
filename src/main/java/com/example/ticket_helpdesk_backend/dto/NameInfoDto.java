@@ -17,4 +17,5 @@ public class NameInfoDto implements Serializable {
     @NotNull
     @Size(max = 100)
     String fullName;
+    String avatar;
 }

@@ -53,7 +53,7 @@ public class TicketService {
 
     // ================== Helper Methods ==================
 
-    private Ticket getTicket(UUID id) throws ResourceNotFoundException {
+    public Ticket getTicket(UUID id) throws ResourceNotFoundException {
         return ticketRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ticket not found with id " + id));
     }
@@ -175,12 +175,19 @@ public class TicketService {
     }
 
     @Transactional
-    public void deleteById(UUID id) {
+    public boolean deleteById(UUID id) {
         if (!ticketRepository.existsById(id)) {
-            throw new RuntimeException("Ticket id " + id + " does not exist");
+            return false; // Không tồn tại
         }
-        ticketRepository.deleteById(id);
+        try {
+            ticketRepository.deleteById(id);
+            return true; // Xóa thành công
+        } catch (Exception e) {
+            System.err.println("Lỗi khi xóa ticket " + id + ": " + e.getMessage());
+            return false;
+        }
     }
+
 
     @Transactional
     public void deleteMany(List<UUID> ids) {
