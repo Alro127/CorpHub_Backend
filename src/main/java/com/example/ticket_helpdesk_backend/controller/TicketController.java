@@ -103,8 +103,16 @@ public class TicketController {
 
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteById(@PathVariable UUID id) {
-        ticketService.deleteById(id);
-        return ResponseEntity.noContent().build();
+        boolean deleted = ticketService.deleteById(id);
+
+        ApiResponse<Boolean> response = new ApiResponse<>(
+                deleted ? HttpStatus.OK.value() : HttpStatus.BAD_REQUEST.value(),
+                deleted ? "Ticket deleted successfully" : "Failed to delete ticket",
+                LocalDateTime.now(),
+                deleted
+        );
+
+        return ResponseEntity.status(deleted ? HttpStatus.OK : HttpStatus.BAD_REQUEST).body(response);
     }
 
     @DeleteMapping("/delete")

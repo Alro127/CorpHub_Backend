@@ -53,7 +53,8 @@ public class TicketResponse implements Serializable {
         User requester = ticket.getRequester();
         dto.setRequester(new NameInfoDto(
                 requester.getId(),
-                requester.getEmployeeProfile().getFullName()
+                requester.getEmployeeProfile().getFullName(),
+                requester.getEmployeeProfile().getAvatar()
         ));
 
         // assignee (có thể null)
@@ -61,7 +62,8 @@ public class TicketResponse implements Serializable {
         if (assignee != null) {
             dto.setAssignee(new NameInfoDto(
                     assignee.getId(),
-                    assignee.getEmployeeProfile().getFullName()
+                    assignee.getEmployeeProfile().getFullName(),
+                    assignee.getEmployeeProfile().getAvatar()
             ));
         } else {
             dto.setAssignee(null);
