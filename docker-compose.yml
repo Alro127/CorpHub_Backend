@@ -1,0 +1,21 @@
+version: '3.7'
+services:
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"   # API
+      - "9001:9001"   # Console UI
+    environment:
+      MINIO_ROOT_USER: admin
+      MINIO_ROOT_PASSWORD: 12345678
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./data:/data
+# Tạo container bằng cách chạy file này
+# Mở terminal trong IDE lên, rồi gõ
+# docker-compose up -d
+# Khi đó, trong docker sẽ tạo ra container
+# Truy cập vào container trong docker, mở log ra, truy cập vào link webUI
+# Đăng nhập tài khoản admin được cấu hình ở trên
+# Tạo bucket có tên tương ứng với config: ticket-attachments
