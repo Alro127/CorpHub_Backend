@@ -26,52 +26,35 @@ public class TicketAttachmentService {
     private final ModelMapper modelMapper;
     private final TicketAttachmentRepository attachmentRepository;
     private final TicketRepository ticketRepository;
-    private final MinioClient minioClient;
+    private final FileStorageService fileStorageService;
 
     private final String bucketName = "ticket-attachments";
 
     public List<TicketAttachmentDTO> getAttachmentsByTicketId(UUID ticketId) {
-        List<TicketAttachment> attachments = attachmentRepository.findByTicket_Id(ticketId);
-
-        return attachments.stream()
+        return attachmentRepository.findByTicket_Id(ticketId)
+                .stream()
                 .map(att -> {
                     TicketAttachmentDTO dto = modelMapper.map(att, TicketAttachmentDTO.class);
-                    dto.setTicketId(att.getTicket().getId()); // map thủ công
+                    dto.setTicketId(att.getTicket().getId());
                     return dto;
                 })
                 .collect(Collectors.toList());
     }
-
 
     public List<TicketAttachment> saveAttachments(UUID ticketId, List<MultipartFile> files) {
         Ticket ticket = ticketRepository.findById(ticketId)
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
         return files.stream().map(file -> {
-            try {
-                String objectName = ticketId + "/" + UUID.randomUUID() + "_" + file.getOriginalFilename();
+            String objectName = fileStorageService.uploadFile(bucketName, file, ticketId.toString());
 
-                try (InputStream is = file.getInputStream()) {
-                    minioClient.putObject(
-                            PutObjectArgs.builder()
-                                    .bucket(bucketName)
-                                    .object(objectName)
-                                    .stream(is, file.getSize(), -1)
-                                    .contentType(file.getContentType())
-                                    .build()
-                    );
-                }
+            TicketAttachment attachment = new TicketAttachment();
+            attachment.setTicket(ticket);
+            attachment.setPath(objectName);
+            attachment.setOriginalName(file.getOriginalFilename());
+            attachment.setCreatedAt(LocalDateTime.now());
 
-                TicketAttachment attachment = new TicketAttachment();
-                attachment.setTicket(ticket);
-                attachment.setPath(objectName); // lưu objectName, không cần lưu file vật lý local
-                attachment.setOriginalName(file.getOriginalFilename());
-                attachment.setCreatedAt(LocalDateTime.now());
-                return attachmentRepository.save(attachment);
-
-            } catch (Exception e) {
-                throw new RuntimeException("Error uploading file to MinIO", e);
-            }
+            return attachmentRepository.save(attachment);
         }).collect(Collectors.toList());
     }
 
@@ -79,43 +62,21 @@ public class TicketAttachmentService {
         TicketAttachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new RuntimeException("Attachment not found"));
 
-        try {
-            return minioClient.getObject(
-                    GetObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(attachment.getPath())
-                            .build()
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("Error downloading file", e);
-        }
+        return fileStorageService.downloadFile(bucketName, attachment.getPath());
     }
 
     public void deleteAttachment(UUID attachmentId) {
         TicketAttachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new RuntimeException("Attachment not found"));
 
-        try {
-            minioClient.removeObject(
-                    RemoveObjectArgs.builder()
-                            .bucket(bucketName)
-                            .object(attachment.getPath())
-                            .build()
-            );
-        } catch (Exception e) {
-            throw new RuntimeException("Error deleting file from MinIO", e);
-        }
-
+        fileStorageService.deleteFile(bucketName, attachment.getPath());
         attachmentRepository.delete(attachment);
     }
 
     public String getFileName(UUID attachmentId) {
-
-
-        Optional<TicketAttachment> ticketAttachment = attachmentRepository.findById(attachmentId);
-
-        String fileName = ticketAttachment.get().getOriginalName();
-
-        return fileName;
+        return attachmentRepository.findById(attachmentId)
+                .map(TicketAttachment::getOriginalName)
+                .orElse(null);
     }
+
 }

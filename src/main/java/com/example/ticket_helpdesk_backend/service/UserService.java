@@ -5,9 +5,11 @@ import com.example.ticket_helpdesk_backend.dto.NameInfoDto;
 import com.example.ticket_helpdesk_backend.dto.CreateUserRequest;
 import com.example.ticket_helpdesk_backend.dto.UserDto;
 import com.example.ticket_helpdesk_backend.entity.Department;
+import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
+import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
 import com.example.ticket_helpdesk_backend.repository.RoleRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
@@ -28,6 +30,9 @@ public class UserService {
 
     @Autowired
     DepartmentRepository departmentRepository;
+
+    @Autowired
+    EmployeeProfileRepository employeeProfileRepository;
 
     @Autowired
     private RoleRepository roleRepository;
@@ -133,6 +138,27 @@ public class UserService {
 //        // Chuyển đổi entity sang DTO
 //        return UserDataResponse.fromEntity(user, account);
 //    }
+
+    public User createUserForEmployee(UUID employeeProfileId, CreateUserRequest request) {
+        EmployeeProfile profile = employeeProfileRepository.findById(employeeProfileId)
+                .orElseThrow(() -> new RuntimeException("EmployeeProfile not found"));
+
+        User user = new User();
+        user.setUsername(request.getUserName());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setRole(roleRepository.findById(request.getRoleId())
+                .orElseThrow(() -> new RuntimeException("Role not found")));
+        user.setActive(true);
+        user.setId(request.getEmployeeId());
+
+        userRepository.save(user);
+
+        profile.setUser(user);
+        employeeProfileRepository.save(profile);
+
+        return user;
+    }
+
 
     public User getUserById(UUID userId) {
         return userRepository.findById(userId).orElse(null);
