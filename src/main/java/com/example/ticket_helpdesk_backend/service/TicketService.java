@@ -228,22 +228,28 @@ public class TicketService {
     @Transactional
     public void reject(TicketRejectionDto request, UUID userId) throws ResourceNotFoundException {
         Ticket ticket = getTicket(request.getTicketId());
-        if (EnumSet.of(TicketStatus.IN_PROGRESS, TicketStatus.DONE).contains(ticket.getStatus())) {
-            throw new RuntimeException("Ticket is not valid status");
-        }
-        ticket.setStatus(TicketStatus.REJECTED);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        TicketRejection ticketRejection = new TicketRejection();
-        ticketRejection.setTicket(ticket);
-        ticketRejection.setReason(request.getReason());
-        ticketRejection.setRejectedBy(user);
-        ticketRejection.setRejectedAt(LocalDateTime.now());
-
+        if (EnumSet.of(TicketStatus.IN_PROGRESS, TicketStatus.DONE).contains(ticket.getStatus())) {
+            throw new RuntimeException("Ticket is not valid status");
+        }
+        if (user.getRole().getName().equals("ROLE_USER"))
+        {
+            ticket.setStatus(TicketStatus.WAITING);
+        }
+        else
+        {
+            ticket.setStatus(TicketStatus.REJECTED);
+            TicketRejection ticketRejection = new TicketRejection();
+            ticketRejection.setTicket(ticket);
+            ticketRejection.setReason(request.getReason());
+            ticketRejection.setRejectedBy(user);
+            ticketRejection.setRejectedAt(LocalDateTime.now());
+            ticketRejectionRepository.save(ticketRejection);
+        }
         ticketRepository.save(ticket);
-        ticketRejectionRepository.save(ticketRejection);
     }
 
     @Transactional
