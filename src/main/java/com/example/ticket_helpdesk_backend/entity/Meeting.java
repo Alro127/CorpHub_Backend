@@ -47,6 +47,12 @@ public class Meeting {
     @Column(name = "location")
     private String location;
 
+    @Column(name = "is_meeting_room", nullable = false)
+    private boolean meetingRoom;
+
+    @Column(name = "is_ready", nullable = false)
+    private boolean ready;
+
     @Size(max = 500)
     @Nationalized
     @Column(name = "online_link", length = 500)

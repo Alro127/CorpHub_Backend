@@ -4,13 +4,10 @@ import com.example.ticket_helpdesk_backend.consts.AttendeeStatus;
 import com.example.ticket_helpdesk_backend.dto.AttendeeResponse;
 import com.example.ticket_helpdesk_backend.dto.MeetingRequest;
 import com.example.ticket_helpdesk_backend.dto.MeetingResponse;
-import com.example.ticket_helpdesk_backend.entity.Attendee;
-import com.example.ticket_helpdesk_backend.entity.Meeting;
-import com.example.ticket_helpdesk_backend.entity.User;
+import com.example.ticket_helpdesk_backend.dto.RoomRequirementDto;
+import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.AuthException;
-import com.example.ticket_helpdesk_backend.repository.AttendeeRepository;
-import com.example.ticket_helpdesk_backend.repository.MeetingRepository;
-import com.example.ticket_helpdesk_backend.repository.UserRepository;
+import com.example.ticket_helpdesk_backend.repository.*;
 
 import com.example.ticket_helpdesk_backend.specification.MeetingSpecifications;
 import org.modelmapper.ModelMapper;
@@ -37,13 +34,19 @@ public class MeetingService {
     private final AttendeeRepository attendeeRepository;
     private final UserService userService;
     private final UserRepository userRepository;
+    private final RoomRequirementService roomRequirementService;
+    @Autowired
+    private RoomRequirementRepository roomRequirementRepository;
+
 
     public MeetingService(MeetingRepository meetingRepository,
-                          AttendeeRepository attendeeRepository, UserService userService, UserRepository userRepository) {
+                          AttendeeRepository attendeeRepository, UserService userService, UserRepository userRepository, RoomRequirementService roomRequirementService) {
         this.meetingRepository = meetingRepository;
         this.attendeeRepository = attendeeRepository;
         this.userService = userService;
         this.userRepository = userRepository;
+
+        this.roomRequirementService = roomRequirementService;
     }
 
     private MeetingResponse mapToMeetingResponse(Meeting meeting) {
@@ -64,6 +67,10 @@ public class MeetingService {
                 })
                 .collect(Collectors.toList());
 
+        RoomRequirementDto roomRequirementDto = RoomRequirementDto.toRoomRequirementDto(roomRequirementService.getRoomRequirementMeetingId(meeting.getId()));
+
+        dto.setRoomRequirement(roomRequirementDto);
+
         dto.setAttendees(attendees);
         return dto;
     }
@@ -79,15 +86,19 @@ public class MeetingService {
     public MeetingResponse saveMeeting(MeetingRequest req, String organizerEmail) {
         // 1. Lấy hoặc tạo meeting
         Meeting meeting;
+        RoomRequirement roomRequirement;
         if (req.getId() == null) {
             meeting = new Meeting();
             meeting.setCreatedAt(LocalDateTime.now());
         } else {
             meeting = meetingRepository.findById(req.getId())
-                    .orElseThrow(() -> new RuntimeException("Không tìm thấy meeting"));
+                    .orElseThrow(() -> new RuntimeException("Meeting not found"));
+
+            if (meeting.isReady())
+                throw new RuntimeException("Meeting is ready, cannot update meeting");
 
             if (!meeting.getOrganizerEmail().equals(organizerEmail)) {
-                throw new AuthException("Không đúng người dùng");
+                throw new AuthException("User does not have permission to update meeting");
             }
         }
 
@@ -95,16 +106,24 @@ public class MeetingService {
         meeting.setTitle(req.getTitle());
         meeting.setSubject(req.getSubject());
         meeting.setDescription(req.getDescription());
+        meeting.setMeetingRoom(req.isMeetingRoom());
         meeting.setLocation(req.getLocation());
         meeting.setOnlineLink(req.getOnlineLink());
         meeting.setStartTime(req.getStart());
         meeting.setEndTime(req.getEnd());
         meeting.setOrganizerEmail(organizerEmail);
         meeting.setUpdatedAt(LocalDateTime.now());
+        meeting.setReady(false);
 
         // 3. Lưu meeting trước để có ID
         Meeting saved = meetingRepository.save(meeting);
 
+        if (req.getRoomRequirement() != null)
+            roomRequirementService.saveRoomRequirement(req.getRoomRequirement(), saved);
+        else {
+            System.out.println("Hello");
+            roomRequirementService.deleteRoomRequirementByMeetingId(saved.getId());
+        }
         // 4. Đồng bộ attendees (nếu có truyền danh sách)
         List<String> newEmails = req.getTo() != null ? req.getTo() : Collections.emptyList();
 
@@ -198,7 +217,8 @@ public class MeetingService {
         Specification<Meeting> spec = organizedBy(email)
                 .or(joinedBy(email))
                 .and(startAfter(startTime))
-                .and(endBefore(endTime));
+                .and(endBefore(endTime))
+                .and(isReady());
 
         return mapMeetingsToResponse(meetingRepository.findAll(spec, Sort.by("startTime")));
     }
@@ -242,5 +262,13 @@ public class MeetingService {
         attendee.setStatus(isAccepted ? AttendeeStatus.ACCEPTED : AttendeeStatus.REJECTED);
 
         return mapToMeetingResponse(attendeeRepository.save(attendee).getMeeting());
+    }
+
+    public Boolean confirmMeeting(UUID meetingId) {
+        Meeting meeting = meetingRepository.findById(meetingId).orElse(null);
+        if (meeting == null) return false;
+        meeting.setReady(true);
+        meetingRepository.save(meeting);
+        return true;
     }
 }

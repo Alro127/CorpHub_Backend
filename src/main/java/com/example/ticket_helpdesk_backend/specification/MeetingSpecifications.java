@@ -57,4 +57,9 @@ public class MeetingSpecifications {
             return attendeesJoin.get("email").in(emails);
         };
     }
+
+    public static Specification<Meeting> isReady() {
+        return (root, query, cb) -> cb.isTrue(root.get("ready"));
+    }
+
 }
