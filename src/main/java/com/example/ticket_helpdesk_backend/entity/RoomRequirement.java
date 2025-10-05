@@ -43,6 +43,10 @@ public class RoomRequirement {
     @Column(name = "end_time", nullable = false)
     private LocalDateTime endTime;
 
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id")
+    private Room room;
+
     @OneToMany(mappedBy = "roomRequirement", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoomRequirementAsset> roomRequirementAssets = new ArrayList<>();
 

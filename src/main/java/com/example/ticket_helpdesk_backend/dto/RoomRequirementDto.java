@@ -1,7 +1,6 @@
 package com.example.ticket_helpdesk_backend.dto;
 
 import com.example.ticket_helpdesk_backend.entity.RoomRequirement;
-import com.example.ticket_helpdesk_backend.entity.RoomRequirementAsset;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,6 +19,7 @@ public class RoomRequirementDto {
     private List<UUID> assetCategories;
     private LocalDateTime start;
     private LocalDateTime end;
+    private UUID roomId;
 
     static public RoomRequirementDto toRoomRequirementDto(RoomRequirement roomRequirement) {
         if (roomRequirement == null) {
@@ -30,6 +30,8 @@ public class RoomRequirementDto {
         dto.setCapacity(roomRequirement.getCapacity());
         dto.setStart(roomRequirement.getStartTime());
         dto.setEnd(roomRequirement.getEndTime());
+        if (roomRequirement.getRoom() != null) dto.setRoomId(roomRequirement.getRoom().getId());
+        else dto.setRoomId(null);
 
         dto.setAssetCategories(roomRequirement.getRoomRequirementAssets().stream().map(roomRequirementAsset -> roomRequirementAsset.getAssetCategory().getId()).collect(Collectors.toList()));
         return dto;
