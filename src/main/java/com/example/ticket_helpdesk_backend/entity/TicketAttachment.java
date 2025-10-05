@@ -34,4 +34,7 @@ public class TicketAttachment {
     @Column(name = "created_at")
     private LocalDateTime createdAt;
 
+    @Column(name = "original_name", length = 255)
+    private String originalName;
+
 }
