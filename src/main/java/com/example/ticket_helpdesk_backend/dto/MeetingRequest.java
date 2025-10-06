@@ -12,6 +12,8 @@ public class MeetingRequest {
     private String subject;        // tiêu đề email
     private String title;          // tiêu đề sự kiện trong calendar
     private String description;    // mô tả sự kiện
+    private boolean meetingRoom;   // có đặt phòng họp hay không
+    private RoomRequirementDto roomRequirement; // yêu cầu đối với phòng họp
     private String location;       // địa điểm
     private String onlineLink;     // link họp online
     private LocalDateTime start;   // thời gian bắt đầu

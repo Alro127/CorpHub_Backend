@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.dto;
 
+import com.example.ticket_helpdesk_backend.entity.RoomRequirement;
 import lombok.Data;
 
 import java.time.LocalDateTime;
@@ -14,6 +15,9 @@ public class MeetingResponse {
     private String description;
     private String onlineLink;
     private String location;
+    private Boolean meetingRoom;
+    private RoomRequirementDto roomRequirement;
+    private Boolean ready;
     private LocalDateTime startTime;
     private LocalDateTime endTime;
     private String organizerEmail;

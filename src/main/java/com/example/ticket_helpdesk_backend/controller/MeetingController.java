@@ -112,4 +112,17 @@ public class MeetingController {
                 saved
         );
     }
+
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
+    @PutMapping("/{id}/confirm-meeting")
+    public ApiResponse<Boolean> confirmMeeting(@RequestHeader("Authorization") String authHeader, @PathVariable UUID id)  {
+        String token = authHeader.substring(7);
+        Boolean success = meetingService.confirmMeeting(id);
+        return new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Meeting is confirmed successfully",
+                LocalDateTime.now(),
+                success
+        );
+    }
 }
