@@ -3,6 +3,8 @@ package com.example.ticket_helpdesk_backend.exception;
 import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
+import org.springframework.expression.spel.SpelEvaluationException;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.ResponseEntity;
@@ -14,47 +16,104 @@ import java.time.LocalDateTime;
 public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
-    public ResponseEntity<?> handleRuntimeException(RuntimeException ex) {
-        ApiResponse apiResponse = new ApiResponse(
+    public ResponseEntity<ApiResponse<?>> handleRuntimeException(RuntimeException ex) {
+        String message = ex.getMessage();
+
+        if (message != null && message.contains("Failed to evaluate expression")) {
+            message = "You do not have permission to perform this action.";
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ApiResponse<>(
+                            HttpStatus.FORBIDDEN.value(),
+                            message,
+                            LocalDateTime.now(),
+                            null
+                    ));
+        }
+        
+        ApiResponse<?> apiResponse = new ApiResponse<>(
                 HttpStatus.BAD_REQUEST.value(),
-                ex.getMessage(),
+                message,
                 LocalDateTime.now(),
                 null
         );
-        return ResponseEntity
-                .status(HttpStatus.BAD_REQUEST)
-                .body(apiResponse);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
     }
 
+
     @ExceptionHandler(AuthException.class)
-    public ResponseEntity<ApiResponse> handleAuthException(AuthException ex) {
-        ApiResponse apiResponse = new ApiResponse(
+    public ResponseEntity<ApiResponse<?>> handleAuthException(AuthException ex) {
+        ApiResponse<?> apiResponse = new ApiResponse<>(
                 HttpStatus.UNAUTHORIZED.value(),
                 ex.getMessage(),
                 LocalDateTime.now(),
                 null
         );
-        return ResponseEntity.badRequest().body(apiResponse);
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(apiResponse);
     }
 
     @ExceptionHandler(ExpiredJwtException.class)
-    public ResponseEntity<String> handleExpiredJwt(ExpiredJwtException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token hết hạn");
+    public ResponseEntity<ApiResponse<?>> handleExpiredJwt(ExpiredJwtException ex) {
+        ApiResponse<?> apiResponse = new ApiResponse<>(
+                HttpStatus.UNAUTHORIZED.value(),
+                "Your session has expired. Please log in again.",
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(apiResponse);
     }
 
     @ExceptionHandler(JwtException.class)
-    public ResponseEntity<String> handleJwt(JwtException ex) {
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Token không hợp lệ");
+    public ResponseEntity<ApiResponse<?>> handleJwt(JwtException ex) {
+        ApiResponse<?> apiResponse = new ApiResponse<>(
+                HttpStatus.UNAUTHORIZED.value(),
+                "Invalid authentication token. Please log in again.",
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(apiResponse);
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)
     public ResponseEntity<ApiResponse<?>> handleResourceNotFound(ResourceNotFoundException ex) {
-        ApiResponse<?> response = new ApiResponse<>(
+        ApiResponse<?> apiResponse = new ApiResponse<>(
                 HttpStatus.NOT_FOUND.value(),
                 ex.getMessage(),
                 LocalDateTime.now(),
                 null
         );
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(apiResponse);
+    }
+
+    @ExceptionHandler(SpelEvaluationException.class)
+    public ResponseEntity<ApiResponse<?>> handleSpelEvaluation(SpelEvaluationException ex) {
+        ApiResponse<?> apiResponse = new ApiResponse<>(
+                HttpStatus.FORBIDDEN.value(),
+                "You do not have permission to perform this action.",
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiResponse);
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiResponse<?>> handleAccessDenied(AccessDeniedException ex) {
+        ApiResponse<?> apiResponse = new ApiResponse<>(
+                HttpStatus.FORBIDDEN.value(),
+                "You do not have permission to perform this action.",
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiResponse);
+    }
+
+    @ExceptionHandler(Exception.class)
+    public ResponseEntity<ApiResponse<?>> handleGeneric(Exception ex) {
+        ApiResponse<?> apiResponse = new ApiResponse<>(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "An unexpected error occurred. Please try again later.",
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(apiResponse);
     }
 }
