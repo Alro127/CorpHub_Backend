@@ -7,7 +7,6 @@ import com.example.ticket_helpdesk_backend.dto.NameInfoDto;
 import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
-import com.example.ticket_helpdesk_backend.repository.ITNotificationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,9 +21,6 @@ public class EmployeeProfileService {
 
     @Autowired
     DepartmentRepository departmentRepository;
-
-    @Autowired
-    ITNotificationRepository itNotificationRepository;
 
     @Autowired
     FileStorageService fileStorageService;
@@ -91,11 +87,12 @@ public class EmployeeProfileService {
         employeeProfileRepository.save(employeeProfile);
 
         // ====== Thông báo cho IT ======
-        ITNotification notif = new ITNotification();
-        notif.setEmployeeProfile(employeeProfile);
-        notif.setType("NEW_EMPLOYEE");
-        notif.setMessage("Nhân viên mới cần tạo tài khoản: " + employeeProfile.getFullName());
-        itNotificationRepository.save(notif);
+//        Ticket 
+//        ITNotification notif = new ITNotification();
+//        notif.setEmployeeProfile(employeeProfile);
+//        notif.setType("NEW_EMPLOYEE");
+//        notif.setMessage("Nhân viên mới cần tạo tài khoản: " + employeeProfile.getFullName());
+//        itNotificationRepository.save(notif);
 
         return true;
     }
