@@ -89,6 +89,7 @@ public class MeetingController {
 
     }
 
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRightDeleteMeeting(id)")
     @DeleteMapping("/{id}")
     public ApiResponse<UUID> deleteMeeting(@PathVariable UUID id) {
         boolean ok = meetingService.deleteMeeting(id);

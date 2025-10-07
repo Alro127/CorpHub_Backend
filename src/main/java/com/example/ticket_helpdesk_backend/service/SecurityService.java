@@ -2,9 +2,11 @@ package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.TicketStatus;
 import com.example.ticket_helpdesk_backend.entity.Department;
+import com.example.ticket_helpdesk_backend.entity.Meeting;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
+import com.example.ticket_helpdesk_backend.repository.MeetingRepository;
 import com.example.ticket_helpdesk_backend.repository.TicketRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,13 +22,15 @@ public class SecurityService {
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final TicketRepository ticketRepository;
+    private final MeetingRepository meetingRepository;
 
     public SecurityService(UserRepository userRepository,
                            DepartmentRepository departmentRepository,
-                           TicketRepository ticketRepository) {
+                           TicketRepository ticketRepository, MeetingRepository meetingRepository) {
         this.userRepository = userRepository;
         this.departmentRepository = departmentRepository;
         this.ticketRepository = ticketRepository;
+        this.meetingRepository = meetingRepository;
     }
 
     /** Lấy email hiện tại */
@@ -47,6 +51,11 @@ public class SecurityService {
     /** Lấy department theo id */
     private Optional<Department> getDepartment(UUID departmentId) {
         return departmentRepository.findById(departmentId);
+    }
+
+    /** Lấy meeting theo id **/
+    private Optional<Meeting> getMeeting(UUID meetingId) {
+        return meetingRepository.findById(meetingId);
     }
 
     public boolean hasRole(String role) {
@@ -91,6 +100,15 @@ public class SecurityService {
                 .filter(user -> getTicket(ticketId)
                         .map(Ticket::getAssignee)
                         .map(assignee -> assignee.getId().equals(user.getId()))
+                        .orElse(false))
+                .isPresent();
+    }
+
+    public boolean hasRightDeleteMeeting(UUID meetingId) {
+        return getCurrentUser()
+                .filter(user -> getMeeting(meetingId)
+                        .map(Meeting::getOrganizerEmail)
+                        .map(email -> email.equals(getCurrentEmail()))
                         .orElse(false))
                 .isPresent();
     }
