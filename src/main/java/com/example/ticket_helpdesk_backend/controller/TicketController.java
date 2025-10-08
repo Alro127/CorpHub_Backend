@@ -4,14 +4,19 @@ import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.TicketService;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -36,42 +41,109 @@ public class TicketController {
 
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
     @GetMapping("/department/received")
-    public ResponseEntity<?> getByDepartmentId(@RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
+    public ResponseEntity<?> getByDepartmentId(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to,
+            @RequestParam(required = false) String keyword
+    ) throws ResourceNotFoundException {
         String token = authHeader.substring(7);
-        List<TicketResponse> ticketResponseList = ticketService.getReceivedTicketByDepartmentId(token);
+
+        Page<TicketResponse> pageData = ticketService.getReceivedTicketByDepartmentId(
+                token, page, size, status, priority, categoryId, from, to, keyword
+        );
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
-                "All tickets found",
+                "Received tickets found",
                 LocalDateTime.now(),
-                ticketResponseList
+                pageData.getContent(),
+                Map.of(
+                        "page", pageData.getNumber(),
+                        "size", pageData.getSize(),
+                        "totalElements", pageData.getTotalElements(),
+                        "totalPages", pageData.getTotalPages(),
+                        "last", pageData.isLast()
+                )
         );
+
         return ResponseEntity.ok(response);
     }
+
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
     @GetMapping("/department/sent")
-    public ResponseEntity<?> getSentTicketByDepartmentId(@RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
+    public ResponseEntity<?> getSentTicketByDepartmentId(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to,
+            @RequestParam(required = false) String keyword
+    ) throws ResourceNotFoundException {
         String token = authHeader.substring(7);
-        List<TicketResponse> ticketResponseList = ticketService.getSentTicketByDepartmentId(token);
+
+        Page<TicketResponse> pageData = ticketService.getSentTicketByDepartmentId(
+                token, page, size, status, priority, categoryId, from, to, keyword
+        );
+
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
-                "All tickets found",
+                "Sent tickets found",
                 LocalDateTime.now(),
-                ticketResponseList
+                pageData.getContent(),
+                Map.of(
+                        "page", pageData.getNumber(),
+                        "size", pageData.getSize(),
+                        "totalElements", pageData.getTotalElements(),
+                        "totalPages", pageData.getTotalPages(),
+                        "last", pageData.isLast()
+                )
         );
+
         return ResponseEntity.ok(response);
     }
-    @GetMapping("/my-tickets")
-    public ResponseEntity<?> getMyTicket(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.substring(7);
-        UUID id = jwtUtil.getUserId(token);
 
-        List<TicketResponse> ticketResponseList = ticketService.getMyTicket(id);
+    @GetMapping("/my-tickets")
+    public ResponseEntity<?> getMyTickets(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) Boolean isRequester,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String priority,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) LocalDate from,
+            @RequestParam(required = false) LocalDate to,
+            @RequestParam(required = false) String keyword
+    ) {
+        String token = authHeader.substring(7);
+        UUID userId = jwtUtil.getUserId(token);
+
+        Page<TicketResponse> pageData = ticketService.getMyTicket(
+                userId, page, size, isRequester, status, priority, categoryId, from, to, keyword
+        );
+
         ApiResponse<List<TicketResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "My tickets found",
                 LocalDateTime.now(),
-                ticketResponseList
+                pageData.getContent(),
+                Map.of(
+                        "page", pageData.getNumber(),
+                        "size", pageData.getSize(),
+                        "totalElements", pageData.getTotalElements(),
+                        "totalPages", pageData.getTotalPages(),
+                        "last", pageData.isLast()
+                )
         );
+
         return ResponseEntity.ok(response);
     }
 
@@ -88,9 +160,11 @@ public class TicketController {
     }
 
     @PostMapping("/save")
-    public ResponseEntity<?> createOrUpdate(@RequestBody TicketRequest request, @RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
+    public ResponseEntity<?> createOrUpdate(@Valid @RequestBody TicketRequest request, @RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
         String token = authHeader.substring(7);
         UUID userId = jwtUtil.getUserId(token);
+        ticketService.validateBusinessRules(request);
+
         ApiResponse<TicketResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Ticket saved successfully",

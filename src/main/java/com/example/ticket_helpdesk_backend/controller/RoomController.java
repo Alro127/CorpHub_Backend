@@ -2,9 +2,11 @@ package com.example.ticket_helpdesk_backend.controller;
 
 import com.example.ticket_helpdesk_backend.dto.RoomRequest;
 import com.example.ticket_helpdesk_backend.dto.RoomResponse;
+import com.example.ticket_helpdesk_backend.dto.TicketResponse;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.RoomService;
 import com.example.ticket_helpdesk_backend.dto.ApiResponse;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -12,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -27,13 +30,22 @@ public class RoomController {
     // Lấy danh sách tất cả phòng
     @PreAuthorize("@securityService.hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<ApiResponse<List<RoomResponse>>> getAllRooms() {
-        List<RoomResponse> rooms = roomService.getAllRooms();
-        ApiResponse<List<RoomResponse>> response = new ApiResponse<>(
+    public ResponseEntity<?> getAllRooms(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<RoomResponse> pageData = roomService.getAllRooms(page, size);
+        ApiResponse<?> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
-                "Fetched all rooms successfully",
+                "Rooms fetched successfully",
                 LocalDateTime.now(),
-                rooms
+                pageData.getContent(),
+                Map.of(
+                        "page", pageData.getNumber(),
+                        "size", pageData.getSize(),
+                        "totalElements", pageData.getTotalElements(),
+                        "totalPages", pageData.getTotalPages(),
+                        "last", pageData.isLast()
+                )
         );
         return ResponseEntity.ok(response);
     }

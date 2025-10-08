@@ -7,6 +7,10 @@ import com.example.ticket_helpdesk_backend.entity.Room;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.RoomRepository;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,10 +47,10 @@ public class RoomService {
         return mapToResponse(room);
     }
 
-    public List<RoomResponse> getAllRooms() {
-        return roomRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .collect(Collectors.toList());
+    public Page<RoomResponse> getAllRooms(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Room> rooms = roomRepository.findAll(pageable);
+        return rooms.map(this::mapToResponse);
     }
 
     public RoomResponse save(RoomRequest roomRequest) throws ResourceNotFoundException {

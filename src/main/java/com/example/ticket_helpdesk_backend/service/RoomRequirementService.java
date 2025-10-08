@@ -7,6 +7,9 @@ import com.example.ticket_helpdesk_backend.entity.RoomRequirementAsset;
 import com.example.ticket_helpdesk_backend.repository.RoomRequirementAssetRepository;
 import com.example.ticket_helpdesk_backend.repository.RoomRequirementRepository;
 import org.modelmapper.ModelMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,8 +34,10 @@ public class RoomRequirementService {
         return roomRequirementRepository.findById(id).orElse(null);
     }
 
-    public List<RoomRequirementDto> getAllRoomRequirements() {
-        return roomRequirementRepository.findAll().stream().map((element) -> RoomRequirementDto.toRoomRequirementDto(element)).collect(Collectors.toList());
+    public Page<RoomRequirementDto> getAllRoomRequirements(int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<RoomRequirement> roomRequirements = roomRequirementRepository.findAll(pageable);
+        return roomRequirements.map(RoomRequirementDto::toRoomRequirementDto);
     }
 
     public RoomRequirement getRoomRequirementMeetingId(UUID id) {
