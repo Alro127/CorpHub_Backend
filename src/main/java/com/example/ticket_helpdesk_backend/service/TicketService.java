@@ -14,9 +14,15 @@ import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
@@ -24,6 +30,8 @@ import java.util.Set;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static com.example.ticket_helpdesk_backend.specification.TicketSpecifications.*;
 
 @Service
 public class TicketService {
@@ -52,6 +60,50 @@ public class TicketService {
     private ModelMapper modelMapper;
 
     // ================== Helper Methods ==================
+
+    /**
+     * Validate business rules for Ticket creation or update.
+     * Throws IllegalArgumentException or ResourceNotFoundException on invalid data.
+     */
+    public void validateBusinessRules(TicketRequest req) throws ResourceNotFoundException {
+        // Validate Category tồn tại
+        if (!ticketCategoryRepository.existsById(req.getCategoryId())) {
+            throw new ResourceNotFoundException("Category not found with ID: " + req.getCategoryId());
+        }
+
+        // Validate Department tồn tại
+        if (!departmentRepository.existsById(req.getDepartmentId())) {
+            throw new ResourceNotFoundException("Department not found with ID: " + req.getDepartmentId());
+        }
+
+        // Validate Priority (Enum)
+        if (req.getPriority() == null) {
+            throw new IllegalArgumentException("Priority must not be null.");
+        }
+
+        // Validate Assignee
+        if (req.getAssigneeId() != null) {
+            User assignee = userRepository.findById(req.getAssigneeId()).orElse(null);
+            if (assignee == null) {
+                throw new ResourceNotFoundException("Assignee not found with ID: " + req.getAssigneeId());
+            }
+            // Kiểm tra assignee thuộc đúng department
+            boolean sameDepartment = assignee.getEmployeeProfile().getDepartment().getId().equals(req.getDepartmentId());
+            if (!sameDepartment) {
+                throw new IllegalArgumentException("Assignee does not belong to the specified department.");
+            }
+        }
+
+        // Kiểm tra độ dài tiêu đề
+        if (req.getTitle() == null || req.getTitle().isEmpty() || req.getTitle().length() > 100) {
+            throw new IllegalArgumentException("A ticket title is not valid.");
+        }
+
+        // Kiểm tra độ dài description
+        if (req.getDescription() != null && req.getDescription().length() > 1000) {
+            throw new IllegalArgumentException("Description cannot exceed 1000 characters.");
+        }
+    }
 
     public Ticket getTicket(UUID id) throws ResourceNotFoundException {
         return ticketRepository.findById(id)
@@ -107,36 +159,87 @@ public class TicketService {
                 .collect(Collectors.toList());
     }
 
-    public List<TicketResponse> getReceivedTicketByDepartmentId(String token) throws ResourceNotFoundException {
+    public Page<TicketResponse> getReceivedTicketByDepartmentId(
+            String token,
+            int page,
+            int size,
+            String status,
+            String priority,
+            UUID categoryId,
+            LocalDate from,
+            LocalDate to,
+            String keyword
+    ) throws ResourceNotFoundException {
+
         User user = userService.getUserFromToken(token);
         UUID departmentId = Optional.ofNullable(user.getEmployeeProfile().getDepartment())
                 .orElseThrow(() -> new ResourceNotFoundException("User has no department assigned"))
                 .getId();
 
-        return ticketRepository.findReceivedTicketByDepartmentId(departmentId)
-                .stream()
-                .map(TicketResponse::toResponse)
-                .toList();
+        Specification<Ticket> spec = Specification
+                .where(receivedByDepartment(departmentId))
+                .and(hasStatus(status))
+                .and(hasPriority(priority))
+                .and(hasCategory(categoryId))
+                .and(createdBetween(from, to))
+                .and(search(keyword));
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ticketRepository.findAll(spec, pageable).map(TicketResponse::toResponse);
     }
 
-    public List<TicketResponse> getSentTicketByDepartmentId(String token) throws ResourceNotFoundException {
+    public Page<TicketResponse> getSentTicketByDepartmentId(
+            String token,
+            int page,
+            int size,
+            String status,
+            String priority,
+            UUID categoryId,
+            LocalDate from,
+            LocalDate to,
+            String keyword
+    ) throws ResourceNotFoundException {
+
         User user = userService.getUserFromToken(token);
         UUID departmentId = Optional.ofNullable(user.getEmployeeProfile().getDepartment())
                 .orElseThrow(() -> new ResourceNotFoundException("User has no department assigned"))
                 .getId();
 
-        return ticketRepository.findSentTicketByDepartmentId(departmentId)
-                .stream()
-                .map(TicketResponse::toResponse)
-                .toList();
+        Specification<Ticket> spec = Specification
+                .where(sentByDepartment(departmentId))
+                .and(hasStatus(status))
+                .and(hasPriority(priority))
+                .and(hasCategory(categoryId))
+                .and(createdBetween(from, to))
+                .and(search(keyword));
+
+        Pageable pageable = PageRequest.of(page, size);
+        return ticketRepository.findAll(spec, pageable).map(TicketResponse::toResponse);
     }
 
-    public List<TicketResponse> getMyTicket(UUID id) {
-        return ticketRepository.findMyTickets(id).stream()
-                .map(TicketResponse::toResponse)
-                .collect(Collectors.toList());
-    }
+    public Page<TicketResponse> getMyTicket(
+            UUID userId,
+            int page,
+            int size,
+            Boolean isRequester,
+            String status,
+            String priority,
+            UUID categoryId,
+            LocalDate from,
+            LocalDate to,
+            String keyword
+    ) {
+        Specification<Ticket> spec = Specification
+                .where(buildUserRoleSpec(userId, isRequester))
+                .and(hasStatus(status))
+                .and(hasPriority(priority))
+                .and(hasCategory(categoryId))
+                .and(createdBetween(from, to))
+                .and(search(keyword));
 
+        Pageable pageable = PageRequest.of(page, size);
+        return ticketRepository.findAll(spec, pageable).map(TicketResponse::toResponse);
+    }
 
     @Autowired
     private DynamicSearchUtil dynamicSearchService;

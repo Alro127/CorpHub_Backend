@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -13,7 +14,19 @@ import java.time.LocalDateTime;
 public class ApiResponse<T> {
     private int status;
     private String message;
-    private LocalDateTime timestamp;
-    private T data;
-}
 
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime timestamp;
+
+    private T data;
+
+    private Map<String, Object> meta;
+
+    public ApiResponse(int status, String message, LocalDateTime timestamp, T data) {
+        this.status = status;
+        this.message = message;
+        this.timestamp = timestamp;
+        this.data = data;
+        this.meta = null;
+    }
+}
