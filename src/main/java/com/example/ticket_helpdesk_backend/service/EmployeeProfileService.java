@@ -3,7 +3,6 @@ package com.example.ticket_helpdesk_backend.service;
 import com.example.ticket_helpdesk_backend.dto.CreateEmployeeProfileRequest;
 import com.example.ticket_helpdesk_backend.dto.CreateUserRequest;
 import com.example.ticket_helpdesk_backend.dto.EmployeeProfileResponse;
-import com.example.ticket_helpdesk_backend.dto.NameInfoDto;
 import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
@@ -87,7 +86,7 @@ public class EmployeeProfileService {
         employeeProfileRepository.save(employeeProfile);
 
         // ====== Thông báo cho IT ======
-//        Ticket 
+//        Ticket
 //        ITNotification notif = new ITNotification();
 //        notif.setEmployeeProfile(employeeProfile);
 //        notif.setType("NEW_EMPLOYEE");

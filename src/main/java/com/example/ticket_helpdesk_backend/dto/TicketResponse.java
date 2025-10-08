@@ -22,8 +22,8 @@ import java.util.UUID;
 public class TicketResponse implements Serializable {
     UUID id;
     TicketCategoryDto category;
-    NameInfoDto requester;
-    NameInfoDto assignee;
+    TicketUserInfoDto requester;
+    TicketUserInfoDto assignee;
     DepartmentDto department;
     @Size(max = 255)
     String title;
@@ -51,19 +51,21 @@ public class TicketResponse implements Serializable {
 
         // requester (luôn có)
         User requester = ticket.getRequester();
-        dto.setRequester(new NameInfoDto(
+        dto.setRequester(new TicketUserInfoDto(
                 requester.getId(),
                 requester.getEmployeeProfile().getFullName(),
-                requester.getEmployeeProfile().getAvatar()
+                requester.getEmployeeProfile().getAvatar(),
+                requester.getEmployeeProfile().getPhone()
         ));
 
         // assignee (có thể null)
         User assignee = ticket.getAssignee();
         if (assignee != null) {
-            dto.setAssignee(new NameInfoDto(
+            dto.setAssignee(new TicketUserInfoDto(
                     assignee.getId(),
                     assignee.getEmployeeProfile().getFullName(),
-                    assignee.getEmployeeProfile().getAvatar()
+                    assignee.getEmployeeProfile().getAvatar(),
+                    assignee.getEmployeeProfile().getPhone()
             ));
         } else {
             dto.setAssignee(null);

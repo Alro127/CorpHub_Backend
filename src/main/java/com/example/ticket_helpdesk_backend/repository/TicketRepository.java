@@ -31,6 +31,7 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
          )
         )
       )
+    ORDER BY t.created_at DESC
     """, nativeQuery = true)
   List<Ticket> findReceivedTicketByDepartmentId(@Param("departmentId") UUID departmentId);
 
@@ -40,6 +41,7 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     JOIN [user] u ON t.requester_id = u.id
     JOIN employee_profile e ON u.id = e.id
     WHERE e.department_id = :departmentId
+    ORDER BY t.created_at DESC
     """, nativeQuery = true)
   List<Ticket> findSentTicketByDepartmentId(@Param("departmentId") UUID departmentId);
 
@@ -47,6 +49,7 @@ public interface TicketRepository extends JpaRepository<Ticket, UUID> {
     SELECT t.* 
     FROM ticket t
     WHERE t.requester_id = :userId OR t.assignee_id = :userId
+    ORDER BY t.created_at DESC
     """, nativeQuery = true)
   List<Ticket> findMyTickets(@Param("userId") UUID id);
 }
