@@ -84,6 +84,15 @@ public class SecurityService {
                 .isPresent();
     }
 
+    public boolean isTicketOwner(UUID ticketId) {
+        return getCurrentUser()
+                .flatMap(currentUser ->
+                        getTicket(ticketId)
+                                .map(ticket -> ticket.getRequester().getId().equals(currentUser.getId()))
+                )
+                .orElse(false);
+    }
+
     public boolean isManagerOfTicketOwner(UUID ticketId) {
         return getCurrentUser()
                 .filter(user -> isManagerOfDepartment(user.getEmployeeProfile().getDepartment().getId()))

@@ -337,13 +337,17 @@ public class TicketService {
     }
 
     @Transactional
-    public void complete(UUID ticketId) throws ResourceNotFoundException {
+    public void complete(UUID ticketId, UUID userId) throws ResourceNotFoundException {
         Ticket ticket = getTicket(ticketId);
-        if (!ticket.getStatus().equals(TicketStatus.IN_PROGRESS)) {
-            throw new RuntimeException("Ticket must be in IN_PROGRESS state to complete");
+        User user = userRepository.findById(userId).orElseThrow(() -> new RuntimeException("User not found"));
+        if (ticket.getAssignee() != null && ticket.getAssignee().equals(user)) {
+            if (!ticket.getStatus().equals(TicketStatus.IN_PROGRESS)) {
+                throw new RuntimeException("Ticket must be in IN_PROGRESS state to complete");
+            }
         }
         ticket.setStatus(TicketStatus.DONE);
         ticket.setResolvedAt(LocalDateTime.now());
+        ticket.setCompletedBy(user);
         ticketRepository.save(ticket);
     }
 }
