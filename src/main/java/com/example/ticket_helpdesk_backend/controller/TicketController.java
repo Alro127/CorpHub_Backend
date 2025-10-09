@@ -1,6 +1,7 @@
 package com.example.ticket_helpdesk_backend.controller;
 
 import com.example.ticket_helpdesk_backend.dto.*;
+import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.TicketService;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
@@ -142,6 +143,21 @@ public class TicketController {
                         "totalPages", pageData.getTotalPages(),
                         "last", pageData.isLast()
                 )
+        );
+
+        return ResponseEntity.ok(response);
+    }
+    @GetMapping("/meta/{id}")
+    public ResponseEntity<?> getTicketMetaById(@RequestHeader("Authorization") String authHeader,@PathVariable UUID id) throws ResourceNotFoundException {
+        String token = authHeader.substring(7);
+
+        TicketMetaResponse ticket = TicketMetaResponse.toResponse(ticketService.getTicket(id));
+
+        ApiResponse<TicketMetaResponse> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Tickets found",
+                LocalDateTime.now(),
+                ticket
         );
 
         return ResponseEntity.ok(response);

@@ -164,6 +164,7 @@ public class TicketService {
         String metaJson = employees.stream()
                 .map(e -> Map.of(
                         "employeeProfileId", e.getId(),
+                        "fullName", e.getFullName(),
                         "personalEmail", e.getPersonalEmail(),
                         "department", e.getDepartment() != null ? e.getDepartment().getName() : "Chưa xác định"
                 ))
