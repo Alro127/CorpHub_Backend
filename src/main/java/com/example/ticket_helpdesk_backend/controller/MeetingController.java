@@ -10,6 +10,7 @@ import com.example.ticket_helpdesk_backend.service.EmailService;
 import com.example.ticket_helpdesk_backend.service.MeetingService;
 import com.example.ticket_helpdesk_backend.service.UserService;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
+import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -37,7 +38,7 @@ public class MeetingController {
 
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
     @PostMapping("/save")
-    public ApiResponse<MeetingResponse> saveMeeting(@RequestHeader("Authorization") String authHeader, @RequestBody MeetingRequest request) throws Exception {
+    public ApiResponse<MeetingResponse> saveMeeting(@RequestHeader("Authorization") String authHeader, @Valid @RequestBody MeetingRequest request) throws Exception {
         String token = authHeader.substring(7);
         User user = userService.getUserFromToken(token);
 

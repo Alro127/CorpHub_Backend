@@ -9,7 +9,6 @@ import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.AuthException;
 import com.example.ticket_helpdesk_backend.repository.*;
 
-import com.example.ticket_helpdesk_backend.specification.MeetingSpecifications;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -20,7 +19,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 import static com.example.ticket_helpdesk_backend.specification.MeetingSpecifications.*;
 
@@ -35,19 +33,17 @@ public class MeetingService {
     private final UserService userService;
     private final UserRepository userRepository;
     private final RoomRequirementService roomRequirementService;
-    @Autowired
-    private RoomRequirementRepository roomRequirementRepository;
-
 
     public MeetingService(MeetingRepository meetingRepository,
-                          AttendeeRepository attendeeRepository, UserService userService, UserRepository userRepository, RoomRequirementService roomRequirementService) {
+                          AttendeeRepository attendeeRepository, UserService userService, UserRepository userRepository, RoomRequirementService roomRequirementService, RoomRequirementRepository roomRequirementRepository) {
         this.meetingRepository = meetingRepository;
         this.attendeeRepository = attendeeRepository;
         this.userService = userService;
         this.userRepository = userRepository;
-
         this.roomRequirementService = roomRequirementService;
     }
+
+
 
     private MeetingResponse mapToMeetingResponse(Meeting meeting) {
         if (meeting == null) return null;

@@ -6,14 +6,11 @@ import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.*;
-import com.example.ticket_helpdesk_backend.util.DynamicSearchUtil;
-import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.EnumSet;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static com.example.ticket_helpdesk_backend.specification.TicketSpecifications.*;
@@ -34,29 +35,40 @@ public class TicketService {
 
     private static final Logger log = LoggerFactory.getLogger(TicketService.class);
 
-    @Autowired
+    final
     TicketRepository ticketRepository;
 
-    @Autowired
+    final
     UserRepository userRepository;
 
-    @Autowired
+    final
     TicketCategoryRepository ticketCategoryRepository;
 
-    @Autowired
+    final
     DepartmentRepository departmentRepository;
 
-    @Autowired
+    final
     TicketRejectionRepository ticketRejectionRepository;
 
-    @Autowired
+    final
     UserService userService;
 
-    @Autowired
+    final
     EmployeeProfileRepository employeeProfileRepository;
 
-    @Autowired
+    final
     private ModelMapper modelMapper;
+
+    public TicketService(TicketRepository ticketRepository, UserRepository userRepository, TicketCategoryRepository ticketCategoryRepository, DepartmentRepository departmentRepository, TicketRejectionRepository ticketRejectionRepository, UserService userService, EmployeeProfileRepository employeeProfileRepository, ModelMapper modelMapper) {
+        this.ticketRepository = ticketRepository;
+        this.userRepository = userRepository;
+        this.ticketCategoryRepository = ticketCategoryRepository;
+        this.departmentRepository = departmentRepository;
+        this.ticketRejectionRepository = ticketRejectionRepository;
+        this.userService = userService;
+        this.employeeProfileRepository = employeeProfileRepository;
+        this.modelMapper = modelMapper;
+    }
 
     // ================== Helper Methods ==================
 
@@ -75,11 +87,6 @@ public class TicketService {
             throw new ResourceNotFoundException("Department not found with ID: " + req.getDepartmentId());
         }
 
-        // Validate Priority (Enum)
-        if (req.getPriority() == null) {
-            throw new IllegalArgumentException("Priority must not be null.");
-        }
-
         // Validate Assignee
         if (req.getAssigneeId() != null) {
             User assignee = userRepository.findById(req.getAssigneeId()).orElse(null);
@@ -91,16 +98,6 @@ public class TicketService {
             if (!sameDepartment) {
                 throw new IllegalArgumentException("Assignee does not belong to the specified department.");
             }
-        }
-
-        // Kiểm tra độ dài tiêu đề
-        if (req.getTitle() == null || req.getTitle().isEmpty() || req.getTitle().length() > 100) {
-            throw new IllegalArgumentException("A ticket title is not valid.");
-        }
-
-        // Kiểm tra độ dài description
-        if (req.getDescription() != null && req.getDescription().length() > 1000) {
-            throw new IllegalArgumentException("Description cannot exceed 1000 characters.");
         }
     }
 
@@ -205,7 +202,7 @@ public class TicketService {
 
         ticket.setTitle(ticketRequest.getTitle());
         ticket.setDescription(ticketRequest.getDescription());
-        ticket.setPriority(TicketPriority.valueOf(ticketRequest.getPriority()));
+        ticket.setPriority(ticketRequest.getPriority());
         ticket.setUpdatedAt(LocalDateTime.now());
 
         ticket.setCategory(ticketCategoryRepository.findById(ticketRequest.getCategoryId())

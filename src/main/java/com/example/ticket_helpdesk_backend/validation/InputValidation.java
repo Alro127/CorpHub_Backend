@@ -1,4 +1,4 @@
-package com.example.ticket_helpdesk_backend.util;
+package com.example.ticket_helpdesk_backend.validation;
 
 
 import java.util.regex.Pattern;
