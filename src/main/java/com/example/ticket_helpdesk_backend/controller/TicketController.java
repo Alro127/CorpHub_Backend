@@ -175,6 +175,21 @@ public class TicketController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/create-user-ticket")
+    public ResponseEntity<?> createUserTicket(@RequestBody Map<String, List<UUID>> body, @RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
+        String token = authHeader.substring(7);
+        List<UUID> employeeIds = body.get("employeeIds");
+
+        ApiResponse<Boolean> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Ticket saved successfully",
+                LocalDateTime.now(),
+                ticketService.createUserTicket(employeeIds, token)
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
     @DeleteMapping("/delete/{id}")
     public ResponseEntity<?> deleteById(@PathVariable UUID id) {
         boolean deleted = ticketService.deleteById(id);

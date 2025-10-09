@@ -1,15 +1,25 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.consts.TicketPriority;
+import com.example.ticket_helpdesk_backend.consts.TicketStatus;
 import com.example.ticket_helpdesk_backend.dto.CreateEmployeeProfileRequest;
 import com.example.ticket_helpdesk_backend.dto.CreateUserRequest;
 import com.example.ticket_helpdesk_backend.dto.EmployeeProfileResponse;
 import com.example.ticket_helpdesk_backend.entity.*;
+import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
+import com.example.ticket_helpdesk_backend.repository.TicketCategoryRepository;
+import com.example.ticket_helpdesk_backend.repository.TicketRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -24,9 +34,20 @@ public class EmployeeProfileService {
     @Autowired
     FileStorageService fileStorageService;
 
-    @Transactional
-    public boolean createEmployeeProfile(CreateEmployeeProfileRequest request) {
+    @Autowired
+    UserService userService;
 
+    @Autowired
+    TicketRepository ticketRepository;
+
+    @Autowired
+    TicketCategoryRepository ticketCategoryRepository;
+
+
+    @Transactional
+    public boolean createEmployeeProfile(CreateEmployeeProfileRequest request, String token) throws ResourceNotFoundException {
+
+        // ====== Tạo hồ sơ nhân viên ======
         EmployeeProfile employeeProfile = new EmployeeProfile();
         employeeProfile.setFullName(request.getFullName());
         employeeProfile.setDob(request.getDob());
@@ -41,7 +62,7 @@ public class EmployeeProfileService {
             employeeProfile.setDepartment(dept);
         }
 
-        // ====== Map JobHistories ======
+        // ====== JobHistories ======
         if (request.getJobHistories() != null && !request.getJobHistories().isEmpty()) {
             List<EmployeeJobHistory> histories = request.getJobHistories().stream().map(j -> {
                 EmployeeJobHistory job = new EmployeeJobHistory();
@@ -65,7 +86,7 @@ public class EmployeeProfileService {
             employeeProfile.setJobHistories(histories);
         }
 
-        // ====== Map Competencies ======
+        // ====== Competencies ======
         if (request.getCompetencies() != null && !request.getCompetencies().isEmpty()) {
             List<EmployeeCompetency> competencies = request.getCompetencies().stream().map(c -> {
                 EmployeeCompetency competency = new EmployeeCompetency();
@@ -82,30 +103,45 @@ public class EmployeeProfileService {
             employeeProfile.setCompetencies(competencies);
         }
 
-        // Lưu EmployeeProfile (cascading sẽ lưu cả jobHistories và competencies)
+        // ====== Lưu EmployeeProfile ======
         employeeProfileRepository.save(employeeProfile);
 
-        // ====== Thông báo cho IT ======
-//        Ticket
-//        ITNotification notif = new ITNotification();
-//        notif.setEmployeeProfile(employeeProfile);
-//        notif.setType("NEW_EMPLOYEE");
-//        notif.setMessage("Nhân viên mới cần tạo tài khoản: " + employeeProfile.getFullName());
-//        itNotificationRepository.save(notif);
 
         return true;
     }
-    public List<EmployeeProfileResponse> getAllEmployeeProfiles() {
-        return employeeProfileRepository.findAll().stream()
-                .map(profile -> {
-                    String avatarUrl = null;
-                    if (profile.getAvatar() != null) {
-                        avatarUrl = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
-                    }
-                    return EmployeeProfileResponse.toResponse(profile, avatarUrl);
-                })
-                .toList();
+
+//    public List<EmployeeProfileResponse> getAllEmployeeProfiles() {
+//        return employeeProfileRepository.findAll().stream()
+//                .map(profile -> {
+//                    String avatarUrl = null;
+//                    if (profile.getAvatar() != null) {
+//                        avatarUrl = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
+//                    }
+//                    return EmployeeProfileResponse.toResponse(profile, avatarUrl);
+//                })
+//                .toList();
+//    }
+    public Page<EmployeeProfileResponse> getAllEmployeeProfiles(int page, int size, String keyword) {
+        Pageable pageable = PageRequest.of(page, size);
+
+        Page<EmployeeProfile> pageResult;
+
+        if (keyword != null && !keyword.isEmpty()) {
+            pageResult = employeeProfileRepository.findByFullNameContainingIgnoreCase(keyword, pageable);
+        } else {
+            pageResult = employeeProfileRepository.findAll(pageable);
+        }
+
+        // ✅ Map entity → DTO kèm avatar presigned URL
+        return pageResult.map(profile -> {
+            String avatarUrl = null;
+            if (profile.getAvatar() != null) {
+                avatarUrl = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
+            }
+            return EmployeeProfileResponse.toResponse(profile, avatarUrl);
+        });
     }
+
 
     public List<EmployeeProfile> getEmployeesByDepartment(UUID departmentId) {
         return employeeProfileRepository.findByDepartment_Id(departmentId);

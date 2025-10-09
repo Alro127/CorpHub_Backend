@@ -4,17 +4,21 @@ import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import com.example.ticket_helpdesk_backend.dto.CreateEmployeeProfileRequest;
 import com.example.ticket_helpdesk_backend.dto.CreateUserRequest;
 import com.example.ticket_helpdesk_backend.dto.EmployeeProfileResponse;
+import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.EmployeeProfileService;
 import com.example.ticket_helpdesk_backend.service.FileStorageService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -30,15 +34,17 @@ public class EmployeeProfileController {
 
     @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<?> createEmployeeProfile(
+            @RequestHeader("Authorization") String authHeader,
             @RequestPart("profile") CreateEmployeeProfileRequest request,
             @RequestPart(value = "avatar", required = false) MultipartFile avatarFile
-    ) {
+    ) throws ResourceNotFoundException {
+        String token = authHeader.substring(7);
         if (avatarFile != null && !avatarFile.isEmpty()) {
             String fileUrl = fileStorageService.uploadFile(bucketName, avatarFile, request.getFullName());
             request.setAvatar(fileUrl); // gắn link ảnh vào DTO
         }
 
-        boolean success = employeeProfileService.createEmployeeProfile(request);
+        boolean success = employeeProfileService.createEmployeeProfile(request, token);
         String message = success ? "Create Employee Successfully" : "Create Employee Failed";
 
 
@@ -54,16 +60,31 @@ public class EmployeeProfileController {
 
     // 1. Lấy tất cả nhân viên
     @GetMapping
-    public ResponseEntity<?> getAllEmployee() {
-        List<EmployeeProfileResponse> employees = employeeProfileService.getAllEmployeeProfiles();
+    public ResponseEntity<?> getAllEmployee(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword
+    ) {
+        Page<EmployeeProfileResponse> employeePage = employeeProfileService.getAllEmployeeProfiles(page, size, keyword);
+
+        Map<String, Object> meta = Map.of(
+                "page", employeePage.getNumber(),
+                "size", employeePage.getSize(),
+                "totalPages", employeePage.getTotalPages(),
+                "totalElements", employeePage.getTotalElements()
+        );
+
         ApiResponse<?> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Get all employees successfully",
                 LocalDateTime.now(),
-                employees
+                employeePage.getContent(),
+                meta
         );
+
         return ResponseEntity.ok(response);
     }
+
 
     // 2. Lấy tất cả nhân viên của 1 phòng ban
     @GetMapping("/department/{departmentId}")
