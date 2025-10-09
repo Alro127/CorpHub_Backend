@@ -1,6 +1,5 @@
 package com.example.ticket_helpdesk_backend.service;
 
-import com.example.ticket_helpdesk_backend.consts.TicketPriority;
 import com.example.ticket_helpdesk_backend.consts.TicketStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
@@ -8,16 +7,12 @@ import com.example.ticket_helpdesk_backend.entity.TicketRejection;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.*;
-import com.example.ticket_helpdesk_backend.util.DynamicSearchUtil;
-import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,7 +21,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.EnumSet;
 import java.util.List;
-import java.util.Set;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -38,26 +32,35 @@ public class TicketService {
 
     private static final Logger log = LoggerFactory.getLogger(TicketService.class);
 
-    @Autowired
+    final
     TicketRepository ticketRepository;
 
-    @Autowired
+    final
     UserRepository userRepository;
 
-    @Autowired
+    final
     TicketCategoryRepository ticketCategoryRepository;
 
-    @Autowired
+    final
     DepartmentRepository departmentRepository;
 
-    @Autowired
+    final
     TicketRejectionRepository ticketRejectionRepository;
 
-    @Autowired
+    final
     UserService userService;
 
-    @Autowired
-    private ModelMapper modelMapper;
+    private final ModelMapper modelMapper;
+
+    public TicketService(TicketRepository ticketRepository, UserRepository userRepository, TicketCategoryRepository ticketCategoryRepository, DepartmentRepository departmentRepository, TicketRejectionRepository ticketRejectionRepository, UserService userService, ModelMapper modelMapper) {
+        this.ticketRepository = ticketRepository;
+        this.userRepository = userRepository;
+        this.ticketCategoryRepository = ticketCategoryRepository;
+        this.departmentRepository = departmentRepository;
+        this.ticketRejectionRepository = ticketRejectionRepository;
+        this.userService = userService;
+        this.modelMapper = modelMapper;
+    }
 
     // ================== Helper Methods ==================
 
@@ -76,11 +79,6 @@ public class TicketService {
             throw new ResourceNotFoundException("Department not found with ID: " + req.getDepartmentId());
         }
 
-        // Validate Priority (Enum)
-        if (req.getPriority() == null) {
-            throw new IllegalArgumentException("Priority must not be null.");
-        }
-
         // Validate Assignee
         if (req.getAssigneeId() != null) {
             User assignee = userRepository.findById(req.getAssigneeId()).orElse(null);
@@ -92,16 +90,6 @@ public class TicketService {
             if (!sameDepartment) {
                 throw new IllegalArgumentException("Assignee does not belong to the specified department.");
             }
-        }
-
-        // Kiểm tra độ dài tiêu đề
-        if (req.getTitle() == null || req.getTitle().isEmpty() || req.getTitle().length() > 100) {
-            throw new IllegalArgumentException("A ticket title is not valid.");
-        }
-
-        // Kiểm tra độ dài description
-        if (req.getDescription() != null && req.getDescription().length() > 1000) {
-            throw new IllegalArgumentException("Description cannot exceed 1000 characters.");
         }
     }
 
@@ -124,7 +112,7 @@ public class TicketService {
 
         ticket.setTitle(ticketRequest.getTitle());
         ticket.setDescription(ticketRequest.getDescription());
-        ticket.setPriority(TicketPriority.valueOf(ticketRequest.getPriority()));
+        ticket.setPriority(ticketRequest.getPriority());
         ticket.setUpdatedAt(LocalDateTime.now());
 
         ticket.setCategory(ticketCategoryRepository.findById(ticketRequest.getCategoryId())
@@ -239,23 +227,6 @@ public class TicketService {
 
         Pageable pageable = PageRequest.of(page, size);
         return ticketRepository.findAll(spec, pageable).map(TicketResponse::toResponse);
-    }
-
-    @Autowired
-    private DynamicSearchUtil dynamicSearchService;
-
-    private static final Set<String> ALLOWED_FILTERS = Set.of("status", "priority", "assignee");
-    private static final Set<String> ALLOWED_SORTS = Set.of("createDate", "priority", "status");
-
-    public List<Ticket> searchTickets(TicketFilterRequest request) {
-        return dynamicSearchService.search(
-                Ticket.class,
-                request.getFilters(),
-                request.getSort(),
-                request.getPagination(),
-                ALLOWED_FILTERS,
-                ALLOWED_SORTS
-        );
     }
 
     public List<TicketCategoryDto> getCategories() {

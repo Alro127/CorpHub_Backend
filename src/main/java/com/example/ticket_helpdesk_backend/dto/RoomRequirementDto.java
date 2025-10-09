@@ -1,6 +1,8 @@
 package com.example.ticket_helpdesk_backend.dto;
 
 import com.example.ticket_helpdesk_backend.entity.RoomRequirement;
+import com.example.ticket_helpdesk_backend.validation.ValidTimeRange;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,15 +15,27 @@ import java.util.stream.Collectors;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@ValidTimeRange
 public class RoomRequirementDto {
+
     private UUID id;
+
+    @Min(value = 1, message = "Capacity must be at least 1")
     private int capacity;
+
     private List<UUID> assetCategories;
+
+    @NotNull(message = "Start time cannot be null")
+    @FutureOrPresent(message = "Start time must be in the present or future")
     private LocalDateTime start;
+
+    @NotNull(message = "End time cannot be null")
+    @Future(message = "End time must be in the future")
     private LocalDateTime end;
+
     private UUID roomId;
 
-    static public RoomRequirementDto toRoomRequirementDto(RoomRequirement roomRequirement) {
+    public static RoomRequirementDto toRoomRequirementDto(RoomRequirement roomRequirement) {
         if (roomRequirement == null) {
             return null;
         }
@@ -30,10 +44,12 @@ public class RoomRequirementDto {
         dto.setCapacity(roomRequirement.getCapacity());
         dto.setStart(roomRequirement.getStartTime());
         dto.setEnd(roomRequirement.getEndTime());
-        if (roomRequirement.getRoom() != null) dto.setRoomId(roomRequirement.getRoom().getId());
-        else dto.setRoomId(null);
-
-        dto.setAssetCategories(roomRequirement.getRoomRequirementAssets().stream().map(roomRequirementAsset -> roomRequirementAsset.getAssetCategory().getId()).collect(Collectors.toList()));
+        dto.setRoomId(roomRequirement.getRoom() != null ? roomRequirement.getRoom().getId() : null);
+        dto.setAssetCategories(
+                roomRequirement.getRoomRequirementAssets().stream()
+                        .map(a -> a.getAssetCategory().getId())
+                        .collect(Collectors.toList())
+        );
         return dto;
     }
 }
