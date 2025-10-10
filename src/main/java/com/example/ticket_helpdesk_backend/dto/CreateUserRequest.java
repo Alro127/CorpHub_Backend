@@ -14,12 +14,12 @@ import java.util.UUID;
 public class CreateUserRequest {
     @NotNull
     @Size(max = 100)
-    private String userName; // thường là work email
+    private String email; // thường là work email
 
     // Mật khẩu hệ thống tự generate hoặc admin tự nhập
     private String password;
     @NotNull
-    private UUID roleId; // tham chiếu tới bảng Role
+    private String role; // tham chiếu tới bảng Role
 
     @NotNull
     private UUID employeeId; // tham chiếu tới bảng EmployeeProfile

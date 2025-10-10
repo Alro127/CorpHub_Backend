@@ -1,6 +1,7 @@
 package com.example.ticket_helpdesk_backend.controller;
 
 import com.example.ticket_helpdesk_backend.dto.*;
+import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.TicketService;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
@@ -146,6 +147,21 @@ public class TicketController {
 
         return ResponseEntity.ok(response);
     }
+    @GetMapping("/meta/{id}")
+    public ResponseEntity<?> getTicketMetaById(@RequestHeader("Authorization") String authHeader,@PathVariable UUID id) throws ResourceNotFoundException {
+        String token = authHeader.substring(7);
+
+        TicketMetaResponse ticket = TicketMetaResponse.toResponse(ticketService.getTicket(id));
+
+        ApiResponse<TicketMetaResponse> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Tickets found",
+                LocalDateTime.now(),
+                ticket
+        );
+
+        return ResponseEntity.ok(response);
+    }
 
     @GetMapping("/categories")
     public ResponseEntity<?> getCategories() {
@@ -170,6 +186,21 @@ public class TicketController {
                 "Ticket saved successfully",
                 LocalDateTime.now(),
                 ticketService.createOrUpdateTicket(request, userId)
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/create-user-ticket")
+    public ResponseEntity<?> createUserTicket(@RequestBody Map<String, List<UUID>> body, @RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
+        String token = authHeader.substring(7);
+        List<UUID> employeeIds = body.get("employeeIds");
+
+        ApiResponse<Boolean> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Ticket saved successfully",
+                LocalDateTime.now(),
+                ticketService.createUserTicket(employeeIds, token)
         );
 
         return ResponseEntity.ok(response);

@@ -18,7 +18,6 @@ import java.util.UUID;
 @Setter
 public class User {
     @Id
-    @Column(columnDefinition = "uniqueidentifier")
     private UUID id;
 
     @Column(nullable = false, unique = true, length = 100)
@@ -43,7 +42,9 @@ public class User {
     @Column(name = "expired", nullable = false)
     private LocalDateTime expired;
 
-    // Quan hệ 1-1 với EmployeeProfile (mappedBy)
-    @OneToOne(mappedBy = "user", fetch = FetchType.LAZY, cascade = CascadeType.ALL, optional = false)
+    // Quan hệ 1-1 dùng cùng PK
+    @OneToOne
+    @MapsId
+    @JoinColumn(name = "id")
     private EmployeeProfile employeeProfile;
 }

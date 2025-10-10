@@ -32,10 +32,8 @@ public class EmployeeProfile {
     @JoinColumn(name = "department_id")
     private Department department;
 
-    // Liên kết 1-1 với User, chia sẻ cùng PK
-    @OneToOne(fetch = FetchType.LAZY)
-    @MapsId
-    @JoinColumn(name = "id")
+    // Quan hệ 1-1, User sẽ dùng lại id này
+    @OneToOne(mappedBy = "employeeProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private User user;
 
     // Quan hệ với JobHistory

@@ -1,24 +1,27 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.consts.TicketPriority;
 import com.example.ticket_helpdesk_backend.consts.TicketStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
-import com.example.ticket_helpdesk_backend.entity.Ticket;
-import com.example.ticket_helpdesk_backend.entity.TicketRejection;
-import com.example.ticket_helpdesk_backend.entity.User;
+import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.*;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
@@ -50,15 +53,20 @@ public class TicketService {
     final
     UserService userService;
 
-    private final ModelMapper modelMapper;
+    final
+    EmployeeProfileRepository employeeProfileRepository;
 
-    public TicketService(TicketRepository ticketRepository, UserRepository userRepository, TicketCategoryRepository ticketCategoryRepository, DepartmentRepository departmentRepository, TicketRejectionRepository ticketRejectionRepository, UserService userService, ModelMapper modelMapper) {
+    final
+    private ModelMapper modelMapper;
+
+    public TicketService(TicketRepository ticketRepository, UserRepository userRepository, TicketCategoryRepository ticketCategoryRepository, DepartmentRepository departmentRepository, TicketRejectionRepository ticketRejectionRepository, UserService userService, EmployeeProfileRepository employeeProfileRepository, ModelMapper modelMapper) {
         this.ticketRepository = ticketRepository;
         this.userRepository = userRepository;
         this.ticketCategoryRepository = ticketCategoryRepository;
         this.departmentRepository = departmentRepository;
         this.ticketRejectionRepository = ticketRejectionRepository;
         this.userService = userService;
+        this.employeeProfileRepository = employeeProfileRepository;
         this.modelMapper = modelMapper;
     }
 
@@ -104,6 +112,89 @@ public class TicketService {
         ticket.setStatus(TicketStatus.OPEN);
         return updateTicket(ticket, ticketRequest, userId);
     }
+
+    public boolean createUserTicket(List<UUID> employeeIds, String token) throws ResourceNotFoundException {
+        // ====== Tạo Ticket thông báo cho IT ======
+        Ticket ticket = new Ticket();
+
+        // Người gửi là HR đang thao tác (lấy từ token)
+        User hrUser = userService.getUserFromToken(token);
+        ticket.setRequester(hrUser);
+
+        // Phòng ban nhận xử lý là phòng IT
+        Department itDept = departmentRepository.findByName("Phòng IT")
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy phòng IT"));
+        ticket.setDepartment(itDept);
+
+        // Loại yêu cầu (TicketCategory)
+        TicketCategory category = ticketCategoryRepository.findByName("Hệ thống")
+                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại yêu cầu 'Hệ thống'"));
+        ticket.setCategory(category);
+
+        // Lấy danh sách nhân viên
+        List<EmployeeProfile> employees = employeeProfileRepository.findAllById(employeeIds);
+        if (employees.isEmpty()) {
+            throw new ResourceNotFoundException("Không tìm thấy nhân viên nào với danh sách ID được cung cấp");
+        }
+
+        // Tạo tiêu đề
+        if (employees.size() == 1) {
+            ticket.setTitle("Yêu cầu cấp tài khoản & thiết bị cho nhân viên mới: " + employees.get(0).getFullName());
+        } else {
+            ticket.setTitle("Yêu cầu cấp tài khoản & thiết bị cho " + employees.size() + " nhân viên mới");
+        }
+
+        // ====== Phần mô tả hiển thị cho IT ======
+        StringBuilder desc = new StringBuilder();
+        desc.append("HR vừa tạo hồ sơ nhân viên mới.\n");
+        desc.append("Danh sách nhân viên cần cấp tài khoản và thiết bị:\n\n");
+
+        for (EmployeeProfile e : employees) {
+            desc.append(String.format(
+                    "- Tên: %s\n  Email: %s\n  Phòng ban: %s\n\n",
+                    e.getFullName(),
+                    e.getPersonalEmail() != null ? e.getPersonalEmail() : "(chưa có)",
+                    e.getDepartment() != null ? e.getDepartment().getName() : "Chưa xác định"
+            ));
+        }
+
+        ticket.setDescription(desc.toString()); // 👈 chỉ mô tả hiển thị
+
+        // ====== Phần meta JSON (ẩn, dùng cho xử lý tự động) ======
+        String metaJson = employees.stream()
+                .map(e -> Map.of(
+                        "employeeProfileId", e.getId(),
+                        "fullName", e.getFullName(),
+                        "personalEmail", e.getPersonalEmail(),
+                        "department", e.getDepartment() != null ? e.getDepartment().getName() : "Chưa xác định"
+                ))
+                .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
+                    try {
+                        return new ObjectMapper().writeValueAsString(list);
+                    } catch (JsonProcessingException ex) {
+                        throw new RuntimeException("Lỗi khi convert meta sang JSON", ex);
+                    }
+                }));
+
+        ticket.setMeta(metaJson); // 👈 lưu JSON vào trường meta
+
+        // ====== Thiết lập mặc định ======
+        ticket.setPriority(TicketPriority.MEDIUM);
+        ticket.setStatus(TicketStatus.WAITING);
+        ticket.setCreatedAt(LocalDateTime.now());
+        ticket.setUpdatedAt(LocalDateTime.now());
+
+        // ====== Lưu Ticket ======
+        try {
+            ticketRepository.save(ticket);
+            return true;
+        } catch (Exception e) {
+            log.error("Lỗi khi lưu Ticket yêu cầu tạo tài khoản: {}", e.getMessage(), e);
+            return false;
+        }
+    }
+
+
 
     private Ticket updateTicket(Ticket ticket, TicketRequest ticketRequest, UUID userId) {
         if (ticketRequest.getId() != null && ticket.getStatus() != TicketStatus.OPEN) {
@@ -172,7 +263,7 @@ public class TicketService {
                 .and(createdBetween(from, to))
                 .and(search(keyword));
 
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ticketRepository.findAll(spec, pageable).map(TicketResponse::toResponse);
     }
 
@@ -201,7 +292,7 @@ public class TicketService {
                 .and(createdBetween(from, to))
                 .and(search(keyword));
 
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         return ticketRepository.findAll(spec, pageable).map(TicketResponse::toResponse);
     }
 
@@ -225,7 +316,8 @@ public class TicketService {
                 .and(createdBetween(from, to))
                 .and(search(keyword));
 
-        Pageable pageable = PageRequest.of(page, size);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+
         return ticketRepository.findAll(spec, pageable).map(TicketResponse::toResponse);
     }
 
