@@ -24,6 +24,7 @@ public class TicketResponse implements Serializable {
     TicketCategoryDto category;
     TicketUserInfoDto requester;
     TicketUserInfoDto assignee;
+    NameInfoDto completedBy;
     DepartmentDto department;
     @Size(max = 255)
     String title;
@@ -69,6 +70,17 @@ public class TicketResponse implements Serializable {
             ));
         } else {
             dto.setAssignee(null);
+        }
+
+        User completedBy = ticket.getCompletedBy();
+        if (completedBy != null) {
+            dto.setCompletedBy(new NameInfoDto(
+                    completedBy.getId(),
+                    completedBy.getEmployeeProfile().getFullName(),
+                    completedBy.getEmployeeProfile().getAvatar()
+            ));
+        } else {
+            dto.setCompletedBy(null);
         }
 
         return dto;

@@ -282,10 +282,13 @@ public class TicketController {
         return ResponseEntity.ok(response);
     }
 
-    @PreAuthorize("@securityService.isAssigneeOfTicket(#ticketId)")
+    @PreAuthorize("@securityService.isAssigneeOfTicket(#ticketId) or @securityService.isTicketOwner(#ticketId)")
     @PostMapping("/complete/{ticketId}")
-    public ResponseEntity<?> complete(@PathVariable UUID ticketId) throws ResourceNotFoundException {
-        ticketService.complete(ticketId);
+    public ResponseEntity<?> complete(@RequestHeader("Authorization") String authHeader, @PathVariable UUID ticketId) throws ResourceNotFoundException {
+        String token = jwtUtil.extractToken(authHeader);
+        UUID userId = jwtUtil.getUserId(token);
+
+        ticketService.complete(ticketId, userId);
         ApiResponse<String> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Ticket completed successfully",
