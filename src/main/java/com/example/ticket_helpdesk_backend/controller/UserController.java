@@ -64,10 +64,11 @@ public class UserController {
                                                   @RequestParam(required = false) String keyword,
                                                   @RequestParam(required = false) String gender,
                                                   @RequestParam(required = false) String departmentId,
+                                                  @RequestParam(required = false) Boolean isActive,
                                                   @RequestParam(defaultValue = "fullName") String sortField,
                                                   @RequestParam(defaultValue = "asc") String sortDir)throws ResourceNotFoundException {
         String token = authHeader.substring(7);
-        Page<UserDto> userDtoList = userService.getEmployees(token, page, size, keyword, gender, departmentId, sortField, sortDir);
+        Page<UserDto> userDtoList = userService.getEmployees(token, page, size, keyword, gender, departmentId, isActive, sortField, sortDir);
         ApiResponse<List<UserDto>> apiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "All user found",

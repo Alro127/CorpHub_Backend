@@ -138,6 +138,7 @@ public class UserService {
                                       String keyword,
                                       String gender,
                                       String departmentId,
+                                      Boolean isActive,
                                       String sortField,
                                       String sortDir) throws ResourceNotFoundException {
         User currentUser = getUserFromToken(token);
@@ -172,6 +173,11 @@ public class UserService {
             } catch (Exception e) {
                 System.out.println("Invalid department ID: " + departmentId);
             }
+        }
+
+        if (isActive != null) {
+            spec = spec.and(UserSpecifications.isActive(isActive));
+            System.out.println("Apply isActive filter: " + isActive);
         }
 
         if (userRole != UserRole.ROLE_ADMIN) {
