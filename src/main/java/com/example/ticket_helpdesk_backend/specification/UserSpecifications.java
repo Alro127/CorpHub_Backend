@@ -2,18 +2,23 @@ package com.example.ticket_helpdesk_backend.specification;
 
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.entity.Role;
-import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.JoinType;
+import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
 
-import java.time.LocalDateTime;
 import java.util.UUID;
-
+import java.time.LocalDateTime;
 public class UserSpecifications {
 
     /** 🟩 Lọc theo ID người dùng (bỏ qua nếu null) */
     public static Specification<User> hasId(UUID id) {
         return (root, query, cb) -> id == null ? cb.conjunction() : cb.equal(root.get("id"), id);
+    }
+
+    public static Specification<User> hasRoleName(String roleName) {
+        return (root, query, cb) -> {
+            Join<Object, Object> role = root.join("role", JoinType.INNER);
+            return cb.equal(cb.lower(role.get("name")), roleName.toLowerCase());
+        };
     }
 
     /** 🟦 Lọc theo username (chính là workEmail) */
@@ -22,6 +27,24 @@ public class UserSpecifications {
             if (username == null || username.isBlank()) return cb.conjunction();
             String pattern = "%" + username.trim().toLowerCase() + "%";
             return cb.like(cb.lower(root.get("username")), pattern);
+        };
+    }
+	
+	public static Specification<User> inSameDepartmentAsUser(UUID userId) {
+        return (root, query, cb) -> {
+            // Subquery: lấy departmentId của user đang xét (userId)
+            Subquery<UUID> sub = query.subquery(UUID.class);
+            Root<User> u2 = sub.from(User.class);
+            Join<Object, Object> ep2 = u2.join("employeeProfile", JoinType.LEFT);
+            Join<Object, Object> dep2 = ep2.join("department", JoinType.LEFT);
+            sub.select(dep2.get("id"))
+                    .where(cb.equal(u2.get("id"), userId));
+
+            // Join department của root
+            Join<Object, Object> ep = root.join("employeeProfile", JoinType.LEFT);
+            Join<Object, Object> dep = ep.join("department", JoinType.LEFT);
+
+            return dep.get("id").in(sub);
         };
     }
 

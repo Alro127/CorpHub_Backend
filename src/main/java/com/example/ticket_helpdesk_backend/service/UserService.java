@@ -163,6 +163,16 @@ public class UserService {
         return true;
     }
 
+    public User getManagerOfUser(UUID userId) {
+        Specification<User> spec = Specification
+                .where(UserSpecifications.hasRoleName("ROLE_MANAGER"))
+                .and(UserSpecifications.isActive(true))
+                .and(UserSpecifications.inSameDepartmentAsUser(userId));
+
+        return userRepository.findAll(spec)
+                .stream().findFirst().orElseThrow(() -> new RuntimeException("User dont have manager"));
+    }
+
 //    public UserDataResponse getEmployeeById(UUID userId) throws ResourceNotFoundException {
 //        if (userId == null) {
 //            throw new RuntimeException("Invalid input, user id is null");

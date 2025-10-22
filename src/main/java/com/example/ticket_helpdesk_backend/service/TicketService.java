@@ -8,6 +8,8 @@ import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.*;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.AllArgsConstructor;
+import lombok.NoArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,6 +33,7 @@ import java.util.stream.Collectors;
 import static com.example.ticket_helpdesk_backend.specification.TicketSpecifications.*;
 
 @Service
+@AllArgsConstructor
 public class TicketService {
 
     private static final Logger log = LoggerFactory.getLogger(TicketService.class);
@@ -58,17 +61,7 @@ public class TicketService {
 
     final
     private ModelMapper modelMapper;
-
-    public TicketService(TicketRepository ticketRepository, UserRepository userRepository, TicketCategoryRepository ticketCategoryRepository, DepartmentRepository departmentRepository, TicketRejectionRepository ticketRejectionRepository, UserService userService, EmployeeProfileRepository employeeProfileRepository, ModelMapper modelMapper) {
-        this.ticketRepository = ticketRepository;
-        this.userRepository = userRepository;
-        this.ticketCategoryRepository = ticketCategoryRepository;
-        this.departmentRepository = departmentRepository;
-        this.ticketRejectionRepository = ticketRejectionRepository;
-        this.userService = userService;
-        this.employeeProfileRepository = employeeProfileRepository;
-        this.modelMapper = modelMapper;
-    }
+    private final NotificationService notificationService;
 
     // ================== Helper Methods ==================
 
@@ -110,6 +103,7 @@ public class TicketService {
         Ticket ticket = new Ticket();
         ticket.setCreatedAt(LocalDateTime.now());
         ticket.setStatus(TicketStatus.OPEN);
+
         return updateTicket(ticket, ticketRequest, userId);
     }
 
@@ -335,6 +329,17 @@ public class TicketService {
         } else {
             ticket = createTicket(ticketRequest, userId);
         }
+
+        User manager = userService.getManagerOfUser(userId);
+
+        NotificationDto notificationDto = new NotificationDto();
+        notificationDto.setTitle("New ticket from "+ ticket.getRequester().getEmployeeProfile().getFullName());
+        notificationDto.setMessage(ticket.getTitle());
+        notificationDto.setSenderId(userId);
+        notificationDto.setReceiverId(manager.getId());
+        notificationDto.setType("TICKET");
+
+        notificationService.sendNotification(notificationDto);
 
         Ticket savedTicket = ticketRepository.save(ticket);
         return TicketResponse.toResponse(savedTicket);
