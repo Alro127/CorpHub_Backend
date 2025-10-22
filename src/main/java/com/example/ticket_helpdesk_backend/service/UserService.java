@@ -49,6 +49,11 @@ public class UserService {
     EmployeeProfileRepository employeeProfileRepository;
 
     @Autowired
+    FileStorageService fileStorageService;
+
+    private static final String BUCKET_NAME = "employee-avatars";
+
+    @Autowired
     private RoleRepository roleRepository;
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -97,7 +102,19 @@ public class UserService {
     @Transactional(readOnly = true)
     public Page<UserDto> getAllUser(Pageable pageable) {
         return userRepository.findAll(pageable)
-                .map(UserDto::toUserDto);
+                .map(user -> {
+                    // map các field cơ bản
+                    UserDto dto = UserDto.toUserDto(user);
+
+                    // xử lý avatarUrl nếu có avatar
+                    if (dto.getAvatar() != null && !dto.getAvatar().isBlank()) {
+                        dto.setAvatar(
+                                fileStorageService.getPresignedUrl(BUCKET_NAME, dto.getAvatar())
+                        );
+                    }
+
+                    return dto;
+                });
     }
 
 
@@ -116,8 +133,7 @@ public class UserService {
 
             // 🟢 ADMIN → xem tất cả người dùng
             if (userRole == UserRole.ROLE_ADMIN) {
-                return userRepository.findAll(pageable)
-                        .map(UserDto::toUserDto);
+                return getAllUser(pageable);
             }
 
             // 🟡 Nhân viên thường → chỉ thấy cùng phòng ban, có filter search
@@ -128,7 +144,19 @@ public class UserService {
                     .and(UserSpecifications.search(keyword));
 
             return userRepository.findAll(spec, pageable)
-                    .map(UserDto::toUserDto);
+                    .map(user -> {
+                        // map các field cơ bản
+                        UserDto dto = UserDto.toUserDto(user);
+
+                        // xử lý avatarUrl nếu có avatar
+                        if (dto.getAvatar() != null && !dto.getAvatar().isBlank()) {
+                            dto.setAvatar(
+                                    fileStorageService.getPresignedUrl(BUCKET_NAME, dto.getAvatar())
+                            );
+                        }
+
+                        return dto;
+                    });
 
         } catch (IllegalArgumentException e) {
             throw new ResourceNotFoundException("Invalid role: " + role);
