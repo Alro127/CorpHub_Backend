@@ -3,6 +3,7 @@ package com.example.ticket_helpdesk_backend.service;
 import com.example.ticket_helpdesk_backend.consts.UserRole;
 import com.example.ticket_helpdesk_backend.dto.NameInfoDto;
 import com.example.ticket_helpdesk_backend.dto.CreateUserRequest;
+import com.example.ticket_helpdesk_backend.dto.TicketResponse;
 import com.example.ticket_helpdesk_backend.dto.UserDto;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.entity.User;
@@ -11,20 +12,33 @@ import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
 import com.example.ticket_helpdesk_backend.repository.RoleRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
+import com.example.ticket_helpdesk_backend.specification.UserSpecifications;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static com.example.ticket_helpdesk_backend.specification.UserSpecifications.*;
+import static com.example.ticket_helpdesk_backend.specification.TicketSpecifications.*;
+import static com.example.ticket_helpdesk_backend.specification.TicketSpecifications.createdBetween;
+import static com.example.ticket_helpdesk_backend.specification.TicketSpecifications.hasCategory;
+import static com.example.ticket_helpdesk_backend.specification.TicketSpecifications.search;
 
 @Service
 public class UserService {
@@ -36,6 +50,21 @@ public class UserService {
 
     @Autowired
     EmployeeProfileRepository employeeProfileRepository;
+
+    @Autowired
+    FileStorageService fileStorageService;
+
+    private static final String BUCKET_NAME = "employee-avatars";
+
+    // Mapping FE -> Entity path
+    private static final Map<String, String> SORT_FIELD_MAP = Map.ofEntries(
+            Map.entry("fullName", "employeeProfile.fullName"),
+            Map.entry("email", "username"),
+            Map.entry("gender", "employeeProfile.gender"),
+            Map.entry("department", "employeeProfile.department.name"),
+            Map.entry("active", "active")
+    );
+
 
     @Autowired
     private RoleRepository roleRepository;
@@ -84,29 +113,87 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserDto> getAllUser() {
-        return userRepository.findAll().stream()
-                .map(UserDto::toUserDto)
-                .toList();
+    public Page<UserDto> getAllUser(Specification<User> spec ,Pageable pageable) {
+        return userRepository.findAll(spec, pageable)
+                .map(user -> {
+                    // map các field cơ bản
+                    UserDto dto = UserDto.toUserDto(user);
+
+                    // xử lý avatarUrl nếu có avatar
+                    if (dto.getAvatar() != null && !dto.getAvatar().isBlank()) {
+                        dto.setAvatar(
+                                fileStorageService.getPresignedUrl(BUCKET_NAME, dto.getAvatar())
+                        );
+                    }
+
+                    return dto;
+                });
     }
+
 
     @Transactional(readOnly = true)
-    public List<UserDto> getEmployees(String token) throws ResourceNotFoundException {
-        User user = getUserFromToken(token);
+    public Page<UserDto> getEmployees(String token,
+                                      int page,
+                                      int size,
+                                      String keyword,
+                                      String gender,
+                                      String departmentId,
+                                      Boolean isActive,
+                                      String sortField,
+                                      String sortDir) throws ResourceNotFoundException {
+        User currentUser = getUserFromToken(token);
         String role = jwtUtil.getRole(token);
+        UserRole userRole = UserRole.valueOf(role);
 
-        try {
-            UserRole userRole = UserRole.valueOf(role);
-            if (userRole == UserRole.ROLE_ADMIN) {
-                return this.getAllUser();
-            }
-            return userRepository.findByEmployeeProfile_Department_Id(user.getEmployeeProfile().getDepartment().getId()).stream()
-                    .map(UserDto::toUserDto)
-                    .toList();
-        } catch (IllegalArgumentException e) {
-            throw new ResourceNotFoundException("Invalid role " + role);
+        Sort.Direction direction = Sort.Direction.fromString(sortDir);
+        String sortProperty = SORT_FIELD_MAP.getOrDefault(sortField, "id");
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortProperty));
+
+        // ✅ Luôn tạo spec gốc
+        Specification<User> spec = Specification.where(UserSpecifications.withEmployeeJoins());
+
+        if (keyword != null && !keyword.isBlank()) {
+            spec = spec.and(UserSpecifications.search(keyword));
+            System.out.println("Apply keyword filter: " + keyword);
         }
+
+        if (gender != null && !gender.isBlank()) {
+            spec = spec.and((root, query, cb) -> {
+                Join<Object, Object> emp = root.join("employeeProfile", JoinType.LEFT);
+                return cb.equal(cb.lower(emp.get("gender")), gender.toLowerCase());
+            });
+            System.out.println("Apply gender filter: " + gender);
+        }
+
+        if (departmentId != null && !departmentId.isBlank()) {
+            try {
+                UUID depId = UUID.fromString(departmentId);
+                spec = spec.and(UserSpecifications.belongsToDepartment(depId));
+                System.out.println("Apply department filter: " + depId);
+            } catch (Exception e) {
+                System.out.println("Invalid department ID: " + departmentId);
+            }
+        }
+
+        if (isActive != null) {
+            spec = spec.and(UserSpecifications.isActive(isActive));
+            System.out.println("Apply isActive filter: " + isActive);
+        }
+
+        if (userRole != UserRole.ROLE_ADMIN) {
+            UUID currentDepartmentId = currentUser.getEmployeeProfile().getDepartment().getId();
+            spec = spec.and(UserSpecifications.belongsToDepartment(currentDepartmentId));
+            System.out.println("Apply department limit: " + currentDepartmentId);
+        }
+
+        System.out.println("Final spec null? " + (spec == null));
+
+        Page<UserDto> result = getAllUser(spec, pageable);
+        System.out.println("Total records returned: " + result.getTotalElements());
+
+        return result;
     }
+
 
     public List<UserDto> getUsersBySearch(String keyword) {
         return userRepository.searchByFullNameOrUsername(keyword).stream().map(UserDto::toUserDto).collect(Collectors.toList());
@@ -137,9 +224,9 @@ public class UserService {
 
     public User getManagerOfUser(UUID userId) {
         Specification<User> spec = Specification
-                .where(hasRoleName("ROLE_MANAGER"))
-                .and(isActive(true))
-                .and(inSameDepartmentAsUser(userId));
+                .where(UserSpecifications.hasRoleName("ROLE_MANAGER"))
+                .and(UserSpecifications.isActive(true))
+                .and(UserSpecifications.inSameDepartmentAsUser(userId));
 
         return userRepository.findAll(spec)
                 .stream().findFirst().orElseThrow(() -> new RuntimeException("User dont have manager"));

@@ -7,7 +7,10 @@ import com.example.ticket_helpdesk_backend.dto.EmployeeProfileResponse;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.EmployeeProfileService;
 import com.example.ticket_helpdesk_backend.service.FileStorageService;
+import org.apache.commons.fileupload.disk.DiskFileItem;
+import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -15,6 +18,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -37,12 +41,19 @@ public class EmployeeProfileController {
             @RequestHeader("Authorization") String authHeader,
             @RequestPart("profile") CreateEmployeeProfileRequest request,
             @RequestPart(value = "avatar", required = false) MultipartFile avatarFile
-    ) throws ResourceNotFoundException {
+    ) throws ResourceNotFoundException, IOException {
         String token = authHeader.substring(7);
+        String fileUrl;
         if (avatarFile != null && !avatarFile.isEmpty()) {
-            String fileUrl = fileStorageService.uploadFile(bucketName, avatarFile, request.getFullName());
-            request.setAvatar(fileUrl); // gắn link ảnh vào DTO
+            fileUrl = fileStorageService.uploadFile(bucketName, avatarFile, request.getFullName());
+        } else {
+            ClassPathResource defaultAvatar = new ClassPathResource("static/avatars/default.png");
+            try (InputStream inputStream = defaultAvatar.getInputStream()) {
+                fileUrl = fileStorageService.uploadFile(bucketName, inputStream, "default.png", request.getFullName());
+            }
         }
+
+        request.setAvatar(fileUrl); // gắn link ảnh vào DTO
 
         boolean success = employeeProfileService.createEmployeeProfile(request, token);
         String message = success ? "Create Employee Successfully" : "Create Employee Failed";

@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.repository;
 
+import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.entity.User;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotNull;

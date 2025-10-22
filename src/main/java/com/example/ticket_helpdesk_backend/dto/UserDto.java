@@ -1,7 +1,9 @@
 package com.example.ticket_helpdesk_backend.dto;
 
+import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.entity.User;
+import com.example.ticket_helpdesk_backend.service.FileStorageService;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -13,7 +15,7 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 /**
- * DTO for {@link com.example.ticket_helpdesk_backend.entity.User}
+ * DTO for {@link User}
  */
 @Data
 @NoArgsConstructor
@@ -31,8 +33,7 @@ public class UserDto implements Serializable {
     @Size(max = 20)
     String phone;
     String avatar;
-    @Size(max = 50)
-    String type;
+    Boolean active;
     LocalDate startDate;
     DepartmentDto department;
 
@@ -47,6 +48,7 @@ public class UserDto implements Serializable {
             userDto.setDob(user.getEmployeeProfile().getDob());
             userDto.setGender(user.getEmployeeProfile().getGender());
             userDto.setPhone(user.getEmployeeProfile().getPhone());
+            userDto.setActive(user.getActive());
             userDto.setAvatar(user.getEmployeeProfile().getAvatar());
             // username là workemail
             userDto.setEmail(user.getUsername());
