@@ -33,6 +33,7 @@ public class UserDto implements Serializable {
     @Size(max = 20)
     String phone;
     String avatar;
+    Boolean active;
     LocalDate startDate;
     DepartmentDto department;
 
@@ -47,6 +48,7 @@ public class UserDto implements Serializable {
             userDto.setDob(user.getEmployeeProfile().getDob());
             userDto.setGender(user.getEmployeeProfile().getGender());
             userDto.setPhone(user.getEmployeeProfile().getPhone());
+            userDto.setActive(user.getActive());
             userDto.setAvatar(user.getEmployeeProfile().getAvatar());
             // username là workemail
             userDto.setEmail(user.getUsername());

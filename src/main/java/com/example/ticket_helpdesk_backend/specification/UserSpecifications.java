@@ -94,7 +94,24 @@ public class UserSpecifications {
             }
             String pattern = "%" + keyword.trim().toLowerCase() + "%";
 
-            Join<Object, Object> emp = root.join("employeeProfile", JoinType.LEFT);
+            Join<Object, Object> emp = null;
+            for (Join<?, ?> join : root.getJoins()) {
+                if (join.getAttribute().getName().equals("employeeProfile")) {
+                    emp = (Join<Object, Object>) join;
+                    break;
+                }
+            }
+            if (emp == null) {
+                emp = root.join("employeeProfile", JoinType.LEFT);
+            }
+
+            if (query.getResultType() != Long.class) {
+                try {
+                    root.fetch("employeeProfile", JoinType.LEFT);
+                } catch (IllegalStateException ignored) {
+                    // ignore nếu đã fetch
+                }
+            }
 
             return cb.or(
                     cb.like(cb.lower(root.get("username")), pattern),
@@ -104,6 +121,22 @@ public class UserSpecifications {
             );
         };
     }
+
+    public static Specification<User> withEmployeeJoins() {
+        return (root, query, cb) -> {
+
+            if (query.getResultType() != Long.class) {
+                Fetch<Object, Object> empFetch = root.fetch("employeeProfile", JoinType.LEFT);
+                empFetch.fetch("department", JoinType.LEFT);
+            }
+
+            Join<Object, Object> emp = root.join("employeeProfile", JoinType.LEFT);
+            emp.join("department", JoinType.LEFT);
+
+            return cb.conjunction();
+        };
+    }
+
 
     /** 🧩 Kết hợp động nhiều điều kiện */
     public static Specification<User> buildFilter(

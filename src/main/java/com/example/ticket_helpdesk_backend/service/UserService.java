@@ -14,6 +14,8 @@ import com.example.ticket_helpdesk_backend.repository.RoleRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
 import com.example.ticket_helpdesk_backend.specification.UserSpecifications;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
+import jakarta.persistence.criteria.Join;
+import jakarta.persistence.criteria.JoinType;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -28,6 +30,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -47,6 +50,21 @@ public class UserService {
 
     @Autowired
     EmployeeProfileRepository employeeProfileRepository;
+
+    @Autowired
+    FileStorageService fileStorageService;
+
+    private static final String BUCKET_NAME = "employee-avatars";
+
+    // Mapping FE -> Entity path
+    private static final Map<String, String> SORT_FIELD_MAP = Map.ofEntries(
+            Map.entry("fullName", "employeeProfile.fullName"),
+            Map.entry("email", "username"),
+            Map.entry("gender", "employeeProfile.gender"),
+            Map.entry("department", "employeeProfile.department.name"),
+            Map.entry("active", "active")
+    );
+
 
     @Autowired
     private RoleRepository roleRepository;
@@ -95,9 +113,21 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public Page<UserDto> getAllUser(Pageable pageable) {
-        return userRepository.findAll(pageable)
-                .map(UserDto::toUserDto);
+    public Page<UserDto> getAllUser(Specification<User> spec ,Pageable pageable) {
+        return userRepository.findAll(spec, pageable)
+                .map(user -> {
+                    // map các field cơ bản
+                    UserDto dto = UserDto.toUserDto(user);
+
+                    // xử lý avatarUrl nếu có avatar
+                    if (dto.getAvatar() != null && !dto.getAvatar().isBlank()) {
+                        dto.setAvatar(
+                                fileStorageService.getPresignedUrl(BUCKET_NAME, dto.getAvatar())
+                        );
+                    }
+
+                    return dto;
+                });
     }
 
 
@@ -105,34 +135,63 @@ public class UserService {
     public Page<UserDto> getEmployees(String token,
                                       int page,
                                       int size,
-                                      String keyword) throws ResourceNotFoundException {
+                                      String keyword,
+                                      String gender,
+                                      String departmentId,
+                                      Boolean isActive,
+                                      String sortField,
+                                      String sortDir) throws ResourceNotFoundException {
         User currentUser = getUserFromToken(token);
         String role = jwtUtil.getRole(token);
+        UserRole userRole = UserRole.valueOf(role);
 
-        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")); // "createdAt" không có trong User
+        Sort.Direction direction = Sort.Direction.fromString(sortDir);
+        String sortProperty = SORT_FIELD_MAP.getOrDefault(sortField, "id");
+        Pageable pageable = PageRequest.of(page, size, Sort.by(direction, sortProperty));
 
-        try {
-            UserRole userRole = UserRole.valueOf(role);
+        // ✅ Luôn tạo spec gốc
+        Specification<User> spec = Specification.where(UserSpecifications.withEmployeeJoins());
 
-            // 🟢 ADMIN → xem tất cả người dùng
-            if (userRole == UserRole.ROLE_ADMIN) {
-                return userRepository.findAll(pageable)
-                        .map(UserDto::toUserDto);
-            }
-
-            // 🟡 Nhân viên thường → chỉ thấy cùng phòng ban, có filter search
-            UUID departmentId = currentUser.getEmployeeProfile().getDepartment().getId();
-
-            Specification<User> spec = Specification
-                    .where(UserSpecifications.belongsToDepartment(departmentId))
-                    .and(UserSpecifications.search(keyword));
-
-            return userRepository.findAll(spec, pageable)
-                    .map(UserDto::toUserDto);
-
-        } catch (IllegalArgumentException e) {
-            throw new ResourceNotFoundException("Invalid role: " + role);
+        if (keyword != null && !keyword.isBlank()) {
+            spec = spec.and(UserSpecifications.search(keyword));
+            System.out.println("Apply keyword filter: " + keyword);
         }
+
+        if (gender != null && !gender.isBlank()) {
+            spec = spec.and((root, query, cb) -> {
+                Join<Object, Object> emp = root.join("employeeProfile", JoinType.LEFT);
+                return cb.equal(cb.lower(emp.get("gender")), gender.toLowerCase());
+            });
+            System.out.println("Apply gender filter: " + gender);
+        }
+
+        if (departmentId != null && !departmentId.isBlank()) {
+            try {
+                UUID depId = UUID.fromString(departmentId);
+                spec = spec.and(UserSpecifications.belongsToDepartment(depId));
+                System.out.println("Apply department filter: " + depId);
+            } catch (Exception e) {
+                System.out.println("Invalid department ID: " + departmentId);
+            }
+        }
+
+        if (isActive != null) {
+            spec = spec.and(UserSpecifications.isActive(isActive));
+            System.out.println("Apply isActive filter: " + isActive);
+        }
+
+        if (userRole != UserRole.ROLE_ADMIN) {
+            UUID currentDepartmentId = currentUser.getEmployeeProfile().getDepartment().getId();
+            spec = spec.and(UserSpecifications.belongsToDepartment(currentDepartmentId));
+            System.out.println("Apply department limit: " + currentDepartmentId);
+        }
+
+        System.out.println("Final spec null? " + (spec == null));
+
+        Page<UserDto> result = getAllUser(spec, pageable);
+        System.out.println("Total records returned: " + result.getTotalElements());
+
+        return result;
     }
 
 
