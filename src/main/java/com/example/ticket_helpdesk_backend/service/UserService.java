@@ -4,6 +4,7 @@ import com.example.ticket_helpdesk_backend.consts.UserRole;
 import com.example.ticket_helpdesk_backend.dto.NameInfoDto;
 import com.example.ticket_helpdesk_backend.dto.CreateUserRequest;
 import com.example.ticket_helpdesk_backend.dto.UserDto;
+import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
@@ -13,6 +14,7 @@ import com.example.ticket_helpdesk_backend.repository.UserRepository;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -21,6 +23,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static com.example.ticket_helpdesk_backend.specification.UserSpecifications.*;
 
 @Service
 public class UserService {
@@ -129,6 +133,16 @@ public class UserService {
 
         userRepository.save(user);
         return true;
+    }
+
+    public User getManagerOfUser(UUID userId) {
+        Specification<User> spec = Specification
+                .where(hasRoleName("ROLE_MANAGER"))
+                .and(isActive(true))
+                .and(inSameDepartmentAsUser(userId));
+
+        return userRepository.findAll(spec)
+                .stream().findFirst().orElseThrow(() -> new RuntimeException("User dont have manager"));
     }
 
 //    public UserDataResponse getEmployeeById(UUID userId) throws ResourceNotFoundException {

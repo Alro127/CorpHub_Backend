@@ -68,7 +68,10 @@ public class SecurityConfig {
                         "/swagger-resources/**",
                         "/v3/api-docs/**",
                         "/api-docs/**",
-                        "/images/**"
+                        "/images/**",
+                        "/ws/**",
+                        "/topic/**",
+                        "/app/**"
                 ).permitAll()
 
                 .requestMatchers("/admin/**").hasRole("ADMIN")
