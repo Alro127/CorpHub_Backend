@@ -34,6 +34,16 @@ public class JwtUtil {
                 .compact();
     }
 
+    public String generateRefreshToken(String username) {
+        // Refresh token sống lâu hơn, ví dụ 7 ngày
+        long refreshExpiration = 7 * 24 * 60 * 60 * 1000; // 7 ngày
+        return Jwts.builder()
+                .setSubject(username)
+                .setExpiration(new Date(System.currentTimeMillis() + refreshExpiration))
+                .signWith(secretKey, SignatureAlgorithm.HS256)
+                .compact();
+    }
+
     public Claims extractClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(secretKey)
