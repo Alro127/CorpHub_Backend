@@ -7,6 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -33,6 +35,25 @@ public class FileStorageService {
             }
 
             return objectName; // trả về key, để DB lưu
+        } catch (Exception e) {
+            throw new RuntimeException("Error uploading file to MinIO", e);
+        }
+    }
+    public String uploadFile(String bucket, InputStream inputStream, String fileName, String prefix) {
+        try {
+            String objectName = (prefix != null ? prefix + "/" : "")
+                    + UUID.randomUUID() + "_" + fileName;
+
+            minioClient.putObject(
+                    PutObjectArgs.builder()
+                            .bucket(bucket)
+                            .object(objectName)
+                            .stream(inputStream, inputStream.available(), -1)
+                            .contentType(Files.probeContentType(Path.of(fileName)))
+                            .build()
+            );
+
+            return objectName;
         } catch (Exception e) {
             throw new RuntimeException("Error uploading file to MinIO", e);
         }

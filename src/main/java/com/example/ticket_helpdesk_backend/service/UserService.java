@@ -3,6 +3,7 @@ package com.example.ticket_helpdesk_backend.service;
 import com.example.ticket_helpdesk_backend.consts.UserRole;
 import com.example.ticket_helpdesk_backend.dto.NameInfoDto;
 import com.example.ticket_helpdesk_backend.dto.CreateUserRequest;
+import com.example.ticket_helpdesk_backend.dto.TicketResponse;
 import com.example.ticket_helpdesk_backend.dto.UserDto;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.entity.User;
@@ -11,20 +12,30 @@ import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
 import com.example.ticket_helpdesk_backend.repository.RoleRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
+import com.example.ticket_helpdesk_backend.specification.UserSpecifications;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static com.example.ticket_helpdesk_backend.specification.UserSpecifications.*;
+import static com.example.ticket_helpdesk_backend.specification.TicketSpecifications.*;
+import static com.example.ticket_helpdesk_backend.specification.TicketSpecifications.createdBetween;
+import static com.example.ticket_helpdesk_backend.specification.TicketSpecifications.hasCategory;
+import static com.example.ticket_helpdesk_backend.specification.TicketSpecifications.search;
 
 @Service
 public class UserService {
@@ -84,29 +95,46 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<UserDto> getAllUser() {
-        return userRepository.findAll().stream()
-                .map(UserDto::toUserDto)
-                .toList();
+    public Page<UserDto> getAllUser(Pageable pageable) {
+        return userRepository.findAll(pageable)
+                .map(UserDto::toUserDto);
     }
 
+
     @Transactional(readOnly = true)
-    public List<UserDto> getEmployees(String token) throws ResourceNotFoundException {
-        User user = getUserFromToken(token);
+    public Page<UserDto> getEmployees(String token,
+                                      int page,
+                                      int size,
+                                      String keyword) throws ResourceNotFoundException {
+        User currentUser = getUserFromToken(token);
         String role = jwtUtil.getRole(token);
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "id")); // "createdAt" không có trong User
 
         try {
             UserRole userRole = UserRole.valueOf(role);
+
+            // 🟢 ADMIN → xem tất cả người dùng
             if (userRole == UserRole.ROLE_ADMIN) {
-                return this.getAllUser();
+                return userRepository.findAll(pageable)
+                        .map(UserDto::toUserDto);
             }
-            return userRepository.findByEmployeeProfile_Department_Id(user.getEmployeeProfile().getDepartment().getId()).stream()
-                    .map(UserDto::toUserDto)
-                    .toList();
+
+            // 🟡 Nhân viên thường → chỉ thấy cùng phòng ban, có filter search
+            UUID departmentId = currentUser.getEmployeeProfile().getDepartment().getId();
+
+            Specification<User> spec = Specification
+                    .where(UserSpecifications.belongsToDepartment(departmentId))
+                    .and(UserSpecifications.search(keyword));
+
+            return userRepository.findAll(spec, pageable)
+                    .map(UserDto::toUserDto);
+
         } catch (IllegalArgumentException e) {
-            throw new ResourceNotFoundException("Invalid role " + role);
+            throw new ResourceNotFoundException("Invalid role: " + role);
         }
     }
+
 
     public List<UserDto> getUsersBySearch(String keyword) {
         return userRepository.searchByFullNameOrUsername(keyword).stream().map(UserDto::toUserDto).collect(Collectors.toList());
@@ -137,9 +165,9 @@ public class UserService {
 
     public User getManagerOfUser(UUID userId) {
         Specification<User> spec = Specification
-                .where(hasRoleName("ROLE_MANAGER"))
-                .and(isActive(true))
-                .and(inSameDepartmentAsUser(userId));
+                .where(UserSpecifications.hasRoleName("ROLE_MANAGER"))
+                .and(UserSpecifications.isActive(true))
+                .and(UserSpecifications.inSameDepartmentAsUser(userId));
 
         return userRepository.findAll(spec)
                 .stream().findFirst().orElseThrow(() -> new RuntimeException("User dont have manager"));
