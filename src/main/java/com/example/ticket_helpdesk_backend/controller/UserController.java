@@ -61,9 +61,13 @@ public class UserController {
     public ResponseEntity<?> getEmployees(        @RequestHeader("Authorization") String authHeader,
                                                   @RequestParam(defaultValue = "0") int page,
                                                   @RequestParam(defaultValue = "10") int size,
-                                                  @RequestParam(required = false) String keyword) throws ResourceNotFoundException {
+                                                  @RequestParam(required = false) String keyword,
+                                                  @RequestParam(required = false) String gender,
+                                                  @RequestParam(required = false) String departmentId,
+                                                  @RequestParam(defaultValue = "fullName") String sortField,
+                                                  @RequestParam(defaultValue = "asc") String sortDir)throws ResourceNotFoundException {
         String token = authHeader.substring(7);
-        Page<UserDto> userDtoList = userService.getEmployees(token, page, size, keyword);
+        Page<UserDto> userDtoList = userService.getEmployees(token, page, size, keyword, gender, departmentId, sortField, sortDir);
         ApiResponse<List<UserDto>> apiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "All user found",
@@ -81,6 +85,7 @@ public class UserController {
 
         return ResponseEntity.ok(apiResponse);
     }
+
 
     @GetMapping("/name-info")
     public ResponseEntity<?> getUser() {
