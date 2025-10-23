@@ -2,10 +2,10 @@ package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.dto.RoomRequirementDto;
 import com.example.ticket_helpdesk_backend.entity.Meeting;
+import com.example.ticket_helpdesk_backend.entity.Room;
 import com.example.ticket_helpdesk_backend.entity.RoomRequirement;
 import com.example.ticket_helpdesk_backend.entity.RoomRequirementAsset;
-import com.example.ticket_helpdesk_backend.repository.RoomRequirementAssetRepository;
-import com.example.ticket_helpdesk_backend.repository.RoomRequirementRepository;
+import com.example.ticket_helpdesk_backend.repository.*;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -22,12 +22,16 @@ public class RoomRequirementService {
     final RoomRequirementRepository roomRequirementRepository;
     final RoomRequirementAssetRepository roomRequirementAssetRepository;
     final AssetService assetService;
+    private final RoomRepository roomRepository;
+    private final MeetingRepository meetingRepository;
 
     public RoomRequirementService(RoomRequirementRepository roomRequirementRepository, RoomRequirementAssetRepository roomRequirementAssetRepository, AssetService assetService,
-                                  ModelMapper modelMapper) {
+                                  ModelMapper modelMapper, RoomRepository roomRepository, MeetingRepository meetingRepository) {
         this.roomRequirementRepository = roomRequirementRepository;
         this.roomRequirementAssetRepository = roomRequirementAssetRepository;
         this.assetService = assetService;
+        this.roomRepository = roomRepository;
+        this.meetingRepository = meetingRepository;
     }
 
     public RoomRequirement getRoomRequirementById(UUID id) {
@@ -62,6 +66,7 @@ public class RoomRequirementService {
         roomRequirement.setStartTime(req.getStart());
         roomRequirement.setEndTime(req.getEnd());
         roomRequirement.setMeeting(meeting);
+        roomRequirement.setStatus("PENDING");
 
         // Lưu trước để đảm bảo có id
         RoomRequirement saved = roomRequirementRepository.save(roomRequirement);
@@ -85,5 +90,23 @@ public class RoomRequirementService {
             return;
         }
         roomRequirementRepository.delete(roomRequirement);
+    }
+
+    public Boolean setUpRoom(UUID id, UUID roomId) {
+        try {
+            RoomRequirement roomRequirement = roomRequirementRepository.findById(id).orElseThrow(() -> new RuntimeException("Room requirement not found"));
+            Room room = roomRepository.findById(roomId).orElseThrow(() -> new RuntimeException("Room not found"));
+            roomRequirement.setRoom(room);
+            roomRequirementRepository.save(roomRequirement);
+
+            Meeting meeting = roomRequirement.getMeeting();
+            meeting.setLocation(room.getName());
+            meetingRepository.save(meeting);
+            return true;
+        }
+        catch (Exception e) {
+            System.out.println(e);
+            return false;
+        }
     }
 }

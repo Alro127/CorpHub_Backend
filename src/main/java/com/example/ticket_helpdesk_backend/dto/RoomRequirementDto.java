@@ -35,6 +35,10 @@ public class RoomRequirementDto {
 
     private UUID roomId;
 
+    private String roomName;
+
+    private String status;
+
     public static RoomRequirementDto toRoomRequirementDto(RoomRequirement roomRequirement) {
         if (roomRequirement == null) {
             return null;
@@ -45,6 +49,8 @@ public class RoomRequirementDto {
         dto.setStart(roomRequirement.getStartTime());
         dto.setEnd(roomRequirement.getEndTime());
         dto.setRoomId(roomRequirement.getRoom() != null ? roomRequirement.getRoom().getId() : null);
+        dto.setRoomName(roomRequirement.getRoom() != null ? roomRequirement.getRoom().getName() : null);
+        dto.setStatus(roomRequirement.getStatus());
         dto.setAssetCategories(
                 roomRequirement.getRoomRequirementAssets().stream()
                         .map(a -> a.getAssetCategory().getId())

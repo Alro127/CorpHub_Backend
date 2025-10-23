@@ -47,6 +47,10 @@ public class RoomRequirement {
     @JoinColumn(name = "room_id")
     private Room room;
 
+    @NotNull
+    @Column(name = "status", nullable = false)
+    private String status;
+
     @OneToMany(mappedBy = "roomRequirement", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoomRequirementAsset> roomRequirementAssets = new ArrayList<>();
 
