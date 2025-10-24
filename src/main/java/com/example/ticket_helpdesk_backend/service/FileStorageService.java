@@ -87,16 +87,20 @@ public class FileStorageService {
 
     public String getPresignedUrl(String bucket, String objectName) {
         try {
-            return minioClient.getPresignedObjectUrl(
-                    GetPresignedObjectUrlArgs.builder()
-                            .bucket(bucket)
-                            .object(objectName)
-                            .method(Method.GET)
-                            .expiry(7, TimeUnit.DAYS)
-                            .build()
-            );
+            return null;
+//            return minioClient.getPresignedObjectUrl(
+//                    GetPresignedObjectUrlArgs.builder()
+//                            .bucket(bucket)
+//                            .object(objectName)
+//                            .method(Method.GET)
+//                            .expiry(7, TimeUnit.DAYS)
+//                            .build()
+//            );
         } catch (Exception e) {
-            throw new RuntimeException("Error generating presigned URL", e);
+            System.err.println("❌ Error generating presigned URL: " + e.getMessage());
+            e.printStackTrace();
+            return null; // Chỉ trả về null khi có lỗi
         }
     }
+
 }

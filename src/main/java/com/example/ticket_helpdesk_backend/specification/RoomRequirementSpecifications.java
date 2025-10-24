@@ -3,6 +3,7 @@ package com.example.ticket_helpdesk_backend.specification;
 import com.example.ticket_helpdesk_backend.entity.RoomRequirement;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
@@ -33,6 +34,19 @@ public class RoomRequirementSpecifications {
                     cb.greaterThan(root.get("endTime"), start)
             );
         };
+    }
+
+    // 🔍 Lọc theo ngày (dạng LocalDate)
+    public static Specification<RoomRequirement> isInDate(LocalDate date) {
+        if (date == null) return null;
+
+        LocalDateTime startOfDay = date.atStartOfDay();
+        LocalDateTime endOfDay = startOfDay.plusDays(1);
+
+        return (root, query, cb) -> cb.and(
+                cb.lessThanOrEqualTo(root.get("startTime"), endOfDay),
+                cb.greaterThanOrEqualTo(root.get("endTime"), startOfDay)
+        );
     }
 
     // 🔍 Phòng có trùng lịch trong khoảng thời gian

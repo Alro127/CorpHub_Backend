@@ -1,6 +1,7 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.AttendeeStatus;
+import com.example.ticket_helpdesk_backend.consts.RoomRequirementStatus;
 import com.example.ticket_helpdesk_backend.dto.AttendeeResponse;
 import com.example.ticket_helpdesk_backend.dto.MeetingRequest;
 import com.example.ticket_helpdesk_backend.dto.MeetingResponse;
@@ -33,6 +34,8 @@ public class MeetingService {
     private final UserService userService;
     private final UserRepository userRepository;
     private final RoomRequirementService roomRequirementService;
+    @Autowired
+    private RoomRequirementRepository roomRequirementRepository;
 
     public MeetingService(MeetingRepository meetingRepository,
                           AttendeeRepository attendeeRepository, UserService userService, UserRepository userRepository, RoomRequirementService roomRequirementService, RoomRequirementRepository roomRequirementRepository) {
@@ -260,9 +263,22 @@ public class MeetingService {
         return mapToMeetingResponse(attendeeRepository.save(attendee).getMeeting());
     }
 
-    public Boolean confirmMeeting(UUID meetingId) {
+    @Transactional
+    public Boolean confirmMeeting(User user, UUID meetingId) {
         Meeting meeting = meetingRepository.findById(meetingId).orElse(null);
         if (meeting == null) return false;
+
+        if (!meeting.getOrganizerEmail().equals(user.getUsername())) {
+            throw new IllegalArgumentException("Meeting is not in organizer");
+        }
+
+        if (meeting.isMeetingRoom()) {
+            RoomRequirement roomRequirement = roomRequirementRepository.findByMeetingId(meetingId);
+            if (roomRequirement == null) return false;
+            roomRequirement.setStatus(RoomRequirementStatus.CLOSED);
+            roomRequirementRepository.save(roomRequirement);
+        }
+
         meeting.setReady(true);
         meetingRepository.save(meeting);
         return true;

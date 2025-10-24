@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.dto;
 
+import com.example.ticket_helpdesk_backend.consts.RoomRequirementStatus;
 import com.example.ticket_helpdesk_backend.entity.RoomRequirement;
 import com.example.ticket_helpdesk_backend.validation.ValidTimeRange;
 import jakarta.validation.constraints.*;
@@ -37,7 +38,7 @@ public class RoomRequirementDto {
 
     private String roomName;
 
-    private String status;
+    private RoomRequirementStatus status;
 
     public static RoomRequirementDto toRoomRequirementDto(RoomRequirement roomRequirement) {
         if (roomRequirement == null) {
