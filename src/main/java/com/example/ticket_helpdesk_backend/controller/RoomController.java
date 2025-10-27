@@ -1,11 +1,8 @@
 package com.example.ticket_helpdesk_backend.controller;
 
-import com.example.ticket_helpdesk_backend.dto.RoomRequest;
-import com.example.ticket_helpdesk_backend.dto.RoomResponse;
-import com.example.ticket_helpdesk_backend.dto.TicketResponse;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.RoomService;
-import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -88,6 +85,19 @@ public class RoomController {
                 "Room deleted successfully",
                 LocalDateTime.now(),
                 deletedRoom
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("@securityService.hasRole('ADMIN')")
+    @GetMapping("/suitable-rooms/{id}")
+    public ResponseEntity<?> getSuitableRooms(@PathVariable UUID id) throws ResourceNotFoundException {
+        List<RoomResponse> roomResponses = roomService.getSuitableRoom(id);
+        ApiResponse<List<RoomResponse>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Suitable rooms fetched successfully",
+                LocalDateTime.now(),
+                roomResponses
         );
         return ResponseEntity.ok(response);
     }

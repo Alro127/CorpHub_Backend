@@ -1,10 +1,12 @@
 package com.example.ticket_helpdesk_backend.entity;
 
+import com.example.ticket_helpdesk_backend.consts.RoomRequirementStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
+import org.hibernate.annotations.Nationalized;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
@@ -46,6 +48,11 @@ public class RoomRequirement {
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "room_id")
     private Room room;
+
+    @Nationalized
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private RoomRequirementStatus status;
 
     @OneToMany(mappedBy = "roomRequirement", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoomRequirementAsset> roomRequirementAssets = new ArrayList<>();

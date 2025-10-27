@@ -117,9 +117,10 @@ public class MeetingController {
 
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
     @PutMapping("/{id}/confirm-meeting")
-    public ApiResponse<Boolean> confirmMeeting(@RequestHeader("Authorization") String authHeader, @PathVariable UUID id)  {
+    public ApiResponse<Boolean> confirmMeeting(@RequestHeader("Authorization") String authHeader, @PathVariable UUID id) throws ResourceNotFoundException {
         String token = authHeader.substring(7);
-        Boolean success = meetingService.confirmMeeting(id);
+        User user = userService.getUserFromToken(token);
+        Boolean success = meetingService.confirmMeeting(user, id);
         return new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Meeting is confirmed successfully",
