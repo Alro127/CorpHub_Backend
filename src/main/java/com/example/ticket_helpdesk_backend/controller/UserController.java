@@ -180,4 +180,18 @@ public class UserController {
 
         return ResponseEntity.ok(apiResponse);
     }
+
+    //@PreAuthorize("@securityService.hasRole('ADMIN')")
+    @PatchMapping("/{id}/toggle-active")
+    public ResponseEntity<?> toggleActive(@PathVariable UUID id) {
+
+        ApiResponse<?> apiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Đã thay đổi trạng thái",
+                LocalDateTime.now(),
+                userService.toggleUserActive(id)
+        );
+
+        return ResponseEntity.ok(apiResponse);
+    }
 }

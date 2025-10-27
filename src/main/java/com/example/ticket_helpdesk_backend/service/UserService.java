@@ -14,6 +14,7 @@ import com.example.ticket_helpdesk_backend.repository.RoleRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
 import com.example.ticket_helpdesk_backend.specification.UserSpecifications;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import org.modelmapper.ModelMapper;
@@ -286,6 +287,14 @@ public class UserService {
 
     public boolean isUser(UUID userId) {
         return "ROLE_USER".equals(getRoleName(userId));
+    }
+
+    public Boolean toggleUserActive(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new EntityNotFoundException("User không tồn tại"));
+        user.setActive(!user.getActive());
+        userRepository.save(user);
+        return user.getActive();
     }
 
 }

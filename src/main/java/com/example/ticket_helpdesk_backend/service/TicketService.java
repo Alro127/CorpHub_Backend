@@ -121,7 +121,7 @@ public class TicketService {
         ticket.setDepartment(itDept);
 
         // Loại yêu cầu (TicketCategory)
-        TicketCategory category = ticketCategoryRepository.findByName("Hệ thống")
+        TicketCategory category = ticketCategoryRepository.findByName("Account Request")
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại yêu cầu 'Hệ thống'"));
         ticket.setCategory(category);
 
