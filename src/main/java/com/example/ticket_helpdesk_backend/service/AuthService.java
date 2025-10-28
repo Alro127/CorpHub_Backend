@@ -48,9 +48,14 @@ public class AuthService {
         String role = user.getRole().getName();
         UUID userId = user.getId();
 
-        // Sinh token
-        String accessToken = jwtUtil.generateToken(request.getEmail(), userId, role);
-        String refreshToken = jwtUtil.generateRefreshToken(request.getEmail());
+        String accessToken = null;
+        String refreshToken = null;
+
+        // Nếu tài khoản active thì sinh token
+        if (Boolean.TRUE.equals(user.getActive())) {
+            accessToken = jwtUtil.generateToken(request.getEmail(), userId, role);
+            refreshToken = jwtUtil.generateRefreshToken(request.getEmail());
+        }
 
         LoginResponse loginResponse = new LoginResponse(
                 user.getId(),
@@ -58,6 +63,7 @@ public class AuthService {
                 user.getUsername(),
                 user.getEmployeeProfile().getAvatar() != null ? fileStorageService.getPresignedUrl(BUCKET_NAME, user.getEmployeeProfile().getAvatar()) : null,
                 user.getRole().getName(),
+                user.getActive(),
                 accessToken,
                 user.getEmployeeProfile().getDepartment().getName()
         );
@@ -86,6 +92,7 @@ public class AuthService {
                 user.getUsername(),
                 user.getEmployeeProfile().getAvatar(),
                 user.getRole().getName(),
+                user.getActive(),
                 newAccessToken,
                 user.getEmployeeProfile().getDepartment().getName()
         );
