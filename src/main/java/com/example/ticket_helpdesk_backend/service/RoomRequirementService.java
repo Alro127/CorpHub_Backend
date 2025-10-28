@@ -71,15 +71,15 @@ public class RoomRequirementService {
         RoomRequirement saved = roomRequirementRepository.save(roomRequirement);
 
         // Đồng bộ assets
-        roomRequirementAssetRepository.deleteByRoomRequirementId(saved.getId());
-
+        roomRequirement.getRoomRequirementAssets().clear();
         for (UUID assetCategoryId : req.getAssetCategories()) {
-            RoomRequirementAsset roomRequirementAsset = new RoomRequirementAsset();
-            roomRequirementAsset.setRoomRequirement(saved);
-            roomRequirementAsset.setAssetCategory(assetService.getAssetCategory(assetCategoryId));
-
-            roomRequirementAssetRepository.save(roomRequirementAsset);
+            RoomRequirementAsset asset = new RoomRequirementAsset();
+            asset.setRoomRequirement(roomRequirement);
+            asset.setAssetCategory(assetService.getAssetCategory(assetCategoryId));
+            roomRequirement.getRoomRequirementAssets().add(asset);
         }
+        roomRequirementRepository.save(roomRequirement);
+
     }
 
     @Transactional
