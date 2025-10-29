@@ -194,4 +194,17 @@ public class UserController {
 
         return ResponseEntity.ok(apiResponse);
     }
+    @PreAuthorize("@securityService.hasRole('ADMIN')")
+    @PostMapping("/reset-password/{userId}")
+    public ResponseEntity<?> resetPassword(@PathVariable UUID userId) throws Exception {
+        userService.resetPassword(userId);
+        ApiResponse<?> apiResponse = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Đã đặt lại mật khẩu và gửi qua email thành công.",
+                LocalDateTime.now(),
+                null
+        );
+
+        return ResponseEntity.ok(apiResponse);
+    }
 }
