@@ -28,6 +28,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -54,6 +55,9 @@ public class UserService {
 
     @Autowired
     FileStorageService fileStorageService;
+
+    @Autowired
+    EmailService emailService;
 
     private static final String BUCKET_NAME = "employee-avatars";
 
@@ -295,6 +299,38 @@ public class UserService {
         user.setActive(!user.getActive());
         userRepository.save(user);
         return user.getActive();
+    }
+
+    public void resetPassword(UUID userId) throws Exception {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
+
+        // 1️⃣ Sinh mật khẩu ngẫu nhiên
+        String newPassword = generateRandomPassword(10);
+
+        // 2️⃣ Mã hoá mật khẩu mới
+        String encodedPassword = passwordEncoder.encode(newPassword);
+        user.setPassword(encodedPassword);
+
+        // 3️⃣ Lưu lại
+        userRepository.save(user);
+
+        // 4️⃣ Gửi email mật khẩu mới
+        String subject = "Đặt lại mật khẩu tài khoản của bạn";
+        String body = String.format(
+                "Xin chào %s,\n\nMật khẩu mới của bạn là: %s\nVui lòng đăng nhập và đổi mật khẩu ngay sau khi đăng nhập.",
+                user.getUsername(), newPassword
+        );
+        emailService.sendSimpleMail(user.getEmployeeProfile().getPersonalEmail(), subject, body);
+    }
+
+    private String generateRandomPassword(int length) {
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*";
+        SecureRandom random = new SecureRandom();
+        return random.ints(length, 0, chars.length())
+                .mapToObj(chars::charAt)
+                .map(Object::toString)
+                .collect(Collectors.joining());
     }
 
 }
