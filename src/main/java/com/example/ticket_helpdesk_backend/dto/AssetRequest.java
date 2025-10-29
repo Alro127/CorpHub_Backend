@@ -19,7 +19,7 @@ public class AssetRequest implements Serializable {
     @Size(max = 50)
     String code;
     @Size(max = 50)
-    String category;
+    UUID categoryId;
     @NotNull
     @Size(max = 20)
     String status;
