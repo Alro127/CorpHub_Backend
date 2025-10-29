@@ -87,15 +87,15 @@ public class FileStorageService {
 
     public String getPresignedUrl(String bucket, String objectName) {
         try {
-            return null;
-//            return minioClient.getPresignedObjectUrl(
-//                    GetPresignedObjectUrlArgs.builder()
-//                            .bucket(bucket)
-//                            .object(objectName)
-//                            .method(Method.GET)
-//                            .expiry(7, TimeUnit.DAYS)
-//                            .build()
-//            );
+ //           return null;
+            return minioClient.getPresignedObjectUrl(
+                    GetPresignedObjectUrlArgs.builder()
+                            .bucket(bucket)
+                            .object(objectName)
+                            .method(Method.GET)
+                            .expiry(7, TimeUnit.DAYS)
+                            .build()
+            );
         } catch (Exception e) {
             System.err.println("❌ Error generating presigned URL: " + e.getMessage());
             e.printStackTrace();

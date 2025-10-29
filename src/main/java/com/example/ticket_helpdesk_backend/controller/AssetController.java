@@ -1,11 +1,9 @@
 package com.example.ticket_helpdesk_backend.controller;
 
-import com.example.ticket_helpdesk_backend.dto.AssetCategoryDto;
-import com.example.ticket_helpdesk_backend.dto.AssetRequest;
-import com.example.ticket_helpdesk_backend.dto.AssetResponse;
-import com.example.ticket_helpdesk_backend.dto.ApiResponse;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.AssetService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -13,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -26,15 +25,25 @@ public class AssetController {
     }
 
     // Lấy tất cả asset
-    @PreAuthorize("@securityService.hasRole('ADMIN')")
     @GetMapping
-    public ResponseEntity<ApiResponse<List<AssetResponse>>> getAllAssets() {
-        List<AssetResponse> assets = assetService.getAllAssets();
+    public ResponseEntity<?> getAllAssets(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Page<AssetResponse> pageData = assetService.getAllAssets(
+                page, size
+        );
         ApiResponse<List<AssetResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Fetched all assets successfully",
                 LocalDateTime.now(),
-                assets
+                pageData.getContent(),
+                Map.of(
+                        "page", pageData.getNumber(),
+                        "size", pageData.getSize(),
+                        "totalElements", pageData.getTotalElements(),
+                        "totalPages", pageData.getTotalPages(),
+                        "last", pageData.isLast()
+                )
         );
         return ResponseEntity.ok(response);
     }
@@ -65,14 +74,28 @@ public class AssetController {
         return ResponseEntity.ok(response);
     }
 
-    // Tạo mới hoặc cập nhật asset
+    // Tạo mới
     @PreAuthorize("@securityService.hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<ApiResponse<AssetResponse>> saveAsset(@RequestBody AssetRequest assetRequest) throws ResourceNotFoundException {
-        AssetResponse savedAsset = assetService.save(assetRequest);
+    public ResponseEntity<ApiResponse<AssetResponse>> createAsset(@RequestBody AssetRequest assetRequest) throws ResourceNotFoundException {
+        AssetResponse savedAsset = assetService.create(assetRequest);
         ApiResponse<AssetResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
-                assetRequest.getId() == null ? "Asset created successfully" : "Asset updated successfully",
+                 "Asset created successfully",
+                LocalDateTime.now(),
+                savedAsset
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    // Cập nhật
+    @PreAuthorize("@securityService.hasRole('ADMIN')")
+    @PutMapping
+    public ResponseEntity<ApiResponse<AssetResponse>> updateAsset(@RequestBody AssetRequest assetRequest) throws ResourceNotFoundException {
+        AssetResponse savedAsset = assetService.update(assetRequest);
+        ApiResponse<AssetResponse> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Asset updated successfully",
                 LocalDateTime.now(),
                 savedAsset
         );
