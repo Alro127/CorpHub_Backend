@@ -195,7 +195,7 @@ public class UserController {
         return ResponseEntity.ok(apiResponse);
     }
     @PreAuthorize("@securityService.hasRole('ADMIN')")
-    @PostMapping("/reset-password/{userId}")
+    @PostMapping("/admin/reset-password/{userId}")
     public ResponseEntity<?> resetPassword(@PathVariable UUID userId) throws Exception {
         userService.resetPassword(userId);
         ApiResponse<?> apiResponse = new ApiResponse<>(
@@ -206,5 +206,41 @@ public class UserController {
         );
 
         return ResponseEntity.ok(apiResponse);
+    }
+
+    @PatchMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody ChangePasswordDto dto) {
+
+        String token = authHeader.substring(7);
+
+        try {
+            userService.changePassword(token, dto);
+
+             ApiResponse<?> apiResponse = new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Đổi mật khẩu thành công.",
+                    LocalDateTime.now(),
+                    null
+            );
+            return ResponseEntity.ok(apiResponse);
+        } catch (IllegalArgumentException e) {
+            ApiResponse<?> errorResponse = new ApiResponse<>(
+                    HttpStatus.BAD_REQUEST.value(),
+                    e.getMessage(),
+                    LocalDateTime.now(),
+                    null
+            );
+            return ResponseEntity.badRequest().body(errorResponse);
+        } catch (Exception e) {
+            ApiResponse<?> errorResponse = new ApiResponse<>(
+                    HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                    "Đã xảy ra lỗi hệ thống.",
+                    LocalDateTime.now(),
+                    null
+            );
+            return ResponseEntity.internalServerError().body(errorResponse);
+        }
     }
 }
