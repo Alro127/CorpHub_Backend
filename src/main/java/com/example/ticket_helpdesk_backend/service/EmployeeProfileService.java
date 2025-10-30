@@ -11,14 +11,19 @@ import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
 import com.example.ticket_helpdesk_backend.repository.TicketCategoryRepository;
 import com.example.ticket_helpdesk_backend.repository.TicketRepository;
+import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -42,6 +47,12 @@ public class EmployeeProfileService {
 
     @Autowired
     TicketCategoryRepository ticketCategoryRepository;
+
+    @Autowired
+    JwtUtil jwtUtil;
+
+    private final String bucketName = "employee-avatars";
+
 
 
     @Transactional
@@ -150,6 +161,34 @@ public class EmployeeProfileService {
     public EmployeeProfile getEmployeeProfileById(UUID id) {
         return employeeProfileRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
+    }
+
+    @Transactional
+    public boolean uploadAvatar(String token, MultipartFile avatarFile) throws ResourceNotFoundException {
+
+        UUID userId = jwtUtil.getUserId(token);
+
+        EmployeeProfile employeeProfile = employeeProfileRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Employee không tồn tại"));
+
+        String fileUrl;
+        if (avatarFile != null && !avatarFile.isEmpty()) {
+            fileUrl = fileStorageService.uploadFile(bucketName, avatarFile, employeeProfile.getFullName());
+        } else {
+            ClassPathResource defaultAvatar = new ClassPathResource("public/images/defaultAvatar.jpg");
+            try (InputStream inputStream = defaultAvatar.getInputStream()) {
+                fileUrl = fileStorageService.uploadFile(bucketName, inputStream, "default.jpg", employeeProfile.getFullName());
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        employeeProfile.setAvatar(fileUrl);
+
+        // ====== Lưu EmployeeProfile ======
+        employeeProfileRepository.save(employeeProfile);
+
+        return true;
     }
 
 }
