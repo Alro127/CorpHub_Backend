@@ -43,5 +43,9 @@ public class EmployeeProfile {
     // Quan hệ với Competency
     @OneToMany(mappedBy = "employeeProfile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EmployeeCompetency> competencies = new ArrayList<>();
+
+    // Quan hệ với EmployeeDocument
+    @OneToMany(mappedBy = "employeeProfile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EmployeeDocument> documents = new ArrayList<>();
 }
 

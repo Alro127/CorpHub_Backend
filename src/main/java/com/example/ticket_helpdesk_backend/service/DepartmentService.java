@@ -1,8 +1,6 @@
 package com.example.ticket_helpdesk_backend.service;
 
-import com.example.ticket_helpdesk_backend.dto.DepartmentDto;
-import com.example.ticket_helpdesk_backend.dto.TicketResponse;
-import com.example.ticket_helpdesk_backend.dto.UserDto;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.Department;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
@@ -28,6 +26,8 @@ public class DepartmentService {
     private ModelMapper modelMapper;
     @Autowired
     JwtUtil jwtUtil;
+    @Autowired
+    FileStorageService fileStorageService;
 
     public Department getDepartmentById(UUID id) {
         return departmentRepository.findById(id).orElseThrow(() -> new RuntimeException("Department không tồn tại"));
@@ -64,4 +64,38 @@ public class DepartmentService {
         return usersDepartmentList;
     }
 
+
+    private static final String EMPLOYEE_BUCKET = "employee-avatars"; // bucket chứa ảnh nhân viên
+
+    public List<DepartmentUsersGroupDto> getAllDepartmentsWithUsers() {
+        List<Department> departments = departmentRepository.findAllWithUsers();
+
+        return departments.stream().map(dept -> {
+            List<UserBasicDto> userDtos = dept.getEmployeeProfiles().stream()
+                    .filter(ep -> ep.getUser() != null)
+                    .map(ep -> {
+                        String avatarKey = ep.getAvatar();
+                        String avatarUrl = null;
+
+                        // ✅ Nếu có avatar, tạo presigned URL
+                        if (avatarKey != null && !avatarKey.isEmpty()) {
+                            avatarUrl = fileStorageService.getPresignedUrl(EMPLOYEE_BUCKET, avatarKey);
+                        }
+
+                        return UserBasicDto.builder()
+                                .id(ep.getUser().getId())
+                                .fullName(ep.getFullName())
+                                .email(ep.getUser().getUsername())
+                                .avatar(avatarUrl)
+                                .build();
+                    })
+                    .toList();
+
+            return DepartmentUsersGroupDto.builder()
+                    .departmentId(dept.getId())
+                    .departmentName(dept.getName())
+                    .users(userDtos)
+                    .build();
+        }).toList();
+    }
 }

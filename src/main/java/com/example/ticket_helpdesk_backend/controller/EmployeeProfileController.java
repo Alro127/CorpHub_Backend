@@ -141,4 +141,23 @@ public class EmployeeProfileController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @PostMapping(value = "/document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadEmployeeDocument(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestPart(value = "document", required = false) MultipartFile documentFile
+    ) throws ResourceNotFoundException, IOException {
+        String token = authHeader.substring(7);
+
+        boolean success = employeeProfileService.uploadAvatar(token, documentFile);
+        String message = success ? "Upload avatar successfully" : "Upload avatar Failed";
+
+        ApiResponse<String> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                message,
+                LocalDateTime.now(),
+                null
+        );
+        return ResponseEntity.ok(response);
+    }
 }

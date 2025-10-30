@@ -7,6 +7,8 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 @Getter
@@ -29,5 +31,8 @@ public class Department {
     @Lob
     @Column(name = "description")
     private String description;
+
+    @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
+    private List<EmployeeProfile> employeeProfiles = new ArrayList<>();
 
 }
