@@ -2,9 +2,12 @@ package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.Department;
+import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
+import com.example.ticket_helpdesk_backend.repository.EmployeeDocumentRepository;
+import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.modelmapper.ModelMapper;
@@ -20,6 +23,8 @@ public class DepartmentService {
 
     @Autowired
     private DepartmentRepository departmentRepository;
+    @Autowired
+    private EmployeeProfileRepository employeeProfileRepository;
     @Autowired
     private UserRepository userRepository;
     @Autowired
@@ -92,10 +97,65 @@ public class DepartmentService {
                     .toList();
 
             return DepartmentUsersGroupDto.builder()
-                    .departmentId(dept.getId())
-                    .departmentName(dept.getName())
+                    .id(dept.getId())
+                    .name(dept.getName())
                     .users(userDtos)
                     .build();
         }).toList();
     }
+
+    public DepartmentManagementDto createDepartment(DepartmentManagementDto dto) throws ResourceNotFoundException {
+        if (departmentRepository.existsByName(dto.getName())) {
+            throw new IllegalArgumentException("Department name already exists");
+        }
+
+        EmployeeProfile managerEntity = null;
+        if (dto.getManager() != null && dto.getManager().getId() != null) {
+            managerEntity = employeeProfileRepository.findById(dto.getManager().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Manager not found"));
+        }
+
+        Department saved = departmentRepository.save(dto.toEntity(managerEntity));
+        return DepartmentManagementDto.fromEntity(saved);
+    }
+
+    public DepartmentManagementDto updateDepartment(UUID id, DepartmentManagementDto dto) throws ResourceNotFoundException {
+        Department existing = departmentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+
+        existing.setName(dto.getName());
+        existing.setDescription(dto.getDescription());
+
+        if (dto.getManager() != null && dto.getManager().getId() != null) {
+            EmployeeProfile manager = employeeProfileRepository.findById(dto.getManager().getId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Manager not found"));
+            existing.setManager(manager);
+        }
+
+        Department updated = departmentRepository.save(existing);
+        return DepartmentManagementDto.fromEntity(updated);
+    }
+
+    public void deleteDepartment(UUID id) throws ResourceNotFoundException {
+        if (!departmentRepository.existsById(id)) {
+            throw new ResourceNotFoundException("Department not found");
+        }
+        departmentRepository.deleteById(id);
+    }
+
+    public DepartmentManagementDto assignManager(UUID departmentId, UUID managerId) throws ResourceNotFoundException {
+        Department department = departmentRepository.findById(departmentId)
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+        EmployeeProfile manager = employeeProfileRepository.findById(managerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Manager not found"));
+        department.setManager(manager);
+        Department updated = departmentRepository.save(department);
+        return DepartmentManagementDto.fromEntity(updated);
+    }
+
+//    public List<DepartmentManagementDto> getAllDepartments() {
+//        return departmentRepository.findAll().stream()
+//                .map(DepartmentManagementDto::fromEntity)
+//                .collect(Collectors.toList());
+//    }
 }

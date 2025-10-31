@@ -2,15 +2,10 @@ package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.TicketPriority;
 import com.example.ticket_helpdesk_backend.consts.TicketStatus;
-import com.example.ticket_helpdesk_backend.dto.CreateEmployeeProfileRequest;
-import com.example.ticket_helpdesk_backend.dto.CreateUserRequest;
-import com.example.ticket_helpdesk_backend.dto.EmployeeProfileResponse;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
-import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
-import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
-import com.example.ticket_helpdesk_backend.repository.TicketCategoryRepository;
-import com.example.ticket_helpdesk_backend.repository.TicketRepository;
+import com.example.ticket_helpdesk_backend.repository.*;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -35,6 +30,12 @@ public class EmployeeProfileService {
 
     @Autowired
     DepartmentRepository departmentRepository;
+
+    @Autowired
+    DocumentTypeRepository documentTypeRepository;
+
+    @Autowired
+    EmployeeDocumentRepository employeeDocumentRepository;
 
     @Autowired
     FileStorageService fileStorageService;
@@ -191,4 +192,80 @@ public class EmployeeProfileService {
         return true;
     }
 
+    @Transactional
+    public boolean uploadDocuments(String token, List<MultipartFile> files, List<DocumentMetaDto> metaList) throws IOException, ResourceNotFoundException {
+        UUID userId = jwtUtil.getUserId(token);
+
+        EmployeeProfile profile = employeeProfileRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        for (int i = 0; i < files.size(); i++) {
+            MultipartFile file = files.get(i);
+            DocumentMetaDto meta = metaList.get(i);
+
+            // Lưu file vật lý hoặc cloud
+            String fileUrl = fileStorageService.uploadFile("employee-document",file, profile.getFullName());
+
+            EmployeeDocument doc = new EmployeeDocument();
+            doc.setEmployeeProfile(profile);
+            doc.setDocumentType(documentTypeRepository.findById(meta.getDocumentTypeId()).orElse(null));
+            doc.setTitle(meta.getTitle());
+            doc.setDescription(meta.getDescription());
+            doc.setFileUrl(fileUrl);
+            doc.setFileName(file.getOriginalFilename());
+            doc.setFileType(file.getContentType());
+            employeeDocumentRepository.save(doc);
+        }
+
+        return true;
+    }
+
+    public EmployeeProfile getMyEmployeeProfile(String token) {
+        UUID userId = jwtUtil.getUserId(token);
+        
+
+        return employeeProfileRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+    }
+
+    private EmployeeProfile getProfile(String token) {
+        UUID userId = jwtUtil.getUserId(token);
+        return employeeProfileRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+    }
+
+    public EmployeeProfileResponse getBasicProfile(String token) {
+        EmployeeProfile profile = getProfile(token);
+        String avatar = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
+        return EmployeeProfileResponse.toResponse(profile, avatar);
+    }
+
+    public List<EmployeeProfileResponse.JobHistoryResponse> getMyJobHistories(String token) {
+        return getProfile(token).getJobHistories().stream()
+                .map(job -> new EmployeeProfileResponse.JobHistoryResponse(
+                        job.getId(),
+                        job.getDepartment() != null ? job.getDepartment().getName() : null,
+                        job.getPosition(),
+                        job.getContractType(),
+                        job.getStartDate(),
+                        job.getEndDate(),
+                        job.getEmploymentStatus(),
+                        job.getNote()
+                )).toList();
+    }
+
+    public List<EmployeeProfileResponse.CompetencyResponse> getMyCompetencies(String token) {
+        return getProfile(token).getCompetencies().stream()
+                .map(c -> new EmployeeProfileResponse.CompetencyResponse(
+                        c.getId(), c.getType(), c.getName(),
+                        c.getLevel(), c.getIssuedBy(),
+                        c.getIssuedDate(), c.getNote()
+                )).toList();
+    }
+
+    public List<EmployeeDocumentResponse> getMyDocuments(String token) {
+        return getProfile(token).getDocuments().stream()
+                .map(EmployeeDocumentResponse::fromEntity)
+                .toList();
+    }
 }

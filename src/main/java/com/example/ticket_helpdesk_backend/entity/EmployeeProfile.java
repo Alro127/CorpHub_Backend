@@ -27,6 +27,8 @@ public class EmployeeProfile {
     private String phone;
     private String personalEmail;
     private String avatar;
+    private String address;
+    private LocalDate joinDate;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")

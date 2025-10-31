@@ -23,10 +23,13 @@ public class EmployeeProfileResponse {
     private String personalEmail;
     private String avatarUrl;      // URL từ MinIO (convert từ objectName)
     private String departmentName; // lấy từ Department
+    private String address;
+    private LocalDate joinDate;
 
     private UserSummary user; // tóm tắt thông tin account
-    private List<JobHistoryResponse> jobHistories;
-    private List<CompetencyResponse> competencies;
+//    private List<JobHistoryResponse> jobHistories;
+//    private List<CompetencyResponse> competencies;
+//    private List<EmployeeDocumentResponse> documents;
 
     @Data
     @NoArgsConstructor
@@ -93,35 +96,43 @@ public class EmployeeProfileResponse {
         }
 
         // Job histories
-        if (profile.getJobHistories() != null) {
-            response.setJobHistories(profile.getJobHistories().stream()
-                    .map(job -> new EmployeeProfileResponse.JobHistoryResponse(
-                            job.getId(),
-                            job.getDepartment() != null ? job.getDepartment().getName() : null,
-                            job.getPosition(),
-                            job.getContractType(),
-                            job.getStartDate(),
-                            job.getEndDate(),
-                            job.getEmploymentStatus(),
-                            job.getNote()
-                    ))
-                    .collect(Collectors.toList()));
-        }
+//        if (profile.getJobHistories() != null) {
+//            response.setJobHistories(profile.getJobHistories().stream()
+//                    .map(job -> new EmployeeProfileResponse.JobHistoryResponse(
+//                            job.getId(),
+//                            job.getDepartment() != null ? job.getDepartment().getName() : null,
+//                            job.getPosition(),
+//                            job.getContractType(),
+//                            job.getStartDate(),
+//                            job.getEndDate(),
+//                            job.getEmploymentStatus(),
+//                            job.getNote()
+//                    ))
+//                    .collect(Collectors.toList()));
+//        }
 
         // Competencies
-        if (profile.getCompetencies() != null) {
-            response.setCompetencies(profile.getCompetencies().stream()
-                    .map(c -> new EmployeeProfileResponse.CompetencyResponse(
-                            c.getId(),
-                            c.getType(),
-                            c.getName(),
-                            c.getLevel(),
-                            c.getIssuedBy(),
-                            c.getIssuedDate(),
-                            c.getNote()
-                    ))
-                    .collect(Collectors.toList()));
-        }
+//        if (profile.getCompetencies() != null) {
+//            response.setCompetencies(profile.getCompetencies().stream()
+//                    .map(c -> new EmployeeProfileResponse.CompetencyResponse(
+//                            c.getId(),
+//                            c.getType(),
+//                            c.getName(),
+//                            c.getLevel(),
+//                            c.getIssuedBy(),
+//                            c.getIssuedDate(),
+//                            c.getNote()
+//                    ))
+//                    .collect(Collectors.toList()));
+//        }
+
+        // --- Documents ---
+//        if (profile.getDocuments() != null) {
+//            response.setDocuments(profile.getDocuments().stream()
+//                    .map(EmployeeDocumentResponse::fromEntity)
+//                    .collect(Collectors.toList()));
+//        }
+
 
         return response;
     }
