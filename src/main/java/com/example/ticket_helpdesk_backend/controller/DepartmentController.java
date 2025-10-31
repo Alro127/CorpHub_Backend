@@ -1,9 +1,6 @@
 package com.example.ticket_helpdesk_backend.controller;
 
-import com.example.ticket_helpdesk_backend.dto.ApiResponse;
-import com.example.ticket_helpdesk_backend.dto.DepartmentDto;
-import com.example.ticket_helpdesk_backend.dto.TicketResponse;
-import com.example.ticket_helpdesk_backend.dto.UserDto;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.DepartmentService;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
@@ -54,5 +51,18 @@ public class DepartmentController {
         return ResponseEntity.ok(response);
     }
 
+
+    @GetMapping("/with-users")
+    public ResponseEntity<?> getAllDepartmentsWithUsers() {
+        List<DepartmentUsersGroupDto> result = departmentService.getAllDepartmentsWithUsers();
+
+        ApiResponse<List<DepartmentUsersGroupDto>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "All Departments with users found",
+                LocalDateTime.now(),
+                result
+        );
+        return ResponseEntity.ok(response);
+    }
 
 }

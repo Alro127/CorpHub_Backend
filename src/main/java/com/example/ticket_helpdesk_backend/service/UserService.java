@@ -1,10 +1,7 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.UserRole;
-import com.example.ticket_helpdesk_backend.dto.NameInfoDto;
-import com.example.ticket_helpdesk_backend.dto.CreateUserRequest;
-import com.example.ticket_helpdesk_backend.dto.TicketResponse;
-import com.example.ticket_helpdesk_backend.dto.UserDto;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
@@ -331,6 +328,25 @@ public class UserService {
                 .mapToObj(chars::charAt)
                 .map(Object::toString)
                 .collect(Collectors.joining());
+    }
+
+    @Transactional
+    public void changePassword(String token, ChangePasswordDto changePasswordDto) {
+        UUID userId = jwtUtil.getUserId(token);
+
+        if (!changePasswordDto.getNewPassword().equals(changePasswordDto.getConfirmNewPassword())) {
+            throw new IllegalArgumentException("Mật khẩu xác nhận không trùng khớp.");
+        }
+
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Không tìm thấy người dùng."));
+
+        if (!passwordEncoder.matches(changePasswordDto.getOldPassword(), user.getPassword())) {
+            throw new IllegalArgumentException("Mật khẩu cũ không chính xác.");
+        }
+
+        user.setPassword(passwordEncoder.encode(changePasswordDto.getNewPassword()));
+        userRepository.save(user);
     }
 
 }
