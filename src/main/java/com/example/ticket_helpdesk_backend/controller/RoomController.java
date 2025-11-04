@@ -3,12 +3,14 @@ package com.example.ticket_helpdesk_backend.controller;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.RoomService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -28,9 +30,16 @@ public class RoomController {
     @PreAuthorize("@securityService.hasRole('ADMIN')")
     @GetMapping
     public ResponseEntity<?> getAllRooms(
+            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) UUID typeId,
+            @RequestParam(required = false) UUID departmentId,
+            @RequestParam(required = false) Integer minCapacity,
+            @RequestParam(required = false) BigDecimal minArea,
+            @RequestParam(required = false) String status,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<RoomResponse> pageData = roomService.getAllRooms(page, size);
+            @RequestParam(defaultValue = "9") int size
+            ) {
+        Page<RoomResponse> pageData = roomService.getAllRooms(page, size, keywords, typeId, departmentId, minCapacity, minArea, status);
         ApiResponse<?> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Rooms fetched successfully",
@@ -101,4 +110,19 @@ public class RoomController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @PreAuthorize("@securityService.hasRole('ADMIN')")
+    @PostMapping("/assign-assets")
+    public ResponseEntity<?> assignAssetsToRoom(@RequestBody @Valid AssignAssetsRequest request) {
+        int count = roomService.assignAssets(request.getRoomId(), request.getAssetIds());
+        ApiResponse<Integer> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                count + "assets are moved to new room",
+                LocalDateTime.now(),
+                count
+        );
+        return ResponseEntity.ok(response);
+    }
+
+
 }

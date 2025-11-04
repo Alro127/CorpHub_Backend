@@ -8,27 +8,21 @@ import lombok.NoArgsConstructor;
 import lombok.Value;
 
 import java.io.Serializable;
-import java.math.BigDecimal;
-import java.util.List;
 import java.util.UUID;
 
 /**
- * DTO for {@link com.example.ticket_helpdesk_backend.entity.Room}
+ * DTO for {@link com.example.ticket_helpdesk_backend.entity.RoomType}
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RoomResponse implements Serializable {
+public class RoomTypeDto implements Serializable {
     UUID id;
+    @NotNull
+    @Size(max = 50)
+    String code;
     @NotNull
     @Size(max = 100)
     String name;
-    RoomTypeDto type;
-    Integer capacity;
-    BigDecimal area;
-    @NotNull
-    @Size(max = 20)
-    String status;
-    DepartmentDto department;
-    List<AssetResponse> assets;
+    String description;
 }

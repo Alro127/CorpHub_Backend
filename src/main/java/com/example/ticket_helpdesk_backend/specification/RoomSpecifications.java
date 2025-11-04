@@ -18,10 +18,10 @@ public class RoomSpecifications {
     }
 
     // 🔍 Tìm theo loại
-    public static Specification<Room> hasType(String type) {
+    public static Specification<Room> hasType(UUID roomTypeId) {
         return (root, query, cb) -> {
-            if (type == null || type.trim().isEmpty()) return null;
-            return cb.equal(cb.lower(root.get("type")), type.toLowerCase());
+            if (roomTypeId == null) return null;
+            return cb.equal(root.get("type").get("id"), roomTypeId);
         };
     }
 

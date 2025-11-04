@@ -1,13 +1,11 @@
 package com.example.ticket_helpdesk_backend.service;
 
-import com.example.ticket_helpdesk_backend.dto.AssetResponse;
-import com.example.ticket_helpdesk_backend.dto.RoomRequest;
-import com.example.ticket_helpdesk_backend.dto.RoomRequirementDto;
-import com.example.ticket_helpdesk_backend.dto.RoomResponse;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.Asset;
 import com.example.ticket_helpdesk_backend.entity.Room;
 import com.example.ticket_helpdesk_backend.entity.RoomRequirement;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
+import com.example.ticket_helpdesk_backend.repository.AssetRepository;
 import com.example.ticket_helpdesk_backend.repository.RoomRepository;
 import com.example.ticket_helpdesk_backend.repository.RoomRequirementRepository;
 import com.example.ticket_helpdesk_backend.specification.RoomRequirementSpecifications;
@@ -21,6 +19,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -29,14 +28,18 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import static com.example.ticket_helpdesk_backend.specification.RoomSpecifications.*;
+
 @Service
 public class RoomService {
     private final RoomRepository roomRepository;
     private final ModelMapper modelMapper;
     private final RoomRequirementRepository roomRequirementRepository;
+    private final AssetRepository assetRepository;
 
     private RoomResponse mapToResponse(Room room) {
         RoomResponse response = modelMapper.map(room, RoomResponse.class);
+        response.setType(modelMapper.map(room.getType(), RoomTypeDto.class));
         if (room.getAssets() != null) {
             response.setAssets(
                     room.getAssets().stream()
@@ -48,10 +51,11 @@ public class RoomService {
     }
 
     public RoomService(RoomRepository roomRepository,
-                       ModelMapper modelMapper, RoomRequirementRepository roomRequirementRepository) {
+                       ModelMapper modelMapper, RoomRequirementRepository roomRequirementRepository, AssetRepository assetRepository) {
         this.roomRepository = roomRepository;
         this.modelMapper = modelMapper;
         this.roomRequirementRepository = roomRequirementRepository;
+        this.assetRepository = assetRepository;
     }
 
     public RoomResponse getRoom(UUID id) throws ResourceNotFoundException {
@@ -60,9 +64,18 @@ public class RoomService {
         return mapToResponse(room);
     }
 
-    public Page<RoomResponse> getAllRooms(int page, int size) {
+    public Page<RoomResponse> getAllRooms(int page, int size, String keywords, UUID typeId, UUID departmentId, Integer minCapacity, BigDecimal minArea, String status) {
+        System.out.println(departmentId);
+
+        Specification<Room> spec = Specification.where(hasName(keywords))
+                .and(hasType(typeId))
+                .and(belongsToDepartment(departmentId))
+                .and(hasMinCapacity(minCapacity))
+                .and(hasMinArea(minArea))
+                .and(hasStatus(status));
+
         Pageable pageable = PageRequest.of(page, size);
-        Page<Room> rooms = roomRepository.findAll(pageable);
+        Page<Room> rooms = roomRepository.findAll(spec, pageable);
         return rooms.map(this::mapToResponse);
     }
 
@@ -144,5 +157,18 @@ public class RoomService {
         // 4️⃣ Map sang DTO phản hồi
         return availableRooms.stream().map((element) -> modelMapper.map(element, RoomResponse.class)).collect(Collectors.toList());
     }
+
+    public int assignAssets(UUID roomId, List<UUID> assetIds) {
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new RuntimeException("Room not found"));
+
+        List<Asset> assets = assetRepository.findAllById(assetIds);
+        assets.forEach(a -> a.setRoom(room));
+
+        List<Asset> savedAssets = assetRepository.saveAll(assets);
+        return savedAssets.size();
+    }
+
+
 
 }

@@ -19,8 +19,8 @@ public class RoomRequest implements Serializable {
     @Size(max = 100, message = "Room name cannot exceed 100 characters")
     String name;
 
-    @Size(max = 50, message = "Room type cannot exceed 50 characters")
-    String type;
+    @NotNull(message = "Room type cannot be null")
+    UUID type_id;
 
     @Min(value = 1, message = "Capacity must be at least 1")
     Integer capacity;

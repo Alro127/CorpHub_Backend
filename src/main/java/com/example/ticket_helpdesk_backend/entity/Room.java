@@ -30,10 +30,9 @@ public class Room {
     @Column(name = "name", nullable = false, length = 100)
     private String name;
 
-    @Size(max = 50)
-    @Nationalized
-    @Column(name = "type", length = 50)
-    private String type;
+    @JoinColumn(name = "type_id")
+    @ManyToOne(fetch = FetchType.LAZY)
+    private RoomType type;
 
     @Column(name = "capacity")
     private Integer capacity;

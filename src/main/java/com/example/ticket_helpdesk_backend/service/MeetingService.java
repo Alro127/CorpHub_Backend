@@ -10,6 +10,7 @@ import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.AuthException;
 import com.example.ticket_helpdesk_backend.repository.*;
 
+import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Sort;
@@ -22,29 +23,20 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.example.ticket_helpdesk_backend.specification.MeetingSpecifications.*;
+import org.springframework.validation.BindException;
+import org.springframework.validation.FieldError;
 
 @Service
+@AllArgsConstructor
 public class MeetingService {
 
-    @Autowired
     ModelMapper modelMapper;
-
     private final MeetingRepository meetingRepository;
     private final AttendeeRepository attendeeRepository;
     private final UserService userService;
     private final UserRepository userRepository;
     private final RoomRequirementService roomRequirementService;
-    @Autowired
     private RoomRequirementRepository roomRequirementRepository;
-
-    public MeetingService(MeetingRepository meetingRepository,
-                          AttendeeRepository attendeeRepository, UserService userService, UserRepository userRepository, RoomRequirementService roomRequirementService, RoomRequirementRepository roomRequirementRepository) {
-        this.meetingRepository = meetingRepository;
-        this.attendeeRepository = attendeeRepository;
-        this.userService = userService;
-        this.userRepository = userRepository;
-        this.roomRequirementService = roomRequirementService;
-    }
 
 
 
@@ -82,10 +74,9 @@ public class MeetingService {
     }
 
     @Transactional
-    public MeetingResponse saveMeeting(MeetingRequest req, String organizerEmail) {
+    public MeetingResponse saveMeeting(MeetingRequest req, String organizerEmail) throws BindException {
         // 1. Lấy hoặc tạo meeting
         Meeting meeting;
-        RoomRequirement roomRequirement;
         if (req.getId() == null) {
             meeting = new Meeting();
             meeting.setCreatedAt(LocalDateTime.now());
@@ -98,6 +89,25 @@ public class MeetingService {
 
             if (!meeting.getOrganizerEmail().equals(organizerEmail)) {
                 throw new AuthException("User does not have permission to update meeting");
+            }
+        }
+
+        if (req.getRoomRequirement() != null) {
+            if (req.getStart().isBefore(req.getRoomRequirement().getStart())
+                    || req.getEnd().isAfter(req.getRoomRequirement().getEnd())) {
+
+                BindException ex = new BindException(req, "meetingRequest");
+
+                if (req.getStart().isBefore(req.getRoomRequirement().getStart())) {
+                    ex.addError(new FieldError("meetingRequest", "start",
+                            "Meeting start must be after or equal to room requirement start"));
+                }
+                if (req.getEnd().isAfter(req.getRoomRequirement().getEnd())) {
+                    ex.addError(new FieldError("meetingRequest", "end",
+                            "Meeting end must be before or equal to room requirement end"));
+                }
+
+                throw ex;
             }
         }
 
@@ -120,7 +130,6 @@ public class MeetingService {
         if (req.getRoomRequirement() != null)
             roomRequirementService.saveRoomRequirement(req.getRoomRequirement(), saved);
         else {
-            System.out.println("Hello");
             roomRequirementService.deleteRoomRequirementByMeetingId(saved.getId());
         }
         // 4. Đồng bộ attendees (nếu có truyền danh sách)

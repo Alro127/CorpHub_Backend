@@ -15,12 +15,15 @@ import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
+
+import static com.example.ticket_helpdesk_backend.specification.AssetSpecifications.*;
 
 @Service
 @AllArgsConstructor
@@ -35,9 +38,11 @@ public class AssetService {
                 () -> new ResourceNotFoundException("Asset not found")), AssetResponse.class);
     }
 
-    public Page<AssetResponse> getAllAssets(int page, int size) {
+    public Page<AssetResponse> getAllAssets(int page, int size, String keywords, UUID categoryId, String status) {
+        Specification<Asset> spec = Specification.where(hasKeyword(keywords)
+                        .and(hasCategory(categoryId)).and(hasStatus(status)));
         Pageable pageable = PageRequest.of(page, size);
-        return assetRepository.findAll(pageable).map(asset -> modelMapper.map(asset, AssetResponse.class));
+        return assetRepository.findAll(spec, pageable).map(asset -> modelMapper.map(asset, AssetResponse.class));
     }
 
     public List<AssetCategoryDto> getCategories() {
@@ -97,5 +102,20 @@ public class AssetService {
         assetRepository.delete(asset);
 
         return modelMapper.map(asset, AssetResponse.class);
+    }
+
+    @Transactional
+    public boolean removeAssetFromRoom(UUID assetId) {
+        Asset asset = assetRepository.findById(assetId)
+                .orElseThrow(() -> new RuntimeException("Asset not found"));
+
+        if (asset.getRoom() == null) {
+            return false;
+        }
+
+        asset.setRoom(null);
+        assetRepository.save(asset);
+
+        return true;
     }
 }

@@ -1,6 +1,7 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.RoomRequirementStatus;
+import com.example.ticket_helpdesk_backend.dto.RoomAllocationSuggestion;
 import com.example.ticket_helpdesk_backend.dto.RoomRequirementDto;
 import com.example.ticket_helpdesk_backend.entity.Meeting;
 import com.example.ticket_helpdesk_backend.entity.Room;
@@ -8,6 +9,8 @@ import com.example.ticket_helpdesk_backend.entity.RoomRequirement;
 import com.example.ticket_helpdesk_backend.entity.RoomRequirementAsset;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.*;
+import com.example.ticket_helpdesk_backend.service.helper.RoomMatchScore;
+import com.example.ticket_helpdesk_backend.service.helper.RoomMatchingHelper;
 import com.example.ticket_helpdesk_backend.specification.RoomRequirementSpecifications;
 import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -19,6 +22,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -32,6 +37,7 @@ public class RoomRequirementService {
     private final RoomRepository roomRepository;
     private final MeetingRepository meetingRepository;
     ModelMapper modelMapper;
+    private final RoomMatchingHelper matchingHelper;
 
     public RoomRequirement getRoomRequirementById(UUID id) {
         return roomRequirementRepository.findById(id).orElse(null);
@@ -134,4 +140,50 @@ public class RoomRequirementService {
 
         return requirements.stream().map(RoomRequirementDto::toRoomRequirementDto).collect(Collectors.toList());
     }
+
+    public List<RoomAllocationSuggestion> suggestAllocations(List<UUID> requirementIds) {
+        // Lấy danh sách các yêu cầu
+        List<RoomRequirement> requirements = roomRequirementRepository.findAllById(requirementIds);
+        List<Room> allRooms = roomRepository.findAll();
+
+        List<RoomAllocationSuggestion> results = new ArrayList<>();
+
+        for (RoomRequirement req : requirements) {
+            // Lọc các phòng đủ điều kiện
+            List<Room> suitable = allRooms.stream()
+                    .filter(r -> matchingHelper.isAvailable(r, req.getStartTime(), req.getEndTime()))
+                    .filter(r -> matchingHelper.hasCapacity(r, req.getCapacity()))
+                    .filter(r -> matchingHelper.hasRequiredAssets(r, req.getRoomRequirementAssets()))
+                    .filter(r -> r.getStatus().equalsIgnoreCase("AVAILABLE"))
+                    .toList();
+
+            // Xếp hạng độ phù hợp
+            List<RoomMatchScore> scored = suitable.stream()
+                    .map(r -> new RoomMatchScore(r, matchingHelper.computeMatchScore(r, req)))
+                    .sorted(Comparator.comparingDouble(RoomMatchScore::getScore).reversed())
+                    .toList();
+
+            // Lấy phòng tốt nhất (hoặc top 3)
+            if (!scored.isEmpty()) {
+                RoomMatchScore best = scored.getFirst();
+                results.add(new RoomAllocationSuggestion(
+                        req.getId(),
+                        best.getRoom().getId(),
+                        best.getRoom().getName(),
+                        best.getScore()
+                ));
+            } else {
+                // Không tìm thấy phòng phù hợp
+                results.add(new RoomAllocationSuggestion(
+                        req.getId(),
+                        null,
+                        null,
+                        0.0
+                ));
+            }
+        }
+
+        return results;
+    }
+
 }

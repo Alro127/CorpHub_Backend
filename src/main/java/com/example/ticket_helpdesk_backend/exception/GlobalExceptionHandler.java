@@ -5,6 +5,7 @@ import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.JwtException;
 import org.springframework.expression.spel.SpelEvaluationException;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.validation.BindException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.http.ResponseEntity;
@@ -109,6 +110,23 @@ public class GlobalExceptionHandler {
                 null
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(apiResponse);
+    }
+
+    @ExceptionHandler(BindException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleBindException(BindException ex) {
+        Map<String, String> errors = new HashMap<>();
+        for (FieldError error : ex.getBindingResult().getFieldErrors()) {
+            errors.put(error.getField(), error.getDefaultMessage());
+        }
+
+        ApiResponse<Map<String, String>> apiResponse = new ApiResponse<>(
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation failed",
+                LocalDateTime.now(),
+                errors
+        );
+
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
     }
 
     @ExceptionHandler(Exception.class)

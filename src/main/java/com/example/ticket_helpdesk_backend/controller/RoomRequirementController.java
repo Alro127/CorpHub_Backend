@@ -1,8 +1,6 @@
 package com.example.ticket_helpdesk_backend.controller;
 
-import com.example.ticket_helpdesk_backend.dto.ApiResponse;
-import com.example.ticket_helpdesk_backend.dto.RoomRequirementDto;
-import com.example.ticket_helpdesk_backend.dto.RoomResponse;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.RoomRequirementService;
 import org.springframework.data.domain.Page;
@@ -77,6 +75,23 @@ public class RoomRequirementController {
                 LocalDateTime.now(),
                 roomRequirementDtoList
         );
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("@securityService.hasRole('ADMIN')")
+    @PostMapping("/allocations/suggestions")
+    public ResponseEntity<?> allocationSuggestions(@RequestBody ListUUIDRequest request) {
+        List<UUID> ids = request.getIds();
+
+        List<RoomAllocationSuggestion> suggestions = roomRequirementService.suggestAllocations(ids);
+
+        ApiResponse<List<RoomAllocationSuggestion>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Room allocation suggestions generated successfully",
+                LocalDateTime.now(),
+                suggestions
+        );
+
         return ResponseEntity.ok(response);
     }
 }

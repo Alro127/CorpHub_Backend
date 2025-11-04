@@ -28,9 +28,13 @@ public class AssetController {
     @GetMapping
     public ResponseEntity<?> getAllAssets(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keywords,
+            @RequestParam(required = false) UUID categoryId,
+            @RequestParam(required = false) String status) {
+        System.out.println(status);
         Page<AssetResponse> pageData = assetService.getAllAssets(
-                page, size
+                page, size, keywords, categoryId, status
         );
         ApiResponse<List<AssetResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
@@ -112,6 +116,20 @@ public class AssetController {
                 "Asset deleted successfully",
                 LocalDateTime.now(),
                 deletedAsset
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PreAuthorize("@securityService.hasRole('ADMIN')")
+    @PostMapping("/remove-from-room")
+    public ResponseEntity<?> removeAssetFromRoom(@RequestParam UUID assetId) {
+        boolean success = assetService.removeAssetFromRoom(assetId);
+
+        ApiResponse<Boolean> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                success ? "Asset removed successfully" : "Asset is not assigned to any room",
+                LocalDateTime.now(),
+                success
         );
         return ResponseEntity.ok(response);
     }
