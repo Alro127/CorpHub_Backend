@@ -150,7 +150,7 @@ public class EmployeeProfileService {
             if (profile.getAvatar() != null) {
                 avatarUrl = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
             }
-            return EmployeeProfileResponse.toResponse(profile, avatarUrl);
+            return EmployeeProfileResponse.fromEntity(profile, avatarUrl);
         });
     }
 
@@ -237,12 +237,12 @@ public class EmployeeProfileService {
     public EmployeeProfileResponse getBasicProfile(String token) {
         EmployeeProfile profile = getProfile(token);
         String avatar = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
-        return EmployeeProfileResponse.toResponse(profile, avatar);
+        return EmployeeProfileResponse.fromEntity(profile, avatar);
     }
 
-    public List<EmployeeProfileResponse.JobHistoryResponse> getMyJobHistories(String token) {
+    public List<EmployeeJobHistoryResponse> getMyJobHistories(String token) {
         return getProfile(token).getJobHistories().stream()
-                .map(job -> new EmployeeProfileResponse.JobHistoryResponse(
+                .map(job -> new EmployeeJobHistoryResponse(
                         job.getId(),
                         job.getDepartment() != null ? job.getDepartment().getName() : null,
                         job.getPosition(),
@@ -254,9 +254,9 @@ public class EmployeeProfileService {
                 )).toList();
     }
 
-    public List<EmployeeProfileResponse.CompetencyResponse> getMyCompetencies(String token) {
+    public List<EmployeeCompetencyResponse> getMyCompetencies(String token) {
         return getProfile(token).getCompetencies().stream()
-                .map(c -> new EmployeeProfileResponse.CompetencyResponse(
+                .map(c -> new EmployeeCompetencyResponse(
                         c.getId(), c.getType(), c.getName(),
                         c.getLevel(), c.getIssuedBy(),
                         c.getIssuedDate(), c.getNote()
