@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.consts.BucketName;
 import com.example.ticket_helpdesk_backend.dto.TicketAttachmentDTO;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.entity.TicketAttachment;
@@ -28,8 +29,6 @@ public class TicketAttachmentService {
     private final TicketRepository ticketRepository;
     private final FileStorageService fileStorageService;
 
-    private final String bucketName = "ticket-attachments";
-
     public List<TicketAttachmentDTO> getAttachmentsByTicketId(UUID ticketId) {
         return attachmentRepository.findByTicket_Id(ticketId)
                 .stream()
@@ -46,7 +45,7 @@ public class TicketAttachmentService {
                 .orElseThrow(() -> new RuntimeException("Ticket not found"));
 
         return files.stream().map(file -> {
-            String objectName = fileStorageService.uploadFile(bucketName, file, ticketId.toString());
+            String objectName = fileStorageService.uploadFile(BucketName.TICKET_ATTACHMENT.getBucketName(), file, ticketId.toString());
 
             TicketAttachment attachment = new TicketAttachment();
             attachment.setTicket(ticket);
@@ -62,14 +61,14 @@ public class TicketAttachmentService {
         TicketAttachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new RuntimeException("Attachment not found"));
 
-        return fileStorageService.downloadFile(bucketName, attachment.getPath());
+        return fileStorageService.downloadFile(BucketName.TICKET_ATTACHMENT.getBucketName(), attachment.getPath());
     }
 
     public void deleteAttachment(UUID attachmentId) {
         TicketAttachment attachment = attachmentRepository.findById(attachmentId)
                 .orElseThrow(() -> new RuntimeException("Attachment not found"));
 
-        fileStorageService.deleteFile(bucketName, attachment.getPath());
+        fileStorageService.deleteFile(BucketName.TICKET_ATTACHMENT.getBucketName(), attachment.getPath());
         attachmentRepository.delete(attachment);
     }
 

@@ -1,17 +1,20 @@
 package com.example.ticket_helpdesk_backend.controller;
 
-import com.example.ticket_helpdesk_backend.dto.ApiResponse;
-import com.example.ticket_helpdesk_backend.dto.CreateEmployeeProfileRequest;
-import com.example.ticket_helpdesk_backend.dto.CreateUserRequest;
-import com.example.ticket_helpdesk_backend.dto.EmployeeProfileResponse;
+import com.example.ticket_helpdesk_backend.consts.BucketName;
+import com.example.ticket_helpdesk_backend.dto.*;
+import com.example.ticket_helpdesk_backend.entity.EmployeeDocument;
+import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
+import com.example.ticket_helpdesk_backend.service.EmployeeDocumentService;
 import com.example.ticket_helpdesk_backend.service.EmployeeProfileService;
 import com.example.ticket_helpdesk_backend.service.FileStorageService;
 import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +37,8 @@ public class EmployeeProfileController {
 
     @Autowired
     private FileStorageService fileStorageService;
+    @Autowired
+    private EmployeeDocumentService employeeDocumentService;
 
     private final String bucketName = "employee-avatars";
 
@@ -45,11 +51,11 @@ public class EmployeeProfileController {
         String token = authHeader.substring(7);
         String fileUrl;
         if (avatarFile != null && !avatarFile.isEmpty()) {
-            fileUrl = fileStorageService.uploadFile(bucketName, avatarFile, request.getFullName());
+            fileUrl = fileStorageService.uploadFile(BucketName.EMPLOYEE_AVATAR.getBucketName(), avatarFile, request.getFullName());
         } else {
             ClassPathResource defaultAvatar = new ClassPathResource("static/avatars/default.png");
             try (InputStream inputStream = defaultAvatar.getInputStream()) {
-                fileUrl = fileStorageService.uploadFile(bucketName, inputStream, "default.png", request.getFullName());
+                fileUrl = fileStorageService.uploadFile(BucketName.EMPLOYEE_AVATAR.getBucketName(), inputStream, "default.png", request.getFullName());
             }
         }
 
@@ -142,22 +148,54 @@ public class EmployeeProfileController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "/document", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadEmployeeDocument(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestPart(value = "document", required = false) MultipartFile documentFile
-    ) throws ResourceNotFoundException, IOException {
+
+
+//    @GetMapping("/me")
+//    public ResponseEntity<?> getMyEmployeeProfile(@RequestHeader("Authorization") String authHeader) {
+//        String token = authHeader.substring(7);
+//        EmployeeProfile employeeProfile = employeeProfileService.getMyEmployeeProfile(token);
+//        String avatar = fileStorageService.getPresignedUrl("employee-avatars", employeeProfile.getAvatar());
+//        EmployeeProfileResponse profile = EmployeeProfileResponse.toResponse(employeeProfile, avatar);
+//
+//        ApiResponse<?> response = new ApiResponse<>(
+//                HttpStatus.OK.value(),
+//                "Get employee profile successfully",
+//                LocalDateTime.now(),
+//                profile
+//        );
+//        return ResponseEntity.ok(response);
+//    }
+
+    // 1️⃣ Thông tin cơ bản
+    @GetMapping("/me")
+    public ResponseEntity<?> getMyProfile(@RequestHeader("Authorization") String authHeader) {
         String token = authHeader.substring(7);
-
-        boolean success = employeeProfileService.uploadAvatar(token, documentFile);
-        String message = success ? "Upload avatar successfully" : "Upload avatar Failed";
-
-        ApiResponse<String> response = new ApiResponse<>(
-                HttpStatus.OK.value(),
-                message,
-                LocalDateTime.now(),
-                null
-        );
-        return ResponseEntity.ok(response);
+        var profile = employeeProfileService.getBasicProfile(token);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Get basic employee profile successfully", LocalDateTime.now(), profile));
     }
+
+    // 2️⃣ Lịch sử công việc
+    @GetMapping("/me/jobs")
+    public ResponseEntity<?> getMyJobHistories(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.substring(7);
+        var jobs = employeeProfileService.getMyJobHistories(token);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Get job history employee profile successfully", LocalDateTime.now(), jobs));
+    }
+
+    // 3️⃣ Năng lực
+    @GetMapping("/me/competencies")
+    public ResponseEntity<?> getMyCompetencies(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.substring(7);
+        var competencies = employeeProfileService.getMyCompetencies(token);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Get competencies employee profile successfully", LocalDateTime.now(), competencies));
+    }
+
+    // 4️⃣ Tài liệu
+    @GetMapping("/me/documents")
+    public ResponseEntity<?> getMyDocuments(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.substring(7);
+        var documents = employeeProfileService.getMyDocuments(token);
+        return ResponseEntity.ok(new ApiResponse<>(200, "Get document employee profile successfully", LocalDateTime.now(), documents));
+    }
+
 }

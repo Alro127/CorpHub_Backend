@@ -20,4 +20,6 @@ public interface DepartmentRepository extends JpaRepository<Department, UUID> {
         LEFT JOIN FETCH ep.user u
         """)
     List<Department> findAllWithUsers();
+
+    boolean existsByName(String name);
 }

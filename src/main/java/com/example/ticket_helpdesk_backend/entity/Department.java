@@ -32,6 +32,10 @@ public class Department {
     @Column(name = "description")
     private String description;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "manager_id")
+    private EmployeeProfile manager;
+
     @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
     private List<EmployeeProfile> employeeProfiles = new ArrayList<>();
 

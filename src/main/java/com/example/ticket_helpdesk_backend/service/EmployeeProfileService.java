@@ -1,16 +1,12 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.consts.BucketName;
 import com.example.ticket_helpdesk_backend.consts.TicketPriority;
 import com.example.ticket_helpdesk_backend.consts.TicketStatus;
-import com.example.ticket_helpdesk_backend.dto.CreateEmployeeProfileRequest;
-import com.example.ticket_helpdesk_backend.dto.CreateUserRequest;
-import com.example.ticket_helpdesk_backend.dto.EmployeeProfileResponse;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
-import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
-import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
-import com.example.ticket_helpdesk_backend.repository.TicketCategoryRepository;
-import com.example.ticket_helpdesk_backend.repository.TicketRepository;
+import com.example.ticket_helpdesk_backend.repository.*;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
@@ -37,6 +33,12 @@ public class EmployeeProfileService {
     DepartmentRepository departmentRepository;
 
     @Autowired
+    DocumentTypeRepository documentTypeRepository;
+
+    @Autowired
+    EmployeeDocumentRepository employeeDocumentRepository;
+
+    @Autowired
     FileStorageService fileStorageService;
 
     @Autowired
@@ -51,7 +53,6 @@ public class EmployeeProfileService {
     @Autowired
     JwtUtil jwtUtil;
 
-    private final String bucketName = "employee-avatars";
 
 
 
@@ -149,7 +150,7 @@ public class EmployeeProfileService {
             if (profile.getAvatar() != null) {
                 avatarUrl = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
             }
-            return EmployeeProfileResponse.toResponse(profile, avatarUrl);
+            return EmployeeProfileResponse.fromEntity(profile, avatarUrl);
         });
     }
 
@@ -173,11 +174,11 @@ public class EmployeeProfileService {
 
         String fileUrl;
         if (avatarFile != null && !avatarFile.isEmpty()) {
-            fileUrl = fileStorageService.uploadFile(bucketName, avatarFile, employeeProfile.getFullName());
+            fileUrl = fileStorageService.uploadFile(BucketName.EMPLOYEE_AVATAR.getBucketName(), avatarFile, employeeProfile.getFullName());
         } else {
             ClassPathResource defaultAvatar = new ClassPathResource("public/images/defaultAvatar.jpg");
             try (InputStream inputStream = defaultAvatar.getInputStream()) {
-                fileUrl = fileStorageService.uploadFile(bucketName, inputStream, "default.jpg", employeeProfile.getFullName());
+                fileUrl = fileStorageService.uploadFile(BucketName.EMPLOYEE_AVATAR.getBucketName(), inputStream, "default.jpg", employeeProfile.getFullName());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -191,4 +192,52 @@ public class EmployeeProfileService {
         return true;
     }
 
+    public EmployeeProfile getMyEmployeeProfile(String token) {
+        UUID userId = jwtUtil.getUserId(token);
+        
+
+        return employeeProfileRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+    }
+
+    private EmployeeProfile getProfile(String token) {
+        UUID userId = jwtUtil.getUserId(token);
+        return employeeProfileRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Employee not found"));
+    }
+
+    public EmployeeProfileResponse getBasicProfile(String token) {
+        EmployeeProfile profile = getProfile(token);
+        String avatar = fileStorageService.getPresignedUrl(BucketName.EMPLOYEE_AVATAR.getBucketName(), profile.getAvatar());
+        return EmployeeProfileResponse.fromEntity(profile, avatar);
+    }
+
+    public List<EmployeeJobHistoryResponse> getMyJobHistories(String token) {
+        return getProfile(token).getJobHistories().stream()
+                .map(job -> new EmployeeJobHistoryResponse(
+                        job.getId(),
+                        job.getDepartment() != null ? job.getDepartment().getName() : null,
+                        job.getPosition(),
+                        job.getContractType(),
+                        job.getStartDate(),
+                        job.getEndDate(),
+                        job.getEmploymentStatus(),
+                        job.getNote()
+                )).toList();
+    }
+
+    public List<EmployeeCompetencyResponse> getMyCompetencies(String token) {
+        return getProfile(token).getCompetencies().stream()
+                .map(c -> new EmployeeCompetencyResponse(
+                        c.getId(), c.getType(), c.getName(),
+                        c.getLevel(), c.getIssuedBy(),
+                        c.getIssuedDate(), c.getNote()
+                )).toList();
+    }
+
+    public List<EmployeeDocumentResponse> getMyDocuments(String token) {
+        return getProfile(token).getDocuments().stream()
+                .map(EmployeeDocumentResponse::fromEntity)
+                .toList();
+    }
 }

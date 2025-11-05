@@ -13,7 +13,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @Builder
 public class DepartmentUsersGroupDto {
-    private UUID departmentId;
-    private String departmentName;
+    private UUID id;
+    private String name;
     private List<UserBasicDto> users;
 }
