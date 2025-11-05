@@ -59,29 +59,45 @@ public class RoomMatchingHelper {
     }
 
     public double computeMatchScore(Room room, RoomRequirement req) {
-        double score = 0.0;
+        double capacityScore = 0.0;
+        double assetScore = 0.0;
+        double timeScore = 0.0;
 
-        // Ưu tiên phòng có sức chứa gần với yêu cầu
+        // === Sức chứa ===
         if (room.getCapacity() != null && req.getCapacity() != null) {
             int diff = Math.abs(room.getCapacity() - req.getCapacity());
-            score += Math.max(0, 50 - diff); // càng gần càng điểm cao
+            double ratio = (double) room.getCapacity() / req.getCapacity();
+            if (ratio < 1.0)
+                capacityScore = ratio; // thiếu chỗ => giảm mạnh
+            else
+                capacityScore = Math.max(0.0, 1.0 - (diff / 100.0)); // dư chỗ => phạt nhẹ
         }
 
-        // Ưu tiên phòng có đủ tài sản
+        // === Thiết bị ===
         int requiredAssets = req.getRoomRequirementAssets().size();
-        long matchedAssets = room.getAssets().stream()
-                .map(a -> a.getCategory().getId())
-                .filter(id -> req.getRoomRequirementAssets().stream()
-                        .anyMatch(r -> r.getAssetCategory().getId().equals(id)))
-                .count();
         if (requiredAssets > 0) {
-            score += (double) matchedAssets / requiredAssets * 50.0;
+            long matchedAssets = room.getAssets().stream()
+                    .map(a -> a.getCategory().getId())
+                    .filter(id -> req.getRoomRequirementAssets().stream()
+                            .anyMatch(r -> r.getAssetCategory().getId().equals(id)))
+                    .count();
+            assetScore = (double) matchedAssets / requiredAssets;
         } else {
-            score += 20; // bonus nếu không yêu cầu gì
+            assetScore = 0.7; // không yêu cầu gì → vẫn cho điểm trung bình
         }
 
-        return score; // tổng tối đa 100
+        // === Thời gian ===
+        boolean available = isAvailable(room, req.getStartTime(), req.getEndTime());
+        timeScore = available ? 1.0 : 0.0;
+
+        // === Tổng hợp ===
+        double matchScore = (capacityScore * 0.4)
+                + (assetScore * 0.4)
+                + (timeScore * 0.2);
+
+        return Math.round(matchScore * 1000.0) / 10.0;
     }
+
 
 
 }
