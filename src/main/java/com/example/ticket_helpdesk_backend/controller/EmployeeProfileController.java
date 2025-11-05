@@ -1,15 +1,20 @@
 package com.example.ticket_helpdesk_backend.controller;
 
+import com.example.ticket_helpdesk_backend.consts.BucketName;
 import com.example.ticket_helpdesk_backend.dto.*;
+import com.example.ticket_helpdesk_backend.entity.EmployeeDocument;
 import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
+import com.example.ticket_helpdesk_backend.service.EmployeeDocumentService;
 import com.example.ticket_helpdesk_backend.service.EmployeeProfileService;
 import com.example.ticket_helpdesk_backend.service.FileStorageService;
 import org.apache.commons.fileupload.disk.DiskFileItem;
 import org.apache.commons.io.IOUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -17,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
+import java.nio.file.Files;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -31,6 +37,8 @@ public class EmployeeProfileController {
 
     @Autowired
     private FileStorageService fileStorageService;
+    @Autowired
+    private EmployeeDocumentService employeeDocumentService;
 
     private final String bucketName = "employee-avatars";
 
@@ -43,11 +51,11 @@ public class EmployeeProfileController {
         String token = authHeader.substring(7);
         String fileUrl;
         if (avatarFile != null && !avatarFile.isEmpty()) {
-            fileUrl = fileStorageService.uploadFile(bucketName, avatarFile, request.getFullName());
+            fileUrl = fileStorageService.uploadFile(BucketName.EMPLOYEE_AVATAR.getBucketName(), avatarFile, request.getFullName());
         } else {
             ClassPathResource defaultAvatar = new ClassPathResource("static/avatars/default.png");
             try (InputStream inputStream = defaultAvatar.getInputStream()) {
-                fileUrl = fileStorageService.uploadFile(bucketName, inputStream, "default.png", request.getFullName());
+                fileUrl = fileStorageService.uploadFile(BucketName.EMPLOYEE_AVATAR.getBucketName(), inputStream, "default.png", request.getFullName());
             }
         }
 
@@ -140,24 +148,7 @@ public class EmployeeProfileController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping(value = "/documents", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> uploadEmployeeDocuments(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestPart("files") List<MultipartFile> files,
-            @RequestPart("meta") List<DocumentMetaDto> metaList
-    ) throws IOException, ResourceNotFoundException {
 
-        String token = authHeader.substring(7);
-        boolean success = employeeProfileService.uploadDocuments(token, files, metaList);
-
-        ApiResponse<String> response = new ApiResponse<>(
-                HttpStatus.OK.value(),
-                success ? "Upload documents successfully" : "Upload documents failed",
-                LocalDateTime.now(),
-                null
-        );
-        return ResponseEntity.ok(response);
-    }
 
 //    @GetMapping("/me")
 //    public ResponseEntity<?> getMyEmployeeProfile(@RequestHeader("Authorization") String authHeader) {

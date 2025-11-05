@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.consts.BucketName;
 import com.example.ticket_helpdesk_backend.consts.TicketPriority;
 import com.example.ticket_helpdesk_backend.consts.TicketStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
@@ -52,7 +53,6 @@ public class EmployeeProfileService {
     @Autowired
     JwtUtil jwtUtil;
 
-    private final String bucketName = "employee-avatars";
 
 
 
@@ -174,11 +174,11 @@ public class EmployeeProfileService {
 
         String fileUrl;
         if (avatarFile != null && !avatarFile.isEmpty()) {
-            fileUrl = fileStorageService.uploadFile(bucketName, avatarFile, employeeProfile.getFullName());
+            fileUrl = fileStorageService.uploadFile(BucketName.EMPLOYEE_AVATAR.getBucketName(), avatarFile, employeeProfile.getFullName());
         } else {
             ClassPathResource defaultAvatar = new ClassPathResource("public/images/defaultAvatar.jpg");
             try (InputStream inputStream = defaultAvatar.getInputStream()) {
-                fileUrl = fileStorageService.uploadFile(bucketName, inputStream, "default.jpg", employeeProfile.getFullName());
+                fileUrl = fileStorageService.uploadFile(BucketName.EMPLOYEE_AVATAR.getBucketName(), inputStream, "default.jpg", employeeProfile.getFullName());
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -188,34 +188,6 @@ public class EmployeeProfileService {
 
         // ====== Lưu EmployeeProfile ======
         employeeProfileRepository.save(employeeProfile);
-
-        return true;
-    }
-
-    @Transactional
-    public boolean uploadDocuments(String token, List<MultipartFile> files, List<DocumentMetaDto> metaList) throws IOException, ResourceNotFoundException {
-        UUID userId = jwtUtil.getUserId(token);
-
-        EmployeeProfile profile = employeeProfileRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
-
-        for (int i = 0; i < files.size(); i++) {
-            MultipartFile file = files.get(i);
-            DocumentMetaDto meta = metaList.get(i);
-
-            // Lưu file vật lý hoặc cloud
-            String fileUrl = fileStorageService.uploadFile("employee-document",file, profile.getFullName());
-
-            EmployeeDocument doc = new EmployeeDocument();
-            doc.setEmployeeProfile(profile);
-            doc.setDocumentType(documentTypeRepository.findById(meta.getDocumentTypeId()).orElse(null));
-            doc.setTitle(meta.getTitle());
-            doc.setDescription(meta.getDescription());
-            doc.setFileUrl(fileUrl);
-            doc.setFileName(file.getOriginalFilename());
-            doc.setFileType(file.getContentType());
-            employeeDocumentRepository.save(doc);
-        }
 
         return true;
     }
@@ -236,7 +208,7 @@ public class EmployeeProfileService {
 
     public EmployeeProfileResponse getBasicProfile(String token) {
         EmployeeProfile profile = getProfile(token);
-        String avatar = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
+        String avatar = fileStorageService.getPresignedUrl(BucketName.EMPLOYEE_AVATAR.getBucketName(), profile.getAvatar());
         return EmployeeProfileResponse.fromEntity(profile, avatar);
     }
 

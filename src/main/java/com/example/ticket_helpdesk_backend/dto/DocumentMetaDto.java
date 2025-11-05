@@ -11,4 +11,5 @@ public class DocumentMetaDto {
     private UUID documentTypeId;
     private String title;
     private String description;
+    private String objectName;
 }
