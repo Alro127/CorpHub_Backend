@@ -63,7 +63,7 @@ public class MeetingController {
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime,
             @RequestParam(required = false) List<String> emails
-    ) {
+    ) throws ResourceNotFoundException {
         String token = authHeader.substring(7);
         UUID userId = jwtUtil.getUserId(token);
 

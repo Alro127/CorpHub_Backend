@@ -269,24 +269,24 @@ public class UserService {
 //    }
 
 
-    public User getUserById(UUID userId) {
-        return userRepository.findById(userId).orElse(null);
+    public User getUserById(UUID userId) throws ResourceNotFoundException {
+        return userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found with id: "+ userId));
     }
 
-    private String getRoleName(UUID userId) {
+    private String getRoleName(UUID userId) throws ResourceNotFoundException {
         User user = getUserById(userId);
         return user != null ? user.getRole().getName() : null;
     }
 
-    public boolean isAdmin(UUID userId) {
+    public boolean isAdmin(UUID userId) throws ResourceNotFoundException {
         return "ROLE_ADMIN".equals(getRoleName(userId));
     }
 
-    public boolean isManager(UUID userId) {
+    public boolean isManager(UUID userId) throws ResourceNotFoundException {
         return "ROLE_MANAGER".equals(getRoleName(userId));
     }
 
-    public boolean isUser(UUID userId) {
+    public boolean isUser(UUID userId) throws ResourceNotFoundException {
         return "ROLE_USER".equals(getRoleName(userId));
     }
 

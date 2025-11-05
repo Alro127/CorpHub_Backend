@@ -8,6 +8,7 @@ import com.example.ticket_helpdesk_backend.dto.MeetingResponse;
 import com.example.ticket_helpdesk_backend.dto.RoomRequirementDto;
 import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.AuthException;
+import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.*;
 
 import lombok.AllArgsConstructor;
@@ -179,7 +180,7 @@ public class MeetingService {
     public List<MeetingResponse> getMeetings(UUID userId,
                                              LocalDateTime startTime,
                                              LocalDateTime endTime,
-                                             List<String> emails) {
+                                             List<String> emails) throws ResourceNotFoundException {
         if (userId == null) return Collections.emptyList();
 
         if (userService.isAdmin(userId)) {
