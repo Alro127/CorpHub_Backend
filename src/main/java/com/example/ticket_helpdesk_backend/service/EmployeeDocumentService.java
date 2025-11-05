@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -51,21 +52,9 @@ public class EmployeeDocumentService {
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài liệu với id: " + id));
     }
 
-    /**
-     * Tải file từ đường dẫn fileUrl trong DB.
-     * Nếu fileUrl là đường dẫn tuyệt đối trong server (VD: "uploads/documents/..."),
-     * ta đọc trực tiếp từ ổ đĩa.
-     */
-    public Resource downloadFile(EmployeeDocument document) throws Exception {
+    public InputStream downloadFile(EmployeeDocument document) throws Exception {
         String filePath = document.getFileUrl();
-
-        // ✅ Trường hợp: fileUrl là đường dẫn hệ thống
-        Path path = Paths.get(filePath);
-        if (!Files.exists(path)) {
-            throw new ResourceNotFoundException("Không tìm thấy file trên hệ thống: " + filePath);
-        }
-
-        return new FileSystemResource(path);
+        return fileStorageService.downloadFile(BucketName.EMPLOYEE_DOCUMENT.getBucketName(), filePath);
     }
 
     @Transactional

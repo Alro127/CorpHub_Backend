@@ -8,6 +8,7 @@ import com.example.ticket_helpdesk_backend.entity.EmployeeDocument;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.EmployeeDocumentService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -48,19 +50,25 @@ public class EmployeeDocumentController {
     }
 
     @GetMapping("/download/{id}")
-    public ResponseEntity<Resource> downloadDocument(@PathVariable UUID id) {
+    public ResponseEntity<?> downloadDocument(@PathVariable UUID id) {
         try {
+            // Lấy thông tin document
             EmployeeDocument doc = employeeDocumentService.getById(id);
-            Resource resource = employeeDocumentService.downloadFile(doc);
 
-            // Lấy content type động nếu có thể
+            // Gọi service để tải file (InputStream)
+            InputStream inputStream = employeeDocumentService.downloadFile(doc);
+
+            // Xác định content type
             String contentType = doc.getFileType();
             if (contentType == null || contentType.isBlank()) {
-                contentType = Files.probeContentType(resource.getFile().toPath());
-                if (contentType == null) contentType = "application/octet-stream";
+                contentType = "application/octet-stream";
             }
 
+            // Đặt tên file khi tải xuống
             String filename = doc.getFileName() != null ? doc.getFileName() : doc.getTitle();
+
+            // Chuyển InputStream thành Resource (InputStreamResource)
+            InputStreamResource resource = new InputStreamResource(inputStream);
 
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
@@ -71,9 +79,11 @@ public class EmployeeDocumentController {
             return ResponseEntity.notFound().build();
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError().build();
+            return ResponseEntity.internalServerError()
+                    .body("Không thể tải xuống tài liệu: " + e.getMessage());
         }
     }
+
 
     @GetMapping("/type")
     public ResponseEntity<?> getAllDocumentTypes() {
