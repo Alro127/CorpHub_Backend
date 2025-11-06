@@ -3,7 +3,9 @@ package com.example.ticket_helpdesk_backend.entity;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 import org.hibernate.annotations.Nationalized;
@@ -15,6 +17,8 @@ import java.util.UUID;
 @Table(name = "employee_competency")
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class EmployeeCompetency {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -29,5 +33,6 @@ public class EmployeeCompetency {
     private String level;
     private String issuedBy;
     private LocalDate issuedDate;
+    private LocalDate expireDate;
     private String note;
 }

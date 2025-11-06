@@ -63,15 +63,27 @@ public class EmployeeProfile {
     @JoinColumn(name = "department_id")
     private Department department;
 
+    /** 🔹 Tài khoản đăng nhập (User) */
     @OneToOne(mappedBy = "employeeProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private User user;
 
+    /** 🔹 Thông tin hành chính (CMND, thuế, BHXH...) */
+    @OneToOne(mappedBy = "employeeProfile", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private EmployeeAdministrativeInfo administrativeInfo;
+
+    /** 🔹 Lịch sử làm việc */
     @OneToMany(mappedBy = "employeeProfile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EmployeeJobHistory> jobHistories = new ArrayList<>();
 
+    /** 🔹 Kỹ năng, chứng chỉ */
     @OneToMany(mappedBy = "employeeProfile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EmployeeCompetency> competencies = new ArrayList<>();
 
+    /** 🔹 Tài liệu nhân viên */
     @OneToMany(mappedBy = "employeeProfile", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EmployeeDocument> documents = new ArrayList<>();
+
+    /** 🔹 Dòng thời gian sự nghiệp */
+    @OneToMany(mappedBy = "employeeProfile", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<EmployeeTimeline> timelines = new ArrayList<>();
 }

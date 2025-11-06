@@ -1,8 +1,6 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.BucketName;
-import com.example.ticket_helpdesk_backend.consts.TicketPriority;
-import com.example.ticket_helpdesk_backend.consts.TicketStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
@@ -13,14 +11,12 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -226,13 +222,9 @@ public class EmployeeProfileService {
                 )).toList();
     }
 
-    public List<EmployeeCompetencyResponse> getMyCompetencies(String token) {
+    public List<EmployeeCompetencyDto> getMyCompetencies(String token) {
         return getProfile(token).getCompetencies().stream()
-                .map(c -> new EmployeeCompetencyResponse(
-                        c.getId(), c.getType(), c.getName(),
-                        c.getLevel(), c.getIssuedBy(),
-                        c.getIssuedDate(), c.getNote()
-                )).toList();
+                .map(EmployeeCompetencyDto::fromEntity).toList();
     }
 
     public List<EmployeeDocumentResponse> getMyDocuments(String token) {
