@@ -1,7 +1,7 @@
 package com.example.ticket_helpdesk_backend.dto;
 
 import com.example.ticket_helpdesk_backend.consts.VerificationStatus;
-import com.example.ticket_helpdesk_backend.entity.*;
+import com.example.ticket_helpdesk_backend.entity.EmployeeCompetency;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -12,10 +12,11 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class EmployeeCompetencyDto {
+public class EmployeeCompetencyResponse {
+
     private UUID id;
 
-    // --- Thông tin loại năng lực ---
+    // --- Loại năng lực ---
     private UUID typeId;
     private String typeCode;
     private String typeName;
@@ -28,10 +29,10 @@ public class EmployeeCompetencyDto {
     private LocalDate expireDate;
     private String note;
 
-    // --- Liên kết tài liệu ---
+    // --- Tài liệu chứng minh ---
     private UUID documentId;
 
-    // --- Xác thực ---
+    // --- Thông tin xác thực ---
     private String certificateCode;
     private String verifyUrl;
     private VerificationStatus verificationStatus;
@@ -43,15 +44,14 @@ public class EmployeeCompetencyDto {
     private String uploadedByName;
 
     // =============================
-    // Mapping từ Entity → DTO
+    // Mapping từ Entity → Response
     // =============================
-    public static EmployeeCompetencyDto fromEntity(EmployeeCompetency entity) {
+    public static EmployeeCompetencyResponse fromEntity(EmployeeCompetency entity) {
         if (entity == null) return null;
 
-        EmployeeCompetencyDto dto = new EmployeeCompetencyDto();
+        EmployeeCompetencyResponse dto = new EmployeeCompetencyResponse();
         dto.setId(entity.getId());
 
-        // Type
         if (entity.getType() != null) {
             dto.setTypeId(entity.getType().getId());
             dto.setTypeCode(entity.getType().getCode());
@@ -65,55 +65,21 @@ public class EmployeeCompetencyDto {
         dto.setExpireDate(entity.getExpireDate());
         dto.setNote(entity.getNote());
 
-        // Document
         if (entity.getDocument() != null)
             dto.setDocumentId(entity.getDocument().getId());
 
-        // Verification
         dto.setCertificateCode(entity.getCertificateCode());
         dto.setVerifyUrl(entity.getVerifyUrl());
         dto.setVerificationStatus(entity.getVerificationStatus());
         dto.setVerifiedBy(entity.getVerifiedBy());
         dto.setVerifiedDate(entity.getVerifiedDate());
 
-        // Uploader
         if (entity.getUploadedBy() != null) {
             dto.setUploadedById(entity.getUploadedBy().getId());
-            dto.setUploadedByName(entity.getUploadedBy().getEmployeeProfile().getFullName()); // giả sử có field fullName
+            if (entity.getUploadedBy().getEmployeeProfile() != null)
+                dto.setUploadedByName(entity.getUploadedBy().getEmployeeProfile().getFullName());
         }
 
         return dto;
-    }
-
-    // =============================
-    // Mapping từ DTO → Entity
-    // =============================
-    public static EmployeeCompetency toEntity(EmployeeCompetencyDto dto,
-                                              EmployeeProfile employee,
-                                              CompetencyType type,
-                                              EmployeeDocument document,
-                                              User uploader) {
-        if (dto == null) return null;
-
-        EmployeeCompetency entity = new EmployeeCompetency();
-        entity.setId(dto.getId());
-        entity.setEmployeeProfile(employee);
-        entity.setType(type);
-        entity.setName(dto.getName());
-        entity.setLevel(dto.getLevel());
-        entity.setIssuedBy(dto.getIssuedBy());
-        entity.setIssuedDate(dto.getIssuedDate());
-        entity.setExpireDate(dto.getExpireDate());
-        entity.setNote(dto.getNote());
-
-        entity.setDocument(document);
-        entity.setCertificateCode(dto.getCertificateCode());
-        entity.setVerifyUrl(dto.getVerifyUrl());
-        entity.setVerificationStatus(dto.getVerificationStatus() != null ? dto.getVerificationStatus() : VerificationStatus.PENDING);
-        entity.setVerifiedBy(dto.getVerifiedBy());
-        entity.setVerifiedDate(dto.getVerifiedDate());
-        entity.setUploadedBy(uploader);
-
-        return entity;
     }
 }

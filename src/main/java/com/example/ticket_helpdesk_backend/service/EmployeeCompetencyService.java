@@ -34,6 +34,13 @@ public class EmployeeCompetencyService {
 
     // 🔹 Thêm mới
     public EmployeeCompetency create(EmployeeCompetencyDto competency, String token) {
+
+        // Admin/HR
+
+
+        // Chính user
+        // Employee Profile được lấy ra từ token
+
         EmployeeCompetency employeeCompetency = EmployeeCompetencyDto.toEntity(competency);
 
         UUID userId = jwtUtil.getUserId(token);
