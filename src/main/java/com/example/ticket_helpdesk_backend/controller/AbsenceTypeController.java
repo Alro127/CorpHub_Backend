@@ -1,11 +1,10 @@
 package com.example.ticket_helpdesk_backend.controller;
 
 import com.example.ticket_helpdesk_backend.dto.ApiResponse;
-import com.example.ticket_helpdesk_backend.dto.LeaveTypeRequest;
-import com.example.ticket_helpdesk_backend.dto.LeaveTypeResponse;
-import com.example.ticket_helpdesk_backend.entity.LeaveType;
+import com.example.ticket_helpdesk_backend.dto.AbsenceTypeRequest;
+import com.example.ticket_helpdesk_backend.dto.AbsenceTypeResponse;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
-import com.example.ticket_helpdesk_backend.service.LeaveTypeService;
+import com.example.ticket_helpdesk_backend.service.AbsenceTypeService;
 import lombok.AllArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,42 +16,42 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/api/leave/type")
+@RequestMapping("/api/absence/type")
 @AllArgsConstructor
-public class LeaveTypeController {
+public class AbsenceTypeController {
 
-    private final LeaveTypeService leaveTypeService;
+    private final AbsenceTypeService absenceTypeService;
 
     @GetMapping
-    public ResponseEntity<?> getAllLeaveTypes() {
-        ApiResponse<List<LeaveTypeResponse>> response = new ApiResponse<>(
+    public ResponseEntity<?> getAllAbsenceTypes() {
+        ApiResponse<List<AbsenceTypeResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
-                "Fetched leave types successfully",
+                "Fetched absence types successfully",
                 LocalDateTime.now(),
-                leaveTypeService.getAll()
+                absenceTypeService.getAll()
         );
         return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<?> getById(@PathVariable UUID id) throws ResourceNotFoundException {
-        LeaveTypeResponse leaveType = leaveTypeService.getById(id);
-        ApiResponse<LeaveTypeResponse> response = new ApiResponse<>(
+        AbsenceTypeResponse absenceType = absenceTypeService.getById(id);
+        ApiResponse<AbsenceTypeResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
-                "Fetched leave type successfully",
+                "Fetched absence type successfully",
                 LocalDateTime.now(),
-                leaveType
+                absenceType
         );
         return ResponseEntity.ok(response);
     }
 
     @PreAuthorize("@securityService.hasRole('ADMIN')")
     @PostMapping
-    public ResponseEntity<?> createLeaveType(@RequestBody LeaveTypeRequest request) {
-        LeaveTypeResponse created = leaveTypeService.create(request);
-        ApiResponse<LeaveTypeResponse> response = new ApiResponse<>(
+    public ResponseEntity<?> createAbsenceType(@RequestBody AbsenceTypeRequest request) {
+        AbsenceTypeResponse created = absenceTypeService.create(request);
+        ApiResponse<AbsenceTypeResponse> response = new ApiResponse<>(
                 HttpStatus.CREATED.value(),
-                "Created leave type successfully",
+                "Created absence type successfully",
                 LocalDateTime.now(),
                 created
         );
@@ -60,12 +59,12 @@ public class LeaveTypeController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateLeaveType(@PathVariable UUID id,
-                                             @RequestBody LeaveTypeRequest request) throws ResourceNotFoundException {
-        LeaveTypeResponse updated = leaveTypeService.update(id, request);
-        ApiResponse<LeaveTypeResponse> response = new ApiResponse<>(
+    public ResponseEntity<?> updateAbsenceType(@PathVariable UUID id,
+                                             @RequestBody AbsenceTypeRequest request) throws ResourceNotFoundException {
+        AbsenceTypeResponse updated = absenceTypeService.update(id, request);
+        ApiResponse<AbsenceTypeResponse> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
-                "Updated leave type successfully",
+                "Updated absence type successfully",
                 LocalDateTime.now(),
                 updated
         );
@@ -73,11 +72,11 @@ public class LeaveTypeController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteLeaveType(@PathVariable UUID id) throws ResourceNotFoundException {
-        leaveTypeService.delete(id);
+    public ResponseEntity<?> deleteAbsenceType(@PathVariable UUID id) throws ResourceNotFoundException {
+        absenceTypeService.delete(id);
         ApiResponse<Void> response = new ApiResponse<>(
                 HttpStatus.NO_CONTENT.value(),
-                "Deleted leave type successfully",
+                "Deleted absence type successfully",
                 LocalDateTime.now(),
                 null
         );

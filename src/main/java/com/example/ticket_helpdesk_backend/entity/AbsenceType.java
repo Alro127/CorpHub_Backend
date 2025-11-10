@@ -9,15 +9,14 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "leave_type")
-public class LeaveType {
+@Table(name = "absence_type")
+public class AbsenceType {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)

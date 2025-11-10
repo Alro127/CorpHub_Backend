@@ -176,7 +176,6 @@ public class MeetingService {
         return mapToMeetingResponse(saved);
     }
 
-
     public List<MeetingResponse> getMeetings(UUID userId,
                                              LocalDateTime startTime,
                                              LocalDateTime endTime,

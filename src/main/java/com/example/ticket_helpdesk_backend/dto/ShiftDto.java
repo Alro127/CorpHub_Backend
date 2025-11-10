@@ -1,6 +1,7 @@
 package com.example.ticket_helpdesk_backend.dto;
 
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,23 +9,25 @@ import lombok.Value;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.time.LocalTime;
 import java.util.UUID;
 
 /**
- * DTO for {@link com.example.ticket_helpdesk_backend.entity.LeaveBalance}
+ * DTO for {@link com.example.ticket_helpdesk_backend.entity.Shift}
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class LeaveBalanceRequest implements Serializable {
+public class ShiftDto implements Serializable {
     UUID id;
-    UUID userId;
-    UUID leaveTypeId;
     @NotNull
-    Integer year;
+    @Size(max = 100)
+    String name;
     @NotNull
-    BigDecimal totalDays;
+    LocalTime startTime;
     @NotNull
-    BigDecimal usedDays;
-    BigDecimal carriedOver;
+    LocalTime endTime;
+    Boolean isNightShift;
+    Integer flexibleMinutes;
+    BigDecimal workingHours;
 }

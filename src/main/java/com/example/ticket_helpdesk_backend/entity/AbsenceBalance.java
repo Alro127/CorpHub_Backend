@@ -7,15 +7,14 @@ import lombok.Setter;
 import org.hibernate.annotations.ColumnDefault;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Getter
 @Setter
 @Entity
-@Table(name = "leave_balance")
-public class LeaveBalance {
+@Table(name = "absence_balance")
+public class AbsenceBalance {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
@@ -28,8 +27,8 @@ public class LeaveBalance {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "leave_type_id", nullable = false)
-    private com.example.ticket_helpdesk_backend.entity.LeaveType leaveType;
+    @JoinColumn(name = "absence_type_id", nullable = false)
+    private AbsenceType absenceType;
 
     @NotNull
     @Column(name = "\"year\"", nullable = false)

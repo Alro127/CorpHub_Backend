@@ -13,8 +13,8 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "leave_approval")
-public class LeaveApproval {
+@Table(name = "absence_approval")
+public class AbsenceApproval {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
@@ -22,8 +22,8 @@ public class LeaveApproval {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "leave_request_id", nullable = false)
-    private LeaveRequest leaveRequest;
+    @JoinColumn(name = "absence_request_id", nullable = false)
+    private AbsenceRequest absenceRequest;
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

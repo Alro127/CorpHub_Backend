@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.dto;
 
+import com.example.ticket_helpdesk_backend.entity.AbsenceBalance;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,21 +8,18 @@ import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
- * DTO for {@link com.example.ticket_helpdesk_backend.entity.LeaveBalance}
+ * DTO for {@link AbsenceBalance}
  */
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-public class LeaveBalanceResponse implements Serializable {
+public class AbsenceBalanceRequest implements Serializable {
     UUID id;
-    @NotNull
-    UserDto user;
-    String leaveTypeCode;
-    String leaveTypeName;
+    UUID userId;
+    UUID absenceTypeId;
     @NotNull
     Integer year;
     @NotNull
@@ -29,5 +27,4 @@ public class LeaveBalanceResponse implements Serializable {
     @NotNull
     BigDecimal usedDays;
     BigDecimal carriedOver;
-    LocalDateTime lastUpdated;
 }

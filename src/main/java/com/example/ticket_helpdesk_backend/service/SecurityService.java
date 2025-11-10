@@ -9,6 +9,7 @@ import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.MeetingRepository;
 import com.example.ticket_helpdesk_backend.repository.TicketRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
+import lombok.AllArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
@@ -17,21 +18,13 @@ import java.util.Optional;
 import java.util.UUID;
 
 @Component("securityService")
+@AllArgsConstructor
 public class SecurityService {
 
     private final UserRepository userRepository;
     private final DepartmentRepository departmentRepository;
     private final TicketRepository ticketRepository;
     private final MeetingRepository meetingRepository;
-
-    public SecurityService(UserRepository userRepository,
-                           DepartmentRepository departmentRepository,
-                           TicketRepository ticketRepository, MeetingRepository meetingRepository) {
-        this.userRepository = userRepository;
-        this.departmentRepository = departmentRepository;
-        this.ticketRepository = ticketRepository;
-        this.meetingRepository = meetingRepository;
-    }
 
     /** Lấy email hiện tại */
     private String getCurrentEmail() {

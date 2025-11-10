@@ -32,7 +32,6 @@ public class AssetController {
             @RequestParam(required = false) String keywords,
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) String status) {
-        System.out.println(status);
         Page<AssetResponse> pageData = assetService.getAllAssets(
                 page, size, keywords, categoryId, status
         );

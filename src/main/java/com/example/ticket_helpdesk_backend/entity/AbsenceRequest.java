@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.entity;
 
+import com.example.ticket_helpdesk_backend.consts.AbsenceRequestStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -15,8 +16,8 @@ import java.util.UUID;
 @Getter
 @Setter
 @Entity
-@Table(name = "leave_request")
-public class LeaveRequest {
+@Table(name = "absence_request")
+public class AbsenceRequest {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @Column(name = "id", nullable = false)
@@ -29,8 +30,8 @@ public class LeaveRequest {
 
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "leave_type_id", nullable = false)
-    private com.example.ticket_helpdesk_backend.entity.LeaveType leaveType;
+    @JoinColumn(name = "absence_type_id", nullable = false)
+    private AbsenceType absenceType;
 
     @NotNull
     @Column(name = "start_date", nullable = false)
@@ -51,11 +52,10 @@ public class LeaveRequest {
     @Column(name = "attachment_url")
     private String attachmentUrl;
 
-    @Size(max = 20)
     @NotNull
-    @ColumnDefault("'PENDING'")
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private AbsenceRequestStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "approver_id")
