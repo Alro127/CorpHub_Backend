@@ -5,6 +5,7 @@ import com.example.ticket_helpdesk_backend.entity.WorkSchedule;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 public class WorkScheduleSpecifications {
@@ -15,6 +16,14 @@ public class WorkScheduleSpecifications {
             return cb.equal(root.get("user").get("id"), userId);
         };
     }
+
+    public static Specification<WorkSchedule> hasUserIdIn(List<UUID> userIds) {
+        return (root, query, cb) -> {
+            if (userIds == null || userIds.isEmpty()) return null;
+            return root.get("user").get("id").in(userIds);
+        };
+    }
+
 
     public static Specification<WorkSchedule> hasShiftId(UUID shiftId) {
         return (root, query, cb) -> {

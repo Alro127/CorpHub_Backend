@@ -1,10 +1,7 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.WorkScheduleStatus;
-import com.example.ticket_helpdesk_backend.dto.ShiftDto;
-import com.example.ticket_helpdesk_backend.dto.UserDto;
-import com.example.ticket_helpdesk_backend.dto.WorkScheduleRequest;
-import com.example.ticket_helpdesk_backend.dto.WorkScheduleResponse;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.Shift;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.entity.WorkSchedule;
@@ -12,6 +9,7 @@ import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.ShiftRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
 import com.example.ticket_helpdesk_backend.repository.WorkScheduleRepository;
+import com.example.ticket_helpdesk_backend.specification.UserSpecifications;
 import com.example.ticket_helpdesk_backend.specification.WorkScheduleSpecifications;
 import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
@@ -21,8 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,29 +30,6 @@ public class WorkScheduleService {
     private final UserRepository userRepository;
     private final ShiftRepository shiftRepository;
     private final ModelMapper modelMapper;
-
-    public Page<WorkScheduleResponse> getAll(
-            int page, int size, String keywords,
-            UUID userId, UUID shiftId,
-            WorkScheduleStatus status,
-            LocalDate fromDate, LocalDate toDate,
-            String sortBy, String direction
-    ) {
-        Sort sort = Sort.by((direction != null && direction.equalsIgnoreCase("desc")) ? Sort.Direction.DESC : Sort.Direction.ASC,
-                (sortBy == null || sortBy.isBlank()) ? "workDate" : sortBy);
-
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        Specification<WorkSchedule> spec = Specification
-                .where(WorkScheduleSpecifications.hasKeywords(keywords))
-                .and(WorkScheduleSpecifications.hasUserId(userId))
-                .and(WorkScheduleSpecifications.hasShiftId(shiftId))
-                .and(WorkScheduleSpecifications.hasStatus(status))
-                .and(WorkScheduleSpecifications.workDateFrom(fromDate))
-                .and(WorkScheduleSpecifications.workDateTo(toDate));
-
-        return workScheduleRepository.findAll(spec, pageable).map(this::toResponse);
-    }
 
     public WorkScheduleResponse getById(UUID id) throws ResourceNotFoundException {
         WorkSchedule entity = workScheduleRepository.findById(id)
@@ -125,5 +99,74 @@ public class WorkScheduleService {
         resp.setShift(shiftDto);
 
         return resp;
+    }
+
+    public Page<EmployeeScheduleDto> getEmployeeSchedules(int page, int size, String keywords, UUID departmentId, LocalDate from, LocalDate to) {
+
+        Sort sort = Sort.by(
+                Sort.Order.asc("employeeProfile.fullName").ignoreCase()
+        );
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Page<User> userPage = userRepository.findAll(
+                Specification
+                        .where(UserSpecifications.withEmployeeJoins())
+                        .and(UserSpecifications.search(keywords))
+                        .and(UserSpecifications.belongsToDepartment(departmentId)),
+                pageable
+        );
+
+        List<User> users = userPage.getContent();
+
+        if (users.isEmpty()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, userPage.getTotalElements());
+        }
+
+        List<UUID> userIds = users.stream()
+                .map(User::getId)
+                .toList();
+
+        List<WorkSchedule> schedules = workScheduleRepository.findAll(
+                Specification
+                        .where(WorkScheduleSpecifications.hasUserIdIn(userIds))
+                        .and(WorkScheduleSpecifications.workDateFrom(from))
+                        .and(WorkScheduleSpecifications.workDateTo(to))
+        );
+
+        Map<UUID, List<WorkSchedule>> grouped = schedules.stream()
+                .collect(Collectors.groupingBy(ws -> ws.getUser().getId()));
+
+        List<EmployeeScheduleDto> results = new ArrayList<>();
+        for (User u : users) {
+            List<WorkSchedule> wsList = grouped.getOrDefault(u.getId(), Collections.emptyList());
+
+            List<EmployeeShiftDto> shiftDtos = wsList.stream()
+                    .map(ws -> {
+                        Shift s = ws.getShift();
+                        return new EmployeeShiftDto(
+                                ws.getId(),
+                                ws.getWorkDate(),
+                                s.getId(),
+                                s.getName(),
+                                s.getStartTime().toString(),
+                                s.getEndTime().toString(),
+                                null,                        // notes chưa có
+                                ws.getStatus()
+                        );
+                    })
+                    .sorted(Comparator.comparing(EmployeeShiftDto::getWorkDate))
+                    .toList();
+
+            results.add(
+                    new EmployeeScheduleDto(
+                            u.getId(),
+                            u.getEmployeeProfile().getFullName(),
+                            u.getEmployeeProfile().getDepartment().getName(),
+                            shiftDtos
+                    )
+            );
+        }
+        return new PageImpl<>(results, pageable, userPage.getTotalElements());
     }
 }
