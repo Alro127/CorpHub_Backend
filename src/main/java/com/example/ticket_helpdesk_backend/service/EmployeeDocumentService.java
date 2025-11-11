@@ -22,6 +22,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -58,11 +59,13 @@ public class EmployeeDocumentService {
     }
 
     @Transactional
-    public boolean uploadDocuments(String token, List<MultipartFile> files, List<DocumentMetaDto> metaList) throws IOException, ResourceNotFoundException {
+    public List<UUID>  uploadDocuments(String token, List<MultipartFile> files, List<DocumentMetaDto> metaList) throws IOException, ResourceNotFoundException {
         UUID userId = jwtUtil.getUserId(token);
 
         EmployeeProfile profile = employeeProfileRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        List<UUID> documentIds = new ArrayList<>();
 
         for (int i = 0; i < files.size(); i++) {
             MultipartFile file = files.get(i);
@@ -79,10 +82,12 @@ public class EmployeeDocumentService {
             doc.setFileUrl(fileUrl);
             doc.setFileName(file.getOriginalFilename());
             doc.setFileType(file.getContentType());
-            employeeDocumentRepository.save(doc);
+            documentIds.add(employeeDocumentRepository.save(doc).getId());
         }
 
-        return true;
+
+
+        return documentIds;
     }
 
     public List<DocumentTypeDto> getAllDocumentTypes() {

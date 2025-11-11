@@ -30,7 +30,9 @@ public class EmployeeCompetency {
     @JoinColumn(name = "type_id", nullable = false)
     private CompetencyType type;     // SKILL, DEGREE, CERTIFICATION, LANGUAGE
     private String name;
-    private String level;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "level_id")
+    private CompetencyLevel level;
     private String issuedBy;
     private LocalDate issuedDate;
     private LocalDate expireDate;

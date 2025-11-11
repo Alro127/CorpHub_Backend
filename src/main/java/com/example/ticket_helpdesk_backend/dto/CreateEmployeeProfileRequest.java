@@ -37,7 +37,7 @@ public class CreateEmployeeProfileRequest {
 
     @Data
     public static class CompetencyRequest {
-        private String type;   // SKILL, DEGREE, CERTIFICATION, LANGUAGE
+        private UUID type;   // SKILL, DEGREE, CERTIFICATION, LANGUAGE
         private String name;
         private String level;
         private String issuedBy;

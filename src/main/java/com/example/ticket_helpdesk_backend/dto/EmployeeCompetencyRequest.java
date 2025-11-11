@@ -19,7 +19,7 @@ public class EmployeeCompetencyRequest {
 
     // --- Thông tin năng lực ---
     private String name;
-    private String level;
+    private UUID level;
     private String issuedBy;
     private LocalDate issuedDate;
     private LocalDate expireDate;

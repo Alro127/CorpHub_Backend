@@ -1,14 +1,13 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.dto.EmployeeCompetencyDto;
-import com.example.ticket_helpdesk_backend.entity.EmployeeCompetency;
-import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
-import com.example.ticket_helpdesk_backend.repository.EmployeeCompetencyRepository;
-import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
+import com.example.ticket_helpdesk_backend.dto.EmployeeCompetencyResponse;
+import com.example.ticket_helpdesk_backend.entity.*;
+import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
+import com.example.ticket_helpdesk_backend.repository.*;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,54 +20,65 @@ import java.util.UUID;
 public class EmployeeCompetencyService {
 
     private final EmployeeCompetencyRepository competencyRepository;
-
     private final EmployeeProfileRepository employeeProfileRepository;
-    @Autowired
-    JwtUtil jwtUtil;
+    private final CompetencyTypeRepository competencyTypeRepository;
+    private final CompetencyLevelRepository competencyLevelRepository;
+    private final EmployeeDocumentRepository employeeDocumentRepository;
+    private final UserRepository userRepository;
+    private final JwtUtil jwtUtil;
 
     // 🔹 Lấy danh sách competency theo nhân viên
     @Transactional(readOnly = true)
-    public List<EmployeeCompetency> getByEmployeeId(UUID employeeId) {
-        return competencyRepository.findByEmployeeProfile_Id(employeeId);
+    public List<EmployeeCompetencyResponse> getByEmployeeId(UUID employeeId) {
+        List<EmployeeCompetencyResponse> competencyDtos = competencyRepository.findByEmployeeProfile_Id(employeeId)
+                .stream()
+                .map(EmployeeCompetencyResponse::fromEntity)
+                .toList();
+        return competencyDtos;
     }
 
-    // 🔹 Thêm mới
-    public EmployeeCompetency create(EmployeeCompetencyDto competency, String token) {
-
-        // Admin/HR
-
-
-        // Chính user
-        // Employee Profile được lấy ra từ token
-
-        EmployeeCompetency employeeCompetency = EmployeeCompetencyDto.toEntity(competency);
-
+    // 🔹 Thêm mới competency bởi nhân viên đang đăng nhập
+    public EmployeeCompetency create(EmployeeCompetencyDto dto, String token) throws ResourceNotFoundException {
         UUID userId = jwtUtil.getUserId(token);
 
-        EmployeeProfile employeeProfile = employeeProfileRepository.findById(userId).orElseThrow();
+        // Lấy user và employee profile tương ứng
+        User uploader = userRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+        EmployeeProfile employeeProfile = uploader.getEmployeeProfile();
 
-        employeeCompetency.setEmployeeProfile(employeeProfile);
+        // Lấy loại năng lực
+        CompetencyType type = competencyTypeRepository.findById(dto.getTypeId())
+                .orElseThrow(() -> new ResourceNotFoundException("Competency type not found"));
 
-        return competencyRepository.save(employeeCompetency);
+        // Lấy cấp độ năng lực (nếu có)
+        CompetencyLevel level = null;
+        if (dto.getLevelId() != null) {
+            level = competencyLevelRepository.findById(dto.getLevelId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Competency level not found"));
+        }
+
+        // Lấy tài liệu (nếu có)
+        EmployeeDocument document = null;
+        if (dto.getDocumentId() != null) {
+            document = employeeDocumentRepository.findById(dto.getDocumentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Employee document not found"));
+        }
+
+        // Map DTO → Entity
+        EmployeeCompetency entity = EmployeeCompetencyDto.toEntity(
+                dto,
+                employeeProfile,
+                type,
+                level,
+                document,
+                uploader
+        );
+
+        // Lưu vào DB
+        return competencyRepository.save(entity);
     }
 
-    // 🔹 Cập nhật
-    public EmployeeCompetency update(UUID id, EmployeeCompetencyDto updated) {
-        EmployeeCompetency existing = competencyRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Không tìm thấy năng lực: " + id));
-
-        existing.setType(updated.getType());
-        existing.setName(updated.getName());
-        existing.setLevel(updated.getLevel());
-        existing.setIssuedBy(updated.getIssuedBy());
-        existing.setIssuedDate(updated.getIssuedDate());
-        existing.setExpireDate(updated.getExpireDate());
-        existing.setNote(updated.getNote());
-
-        return competencyRepository.save(existing);
-    }
-
-    // 🔹 Xóa
+    // 🔹 Xóa competency
     public void delete(UUID id) {
         if (!competencyRepository.existsById(id)) {
             throw new EntityNotFoundException("Không tìm thấy năng lực: " + id);

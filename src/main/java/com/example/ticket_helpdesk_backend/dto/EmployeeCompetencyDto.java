@@ -17,12 +17,12 @@ public class EmployeeCompetencyDto {
 
     // --- Thông tin loại năng lực ---
     private UUID typeId;
-    private String typeCode;
     private String typeName;
 
     // --- Thông tin năng lực ---
     private String name;
-    private String level;
+    private UUID levelId;
+    private String levelName;
     private String issuedBy;
     private LocalDate issuedDate;
     private LocalDate expireDate;
@@ -54,12 +54,14 @@ public class EmployeeCompetencyDto {
         // Type
         if (entity.getType() != null) {
             dto.setTypeId(entity.getType().getId());
-            dto.setTypeCode(entity.getType().getCode());
             dto.setTypeName(entity.getType().getName());
         }
 
         dto.setName(entity.getName());
-        dto.setLevel(entity.getLevel());
+        if (entity.getLevel() != null) {
+            dto.setLevelId(entity.getLevel().getId());
+            dto.setLevelName(entity.getLevel().getName());
+        }
         dto.setIssuedBy(entity.getIssuedBy());
         dto.setIssuedDate(entity.getIssuedDate());
         dto.setExpireDate(entity.getExpireDate());
@@ -91,6 +93,7 @@ public class EmployeeCompetencyDto {
     public static EmployeeCompetency toEntity(EmployeeCompetencyDto dto,
                                               EmployeeProfile employee,
                                               CompetencyType type,
+                                              CompetencyLevel level,
                                               EmployeeDocument document,
                                               User uploader) {
         if (dto == null) return null;
@@ -100,7 +103,7 @@ public class EmployeeCompetencyDto {
         entity.setEmployeeProfile(employee);
         entity.setType(type);
         entity.setName(dto.getName());
-        entity.setLevel(dto.getLevel());
+        entity.setLevel(level);
         entity.setIssuedBy(dto.getIssuedBy());
         entity.setIssuedDate(dto.getIssuedDate());
         entity.setExpireDate(dto.getExpireDate());

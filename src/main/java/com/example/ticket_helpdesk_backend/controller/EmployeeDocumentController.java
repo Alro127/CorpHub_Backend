@@ -38,13 +38,13 @@ public class EmployeeDocumentController {
     ) throws IOException, ResourceNotFoundException {
 
         String token = authHeader.substring(7);
-        boolean success = employeeDocumentService.uploadDocuments(token, files, metaList);
+        List<UUID>  success = employeeDocumentService.uploadDocuments(token, files, metaList);
 
-        ApiResponse<String> response = new ApiResponse<>(
+        ApiResponse<List<UUID>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
-                success ? "Upload documents successfully" : "Upload documents failed",
+                success.isEmpty() ? "Upload documents successfully" : "Upload documents failed",
                 LocalDateTime.now(),
-                null
+                success
         );
         return ResponseEntity.ok(response);
     }

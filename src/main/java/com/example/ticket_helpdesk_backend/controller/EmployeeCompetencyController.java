@@ -2,11 +2,12 @@ package com.example.ticket_helpdesk_backend.controller;
 
 import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import com.example.ticket_helpdesk_backend.dto.EmployeeCompetencyDto;
+import com.example.ticket_helpdesk_backend.dto.EmployeeCompetencyResponse;
 import com.example.ticket_helpdesk_backend.entity.EmployeeCompetency;
+import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.EmployeeCompetencyService;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -21,23 +22,17 @@ import java.util.UUID;
 public class EmployeeCompetencyController {
 
     private final EmployeeCompetencyService competencyService;
+    private final JwtUtil jwtUtil;
 
-    @Autowired
-    JwtUtil jwtUtil;
-
-    // 🔹 Lấy danh sách competency của 1 nhân viên
+    // 🔹 Lấy danh sách competency của chính nhân viên đang đăng nhập
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<List<EmployeeCompetencyDto>>> getMyCompetencies(@RequestHeader("Authorization") String authHeader) {
+    public ResponseEntity<?> getMyCompetencies(
+            @RequestHeader("Authorization") String authHeader) {
 
         String token = authHeader.substring(7);
-
         UUID employeeId = jwtUtil.getUserId(token);
 
-        List<EmployeeCompetencyDto> competencyDtos = competencyService
-                .getByEmployeeId(employeeId)
-                .stream()
-                .map(EmployeeCompetencyDto::fromEntity)
-                .toList();
+        List<EmployeeCompetencyResponse> competencyDtos = competencyService.getByEmployeeId(employeeId);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
@@ -49,14 +44,13 @@ public class EmployeeCompetencyController {
         );
     }
 
-    // 🔹 Lấy danh sách competency của 1 nhân viên
+    // 🔹 Lấy danh sách competency theo ID nhân viên (dành cho admin)
     @GetMapping("/{employeeId}")
-    public ResponseEntity<ApiResponse<List<EmployeeCompetencyDto>>> getByEmployee(@PathVariable UUID employeeId) {
-        List<EmployeeCompetencyDto> competencyDtos = competencyService
-                .getByEmployeeId(employeeId)
-                .stream()
-                .map(EmployeeCompetencyDto::fromEntity)
-                .toList();
+    public ResponseEntity<?> getByEmployee(
+            @PathVariable UUID employeeId) {
+
+        List<EmployeeCompetencyResponse> competencyDtos = competencyService.getByEmployeeId(employeeId);
+
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
@@ -73,8 +67,7 @@ public class EmployeeCompetencyController {
     public ResponseEntity<ApiResponse<EmployeeCompetencyDto>> create(
             @RequestHeader("Authorization") String authHeader,
             @RequestBody EmployeeCompetencyDto request
-    ) {
-
+    ) throws ResourceNotFoundException {
         String token = authHeader.substring(7);
 
         EmployeeCompetency saved = competencyService.create(request, token);
@@ -90,28 +83,9 @@ public class EmployeeCompetencyController {
         );
     }
 
-    // 🔹 Cập nhật competency
-    @PutMapping("/{id}")
-    public ResponseEntity<ApiResponse<EmployeeCompetencyDto>> update(
-            @PathVariable UUID id,
-            @RequestBody EmployeeCompetencyDto request
-    ) {
-        EmployeeCompetency updated = competencyService.update(id, request);
-        EmployeeCompetencyDto dto = EmployeeCompetencyDto.fromEntity(updated);
-
-        return ResponseEntity.ok(
-                new ApiResponse<>(
-                        HttpStatus.OK.value(),
-                        "Update competency successfully",
-                        LocalDateTime.now(),
-                        dto
-                )
-        );
-    }
-
     // 🔹 Xóa competency
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable UUID id) {
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
         competencyService.delete(id);
         return ResponseEntity.ok(
                 new ApiResponse<>(

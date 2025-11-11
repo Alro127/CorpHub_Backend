@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -23,7 +24,8 @@ public class EmployeeCompetencyResponse {
 
     // --- Thông tin năng lực ---
     private String name;
-    private String level;
+    private UUID levelId;
+    private String levelName;
     private String issuedBy;
     private LocalDate issuedDate;
     private LocalDate expireDate;
@@ -31,6 +33,9 @@ public class EmployeeCompetencyResponse {
 
     // --- Tài liệu chứng minh ---
     private UUID documentId;
+    private LocalDateTime uploadDate;
+    private String fileName;
+    private String fileType;
 
     // --- Thông tin xác thực ---
     private String certificateCode;
@@ -59,15 +64,21 @@ public class EmployeeCompetencyResponse {
         }
 
         dto.setName(entity.getName());
-        dto.setLevel(entity.getLevel());
+        if (entity.getLevel() != null) {
+            dto.setLevelId(entity.getLevel().getId());
+            dto.setLevelName(entity.getLevel().getName());
+        }
         dto.setIssuedBy(entity.getIssuedBy());
         dto.setIssuedDate(entity.getIssuedDate());
         dto.setExpireDate(entity.getExpireDate());
         dto.setNote(entity.getNote());
 
-        if (entity.getDocument() != null)
+        if (entity.getDocument() != null) {
             dto.setDocumentId(entity.getDocument().getId());
-
+            dto.setFileName(entity.getDocument().getFileName());
+            dto.setFileType(entity.getDocument().getFileType());
+            dto.setUploadDate(entity.getDocument().getUploadDate());
+        }
         dto.setCertificateCode(entity.getCertificateCode());
         dto.setVerifyUrl(entity.getVerifyUrl());
         dto.setVerificationStatus(entity.getVerificationStatus());

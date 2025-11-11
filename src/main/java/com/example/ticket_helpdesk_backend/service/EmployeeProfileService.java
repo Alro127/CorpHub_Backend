@@ -47,6 +47,12 @@ public class EmployeeProfileService {
     TicketCategoryRepository ticketCategoryRepository;
 
     @Autowired
+    CompetencyTypeRepository competencyTypeRepository;
+
+    @Autowired
+    CompetencyTypeRepository competencyLevelRepository;
+
+    @Autowired
     JwtUtil jwtUtil;
 
 
@@ -95,21 +101,28 @@ public class EmployeeProfileService {
         }
 
         // ====== Competencies ======
-        if (request.getCompetencies() != null && !request.getCompetencies().isEmpty()) {
-            List<EmployeeCompetency> competencies = request.getCompetencies().stream().map(c -> {
-                EmployeeCompetency competency = new EmployeeCompetency();
-                competency.setEmployeeProfile(employeeProfile);
-                competency.setType(c.getType());
-                competency.setName(c.getName());
-                competency.setLevel(c.getLevel());
-                competency.setIssuedBy(c.getIssuedBy());
-                competency.setIssuedDate(c.getIssuedDate());
-                competency.setNote(c.getNote());
-                return competency;
-            }).toList();
-
-            employeeProfile.setCompetencies(competencies);
-        }
+//        if (request.getCompetencies() != null && !request.getCompetencies().isEmpty()) {
+//            List<EmployeeCompetency> competencies = request.getCompetencies().stream().map(c -> {
+//                EmployeeCompetency competency = new EmployeeCompetency();
+//                competency.setEmployeeProfile(employeeProfile);
+//                try {
+//                    competency.setType(
+//                            competencyTypeRepository.findById(c.getType())
+//                                    .orElseThrow(() -> new ResourceNotFoundException("CompetencyType not found: " + c.getType()))
+//                    );
+//                } catch (ResourceNotFoundException e) {
+//                    throw new RuntimeException(e);
+//                }
+//                competency.setName(c.getName());
+//                competency.setLevel(competencyLevelRepository.findBy(c.getLevel()));
+//                competency.setIssuedBy(c.getIssuedBy());
+//                competency.setIssuedDate(c.getIssuedDate());
+//                competency.setNote(c.getNote());
+//                return competency;
+//            }).toList();
+//
+//            employeeProfile.setCompetencies(competencies);
+//        }
 
         // ====== Lưu EmployeeProfile ======
         employeeProfileRepository.save(employeeProfile);
