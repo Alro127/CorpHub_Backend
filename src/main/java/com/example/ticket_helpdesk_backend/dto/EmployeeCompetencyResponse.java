@@ -27,8 +27,8 @@ public class EmployeeCompetencyResponse {
     private UUID levelId;
     private String levelName;
     private String issuedBy;
-    private LocalDate issuedDate;
-    private LocalDate expireDate;
+    private LocalDateTime issuedDate;
+    private LocalDateTime expireDate;
     private String note;
 
     // --- Tài liệu chứng minh ---
@@ -42,11 +42,15 @@ public class EmployeeCompetencyResponse {
     private String verifyUrl;
     private VerificationStatus verificationStatus;
     private String verifiedBy;
-    private LocalDate verifiedDate;
+    private LocalDateTime verifiedDate;
 
     // --- Người upload ---
     private UUID uploadedById;
     private String uploadedByName;
+
+    private UUID updatedBy;
+    private String updatedByName;
+    private LocalDateTime updatedDate;
 
     // =============================
     // Mapping từ Entity → Response
@@ -90,6 +94,13 @@ public class EmployeeCompetencyResponse {
             if (entity.getUploadedBy().getEmployeeProfile() != null)
                 dto.setUploadedByName(entity.getUploadedBy().getEmployeeProfile().getFullName());
         }
+
+        if (entity.getUpdatedBy() != null) {
+            dto.setUpdatedBy(entity.getUpdatedBy().getId());
+            if (entity.getUpdatedBy().getEmployeeProfile() != null)
+                dto.setUpdatedByName(entity.getUpdatedBy().getEmployeeProfile().getFullName());
+        }
+        dto.setUpdatedDate(entity.getUpdatedDate());
 
         return dto;
     }

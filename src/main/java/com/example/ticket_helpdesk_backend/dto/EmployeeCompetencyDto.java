@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Data
@@ -24,8 +25,8 @@ public class EmployeeCompetencyDto {
     private UUID levelId;
     private String levelName;
     private String issuedBy;
-    private LocalDate issuedDate;
-    private LocalDate expireDate;
+    private LocalDateTime issuedDate;
+    private LocalDateTime expireDate;
     private String note;
 
     // --- Liên kết tài liệu ---
@@ -36,11 +37,15 @@ public class EmployeeCompetencyDto {
     private String verifyUrl;
     private VerificationStatus verificationStatus;
     private String verifiedBy;
-    private LocalDate verifiedDate;
+    private LocalDateTime verifiedDate;
 
     // --- Người upload ---
     private UUID uploadedById;
     private String uploadedByName;
+
+    private UUID updatedBy;
+    private String updatedByName;
+    private LocalDateTime updatedDate;
 
     // =============================
     // Mapping từ Entity → DTO

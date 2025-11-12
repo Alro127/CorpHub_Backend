@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
@@ -34,8 +35,8 @@ public class EmployeeCompetency {
     @JoinColumn(name = "level_id")
     private CompetencyLevel level;
     private String issuedBy;
-    private LocalDate issuedDate;
-    private LocalDate expireDate;
+    private LocalDateTime issuedDate;
+    private LocalDateTime expireDate;
     private String note;
 
     // --- Liên kết tài liệu minh chứng ---
@@ -51,10 +52,17 @@ public class EmployeeCompetency {
     private VerificationStatus verificationStatus = VerificationStatus.PENDING;
 
     private String verifiedBy;
-    private LocalDate verifiedDate;
+    private LocalDateTime verifiedDate;
 
     // --- Người upload ---
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by", nullable = true)
     private User uploadedBy; // người upload (Admin, HR, hoặc chính nhân viên)
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "updated_by")
+    private User updatedBy;
+
+    @Column(name = "updated_date")
+    private LocalDateTime updatedDate;
 }

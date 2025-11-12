@@ -83,10 +83,31 @@ public class EmployeeCompetencyController {
         );
     }
 
+    @PutMapping
+    public ResponseEntity<?> update(
+            @RequestHeader("Authorization") String authHeader,
+            @RequestBody EmployeeCompetencyDto request
+    ) throws ResourceNotFoundException {
+        String token = authHeader.substring(7);
+
+        EmployeeCompetency saved = competencyService.update(request, token);
+        EmployeeCompetencyResponse dto = EmployeeCompetencyResponse.fromEntity(saved);
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(
+                new ApiResponse<>(
+                        HttpStatus.CREATED.value(),
+                        "Update competency successfully",
+                        LocalDateTime.now(),
+                        dto
+                )
+        );
+    }
+
     // 🔹 Xóa competency
     @DeleteMapping("/{id}")
-    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id) {
-        competencyService.delete(id);
+    public ResponseEntity<ApiResponse<Void>> delete(@PathVariable UUID id,
+                                                    @RequestParam(defaultValue = "true") boolean isDeletedFile) throws ResourceNotFoundException {
+        competencyService.delete(id, isDeletedFile);
         return ResponseEntity.ok(
                 new ApiResponse<>(
                         HttpStatus.OK.value(),
