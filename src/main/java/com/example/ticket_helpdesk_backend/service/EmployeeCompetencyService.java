@@ -143,6 +143,7 @@ public class EmployeeCompetencyService {
     }
 
     // 🔹 Xóa competency
+    @Transactional
     public void delete(UUID id, Boolean isDeletedFile) throws ResourceNotFoundException {
         if (!competencyRepository.existsById(id)) {
             throw new EntityNotFoundException("Không tìm thấy năng lực: " + id);

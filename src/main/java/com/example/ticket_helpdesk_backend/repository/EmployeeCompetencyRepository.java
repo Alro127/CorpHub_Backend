@@ -12,4 +12,8 @@ public interface EmployeeCompetencyRepository extends JpaRepository<EmployeeComp
 
     // Lấy danh sách competency theo employeeId
     List<EmployeeCompetency> findByEmployeeProfile_Id(UUID employeeId);
+    // Kiểm tra tồn tại competency đang nối với document
+    boolean existsByDocumentId(UUID documentId);
+    // Lấy danh sách competency nối với document
+    List<EmployeeCompetency> findByDocumentId(UUID documentId);
 }

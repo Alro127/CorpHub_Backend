@@ -2,13 +2,16 @@ package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.BucketName;
 import com.example.ticket_helpdesk_backend.dto.DocumentMetaDto;
+import com.example.ticket_helpdesk_backend.dto.DocumentRelationCheckDto;
 import com.example.ticket_helpdesk_backend.dto.DocumentTypeDto;
 import com.example.ticket_helpdesk_backend.entity.DocumentType;
+import com.example.ticket_helpdesk_backend.entity.EmployeeCompetency;
 import com.example.ticket_helpdesk_backend.entity.EmployeeDocument;
 import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.*;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
+import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.FileSystemResource;
@@ -41,6 +44,9 @@ public class EmployeeDocumentService {
 
     @Autowired
     EmployeeDocumentRepository employeeDocumentRepository;
+
+    @Autowired
+    EmployeeCompetencyRepository employeeCompetencyRepository;
 
     @Autowired
     FileStorageService fileStorageService;
@@ -85,8 +91,6 @@ public class EmployeeDocumentService {
             documentIds.add(employeeDocumentRepository.save(doc).getId());
         }
 
-
-
         return documentIds;
     }
 
@@ -96,4 +100,26 @@ public class EmployeeDocumentService {
                 .map(DocumentTypeDto::fromEntity)
                 .collect(Collectors.toList());
     }
+
+    @Transactional
+    public void delete(UUID id) throws ResourceNotFoundException {
+
+        if (employeeCompetencyRepository.existsByDocumentId(id)) {
+            throw new IllegalStateException("Document is attached with employee competency.");
+        }
+
+        EmployeeDocument employeeDocument = documentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found"));;
+
+        fileStorageService.deleteFile(BucketName.EMPLOYEE_DOCUMENT.getBucketName(), employeeDocument.getFileUrl());
+
+        documentRepository.deleteById(id);
+    }
+
+    @Transactional(readOnly = true)
+    public DocumentRelationCheckDto checkRelations(UUID documentId) {
+        List<EmployeeCompetency> list = employeeCompetencyRepository.findByDocumentId(documentId);
+        return DocumentRelationCheckDto.fromEntities(list);
+    }
+
 }

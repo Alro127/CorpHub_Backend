@@ -95,7 +95,7 @@ public class EmployeeCompetencyController {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 new ApiResponse<>(
-                        HttpStatus.CREATED.value(),
+                        HttpStatus.OK.value(),
                         "Update competency successfully",
                         LocalDateTime.now(),
                         dto
