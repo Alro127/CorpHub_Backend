@@ -42,6 +42,7 @@ public class EmployeeCompetencyService {
     }
 
     // 🔹 Thêm mới competency bởi nhân viên đang đăng nhập
+    @Transactional
     public EmployeeCompetency create(EmployeeCompetencyDto dto, String token) throws ResourceNotFoundException {
         UUID userId = jwtUtil.getUserId(token);
 
@@ -85,6 +86,7 @@ public class EmployeeCompetencyService {
         return competencyRepository.save(entity);
     }
 
+    @Transactional
     public EmployeeCompetency update(EmployeeCompetencyDto dto, String token) throws ResourceNotFoundException {
         // 1️⃣ Tìm entity gốc
         EmployeeCompetency entity = competencyRepository.findById(dto.getId())
@@ -113,6 +115,12 @@ public class EmployeeCompetencyService {
         // 3️⃣ Cập nhật các trường được phép sửa
         entity.setType(type);
         entity.setLevel(level);
+        if (entity.getDocument() != null && document != null) {
+            if(entity.getDocument().getId() != document.getId()) {
+                fileStorageService.deleteFile(BucketName.EMPLOYEE_DOCUMENT.getBucketName(),entity.getDocument().getFileUrl());
+                employeeDocumentRepository.delete(entity.getDocument());
+            }
+        }
         entity.setDocument(document);
 
         if (dto.getName() != null) entity.setName(dto.getName());
