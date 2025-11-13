@@ -12,18 +12,19 @@ import lombok.NoArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 @Service
 @AllArgsConstructor
 public class AdminEmployeeProfileService {
 
-    private final EmployeeCompetencyRepository repository;
+    private final EmployeeCompetencyRepository employeeCompetencyRepository;
     private final UserRepository userRepository;
     private final JwtUtil jwtUtil;
 
     public EmployeeCompetency approve(UUID id, String token) throws ResourceNotFoundException {
-        EmployeeCompetency competency = repository.findById(id)
+        EmployeeCompetency competency = employeeCompetencyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Competency not found"));
 
         UUID adminId = jwtUtil.getUserId(token);
@@ -34,11 +35,11 @@ public class AdminEmployeeProfileService {
         competency.setVerifiedBy(admin.getEmployeeProfile().getFullName());
         competency.setVerifiedDate(LocalDateTime.now());
 
-        return repository.save(competency);
+        return employeeCompetencyRepository.save(competency);
     }
 
     public EmployeeCompetency reject(UUID id, String reason, String token) throws ResourceNotFoundException {
-        EmployeeCompetency competency = repository.findById(id)
+        EmployeeCompetency competency = employeeCompetencyRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Competency not found"));
 
         UUID adminId = jwtUtil.getUserId(token);
@@ -50,6 +51,11 @@ public class AdminEmployeeProfileService {
         competency.setVerifiedDate(LocalDateTime.now());
         //Bổ sung Reason
 
-        return repository.save(competency);
+        return employeeCompetencyRepository.save(competency);
     }
+
+    public List<EmployeeCompetency> getPendingCompetencies() {
+        return employeeCompetencyRepository.findByVerificationStatus(VerificationStatus.PENDING);
+    }
+
 }

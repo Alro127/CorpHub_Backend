@@ -13,6 +13,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 
@@ -68,5 +69,26 @@ public class AdminEmployeeProfileController {
                 )
         );
     }
+
+    // 🔹 Lấy tất cả competency đang chờ duyệt
+    @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('HR')")
+    @GetMapping("/competencies/pending")
+    public ResponseEntity<ApiResponse<List<EmployeeCompetencyResponse>>> getPendingCompetencies() {
+
+        List<EmployeeCompetency> list = adminEmployeeProfileService.getPendingCompetencies();
+        List<EmployeeCompetencyResponse> dto = list.stream()
+                .map(EmployeeCompetencyResponse::fromEntity)
+                .toList();
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "Pending competencies fetched successfully",
+                        LocalDateTime.now(),
+                        dto
+                )
+        );
+    }
+
 }
 
