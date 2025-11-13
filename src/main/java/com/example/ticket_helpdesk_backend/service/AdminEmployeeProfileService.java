@@ -1,6 +1,7 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.VerificationStatus;
+import com.example.ticket_helpdesk_backend.dto.EmployeeCompetencyResponse;
 import com.example.ticket_helpdesk_backend.entity.EmployeeCompetency;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
@@ -54,8 +55,13 @@ public class AdminEmployeeProfileService {
         return employeeCompetencyRepository.save(competency);
     }
 
-    public List<EmployeeCompetency> getPendingCompetencies() {
-        return employeeCompetencyRepository.findByVerificationStatus(VerificationStatus.PENDING);
+    public List<EmployeeCompetencyResponse> getPendingCompetencies() {
+        List<EmployeeCompetency> list = employeeCompetencyRepository.findByVerificationStatus(VerificationStatus.PENDING);
+
+
+        return list.stream()
+                .map(EmployeeCompetencyResponse::fromEntity)
+                .toList();
     }
 
 }

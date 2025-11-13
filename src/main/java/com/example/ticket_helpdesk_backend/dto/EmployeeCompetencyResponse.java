@@ -48,6 +48,12 @@ public class EmployeeCompetencyResponse {
     private UUID uploadedById;
     private String uploadedByName;
 
+    // --- Người sở hữu ---
+    private UUID employeeProfileId;
+    private String employeeName;
+    private String employeeCode;
+    private String departmentName;
+
     private UUID updatedBy;
     private String updatedByName;
     private LocalDateTime updatedDate;
@@ -101,6 +107,11 @@ public class EmployeeCompetencyResponse {
                 dto.setUpdatedByName(entity.getUpdatedBy().getEmployeeProfile().getFullName());
         }
         dto.setUpdatedDate(entity.getUpdatedDate());
+
+        dto.setEmployeeProfileId(entity.getEmployeeProfile().getId());
+        dto.setEmployeeName(entity.getEmployeeProfile().getFullName());
+        dto.setEmployeeCode(entity.getEmployeeProfile().getCode());
+        dto.setDepartmentName(entity.getEmployeeProfile().getDepartment().getName());
 
         return dto;
     }

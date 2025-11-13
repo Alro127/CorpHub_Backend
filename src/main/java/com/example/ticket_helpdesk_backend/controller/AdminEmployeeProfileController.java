@@ -73,12 +73,9 @@ public class AdminEmployeeProfileController {
     // 🔹 Lấy tất cả competency đang chờ duyệt
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('HR')")
     @GetMapping("/competencies/pending")
-    public ResponseEntity<ApiResponse<List<EmployeeCompetencyResponse>>> getPendingCompetencies() {
+    public ResponseEntity<?> getPendingCompetencies() {
 
-        List<EmployeeCompetency> list = adminEmployeeProfileService.getPendingCompetencies();
-        List<EmployeeCompetencyResponse> dto = list.stream()
-                .map(EmployeeCompetencyResponse::fromEntity)
-                .toList();
+        List<EmployeeCompetencyResponse> dto = adminEmployeeProfileService.getPendingCompetencies();
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
