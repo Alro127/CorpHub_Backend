@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.specification;
 
+import com.example.ticket_helpdesk_backend.consts.AbsenceRequestStatus;
 import com.example.ticket_helpdesk_backend.entity.AbsenceRequest;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -23,10 +24,11 @@ public class AbsenceRequestSpecifications {
     }
 
     /** 🔹 Lọc theo trạng thái (PENDING, APPROVED, REJECTED) */
-    public static Specification<AbsenceRequest> hasStatus(String status) {
+    public static Specification<AbsenceRequest> hasStatus(AbsenceRequestStatus status) {
         return (root, query, cb) ->
-                (status == null || status.isBlank()) ? cb.conjunction() :
-                        cb.equal(cb.lower(root.get("status")), status.toLowerCase());
+                status == null
+                        ? cb.conjunction()
+                        : cb.equal(root.get("status"), status);
     }
 
     /** 🔹 Lọc theo người duyệt */
@@ -65,11 +67,31 @@ public class AbsenceRequestSpecifications {
         };
     }
 
+    /**
+     * 🔹 Kiểm tra xem user có đơn nghỉ được duyệt (APPROVED)
+     *     và có khoảng thời gian bao trùm ngày chỉ định hay không
+     */
+    public static Specification<AbsenceRequest> isApprovedForUserOnDate(UUID userId, LocalDate date) {
+        return (root, query, cb) -> {
+            if (userId == null || date == null) {
+                return cb.disjunction(); // luôn false
+            }
+
+            return cb.and(
+                    cb.equal(root.get("user").get("id"), userId),
+                    cb.equal(root.get("status"), AbsenceRequestStatus.APPROVED),
+                    cb.lessThanOrEqualTo(root.get("startDate"), date),
+                    cb.greaterThanOrEqualTo(root.get("endDate"), date)
+            );
+        };
+    }
+
+
     /** 🔹 Gộp điều kiện (builder tiện lợi) */
     public static Specification<AbsenceRequest> build(
             UUID userId,
             UUID absenceTypeId,
-            String status,
+            AbsenceRequestStatus status,
             LocalDate fromDate,
             LocalDate toDate,
             String keyword

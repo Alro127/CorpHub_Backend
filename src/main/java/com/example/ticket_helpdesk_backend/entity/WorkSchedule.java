@@ -42,4 +42,7 @@ public class WorkSchedule {
     @Column(name = "status", length = 20)
     private WorkScheduleStatus status;
 
+    @OneToOne(mappedBy = "workSchedule")
+    private AttendanceRecord attendanceRecord;
+
 }

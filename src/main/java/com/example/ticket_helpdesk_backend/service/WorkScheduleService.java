@@ -2,13 +2,14 @@ package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.WorkScheduleStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
+import com.example.ticket_helpdesk_backend.entity.AttendanceRecord;
 import com.example.ticket_helpdesk_backend.entity.Shift;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.entity.WorkSchedule;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
-import com.example.ticket_helpdesk_backend.repository.ShiftRepository;
-import com.example.ticket_helpdesk_backend.repository.UserRepository;
-import com.example.ticket_helpdesk_backend.repository.WorkScheduleRepository;
+import com.example.ticket_helpdesk_backend.repository.*;
+import com.example.ticket_helpdesk_backend.specification.AbsenceRequestSpecifications;
+import com.example.ticket_helpdesk_backend.specification.AttendanceRecordSpecifications;
 import com.example.ticket_helpdesk_backend.specification.UserSpecifications;
 import com.example.ticket_helpdesk_backend.specification.WorkScheduleSpecifications;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -30,6 +32,8 @@ public class WorkScheduleService {
     private final UserRepository userRepository;
     private final ShiftRepository shiftRepository;
     private final ModelMapper modelMapper;
+    private final AbsenceRequestRepository absenceRequestRepository;
+    private final AttendanceRecordRepository attendanceRecordRepository;
 
     public WorkScheduleResponse getById(UUID id) throws ResourceNotFoundException {
         WorkSchedule entity = workScheduleRepository.findById(id)
@@ -55,11 +59,11 @@ public class WorkScheduleService {
     }
 
     @Transactional
-    public WorkScheduleResponse update(WorkScheduleRequest req) throws ResourceNotFoundException {
-        if (req.getId() == null) throw new ResourceNotFoundException("WorkSchedule id is required");
+    public WorkScheduleResponse update(UUID id, WorkScheduleRequest req) throws ResourceNotFoundException {
+        if (id == null) throw new ResourceNotFoundException("WorkSchedule id is required");
 
-        WorkSchedule existing = workScheduleRepository.findById(req.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("WorkSchedule not found: " + req.getId()));
+        WorkSchedule existing = workScheduleRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("WorkSchedule not found: " + id));
 
         if (req.getUserId() != null && (existing.getUser() == null || !existing.getUser().getId().equals(req.getUserId()))) {
             User user = userRepository.findById(req.getUserId())
@@ -101,14 +105,21 @@ public class WorkScheduleService {
         return resp;
     }
 
-    public Page<EmployeeScheduleDto> getEmployeeSchedules(int page, int size, String keywords, UUID departmentId, LocalDate from, LocalDate to) {
-
+    public Page<EmployeeScheduleDto> getEmployeeSchedules(
+            int page,
+            int size,
+            String keywords,
+            UUID departmentId,
+            LocalDate from,
+            LocalDate to
+    ) {
         Sort sort = Sort.by(
                 Sort.Order.asc("employeeProfile.fullName").ignoreCase()
         );
 
         Pageable pageable = PageRequest.of(page, size, sort);
 
+        // 1️⃣ Lấy danh sách User theo page
         Page<User> userPage = userRepository.findAll(
                 Specification
                         .where(UserSpecifications.withEmployeeJoins())
@@ -123,10 +134,12 @@ public class WorkScheduleService {
             return new PageImpl<>(Collections.emptyList(), pageable, userPage.getTotalElements());
         }
 
+        // 2️⃣ Lấy tất cả ID user
         List<UUID> userIds = users.stream()
                 .map(User::getId)
                 .toList();
 
+        // 3️⃣ Lấy tất cả WorkSchedule theo user + thời gian
         List<WorkSchedule> schedules = workScheduleRepository.findAll(
                 Specification
                         .where(WorkScheduleSpecifications.hasUserIdIn(userIds))
@@ -134,25 +147,48 @@ public class WorkScheduleService {
                         .and(WorkScheduleSpecifications.workDateTo(to))
         );
 
-        Map<UUID, List<WorkSchedule>> grouped = schedules.stream()
+        // 4️⃣ Gom nhóm WS theo user
+        Map<UUID, List<WorkSchedule>> groupedSchedules = schedules.stream()
                 .collect(Collectors.groupingBy(ws -> ws.getUser().getId()));
 
+        // 5️⃣ Lấy tất cả WorkScheduleIds → để query AttendanceRecord 1 lần
+        List<UUID> wsIds = schedules.stream().map(WorkSchedule::getId).toList();
+
+        // 6️⃣ Lấy AttendanceRecord theo tất cả WS
+        List<AttendanceRecord> attendanceList =
+                wsIds.isEmpty()
+                        ? Collections.emptyList()
+                        : attendanceRecordRepository.findAll(
+                        Specification.where(AttendanceRecordSpecifications.workScheduleIdIn(wsIds))
+                );
+
+        // 7️⃣ Map WorkScheduleId → AttendanceRecord
+        Map<UUID, AttendanceRecord> attendanceMap = attendanceList.stream()
+                .collect(Collectors.toMap(ar -> ar.getWorkSchedule().getId(), ar -> ar));
+
+        // 8️⃣ Tạo DTO trả về
         List<EmployeeScheduleDto> results = new ArrayList<>();
+
         for (User u : users) {
-            List<WorkSchedule> wsList = grouped.getOrDefault(u.getId(), Collections.emptyList());
+
+            List<WorkSchedule> wsList = groupedSchedules.getOrDefault(u.getId(), Collections.emptyList());
 
             List<EmployeeShiftDto> shiftDtos = wsList.stream()
                     .map(ws -> {
                         Shift s = ws.getShift();
+                        AttendanceRecord ar = attendanceMap.get(ws.getId());
+
                         return new EmployeeShiftDto(
                                 ws.getId(),
                                 ws.getWorkDate(),
                                 s.getId(),
                                 s.getName(),
-                                s.getStartTime().toString(),
-                                s.getEndTime().toString(),
-                                null,                        // notes chưa có
-                                ws.getStatus()
+                                s.getStartTime(),
+                                s.getEndTime(),
+                                null,                 // notes nếu có
+                                ws.getStatus(),
+                                ar != null ? ar.getCheckInTime() : null,
+                                ar != null ? ar.getCheckOutTime() : null
                         );
                     })
                     .sorted(Comparator.comparing(EmployeeShiftDto::getWorkDate))
@@ -167,6 +203,101 @@ public class WorkScheduleService {
                     )
             );
         }
+
         return new PageImpl<>(results, pageable, userPage.getTotalElements());
     }
+
+
+    @Transactional
+    public List<WorkScheduleResponse> autoAssignShifts(AutoAssignRequest req) throws ResourceNotFoundException {
+        Shift shift = shiftRepository.findById(req.getShiftId())
+                .orElseThrow(() -> new ResourceNotFoundException("Shift not found: " + req.getShiftId()));
+
+        List<User> users = new ArrayList<>();
+
+        if (req.getUserIds() != null && !req.getUserIds().isEmpty()) {
+            users.addAll(userRepository.findAllById(req.getUserIds()));
+        }
+
+        if (req.getDepartmentIds() != null && !req.getDepartmentIds().isEmpty()) {
+            List<User> deptUsers = userRepository.findAll(
+                    Specification.where(UserSpecifications.belongsToDepartments(req.getDepartmentIds()))
+            );
+            users.addAll(deptUsers);
+        }
+
+        // Loại trùng và bỏ user không hoạt động (nếu có trạng thái active)
+        users = users.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .toList();
+
+        if (users.isEmpty()) {
+            throw new ResourceNotFoundException("No users found for the given criteria");
+        }
+
+        List<WorkScheduleResponse> createdSchedules = new ArrayList<>();
+
+        // Lặp qua từng ngày trong khoảng thời gian
+        LocalDate current = req.getStartDate();
+        while (!current.isAfter(req.getEndDate())) {
+
+            // Bỏ qua T7, CN nếu includeWeekend = false
+            if (!Boolean.TRUE.equals(req.getIncludeWeekend())
+                    && (current.getDayOfWeek().getValue() == 6 || current.getDayOfWeek().getValue() == 7)) {
+                current = current.plusDays(1);
+                continue;
+            }
+
+            // Với mỗi nhân viên, kiểm tra điều kiện
+            for (User user : users) {
+
+                // Nếu respectAbsenceRequests = true → kiểm tra vắng mặt được duyệt
+                boolean hasApprovedAbsence = false;
+                if (Boolean.TRUE.equals(req.getRespectAbsenceRequests())) {
+                    hasApprovedAbsence = absenceRequestRepository.exists(
+                            AbsenceRequestSpecifications.isApprovedForUserOnDate(user.getId(), current));
+                }
+
+                LocalTime newStart = shift.getStartTime();
+                LocalTime newEnd = shift.getEndTime();
+
+                // Nếu replaceExisting = true → xóa lịch cũ
+                if (Boolean.TRUE.equals(req.getReplaceExisting())) {
+                    List<WorkSchedule> overlappingSchedules = workScheduleRepository.findAll(
+                            Specification.where(WorkScheduleSpecifications.hasUserId(user.getId()))
+                                    .and(WorkScheduleSpecifications.workDateEquals(current))
+                                    .and(WorkScheduleSpecifications.timeOverlaps(newStart, newEnd))
+                    );
+                    if (!overlappingSchedules.isEmpty()) {
+                        workScheduleRepository.deleteAll(overlappingSchedules);
+                    }
+                } else {
+                    boolean hasOverlap = workScheduleRepository.exists(
+                            Specification.where(WorkScheduleSpecifications.hasUserId(user.getId()))
+                                    .and(WorkScheduleSpecifications.workDateEquals(current))
+                                    .and(WorkScheduleSpecifications.timeOverlaps(newStart, newEnd))
+                    );
+                    if (hasOverlap) continue;
+                }
+
+                // 6️⃣ Tạo mới WorkSchedule
+                WorkSchedule schedule = new WorkSchedule();
+                schedule.setUser(user);
+                schedule.setShift(shift);
+                schedule.setWorkDate(current);
+                schedule.setStatus(
+                        hasApprovedAbsence ? WorkScheduleStatus.ABSENCE : WorkScheduleStatus.SCHEDULED
+                );
+
+                WorkSchedule saved = workScheduleRepository.save(schedule);
+                createdSchedules.add(toResponse(saved));
+            }
+
+            current = current.plusDays(1);
+        }
+
+        return createdSchedules;
+    }
+
 }

@@ -1,10 +1,7 @@
 package com.example.ticket_helpdesk_backend.controller;
 
 import com.example.ticket_helpdesk_backend.consts.WorkScheduleStatus;
-import com.example.ticket_helpdesk_backend.dto.ApiResponse;
-import com.example.ticket_helpdesk_backend.dto.EmployeeScheduleDto;
-import com.example.ticket_helpdesk_backend.dto.WorkScheduleRequest;
-import com.example.ticket_helpdesk_backend.dto.WorkScheduleResponse;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.WorkScheduleService;
 import lombok.RequiredArgsConstructor;
@@ -67,6 +64,34 @@ public class WorkScheduleController {
         return ResponseEntity.ok(response);
     }
 
+    @PostMapping("/auto-assign")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")
+    public ResponseEntity<ApiResponse<List<WorkScheduleResponse>>> autoAssign(
+            @RequestBody AutoAssignRequest req
+    ) throws ResourceNotFoundException {
+
+        List<WorkScheduleResponse> results = workScheduleService.autoAssignShifts(req);
+
+        ApiResponse<List<WorkScheduleResponse>> response = new ApiResponse<>(
+                HttpStatus.CREATED.value(),
+                "Auto-assigned work schedules successfully",
+                LocalDateTime.now(),
+                results,
+                Map.of(
+                        "shiftId", req.getShiftId(),
+                        "startDate", req.getStartDate(),
+                        "endDate", req.getEndDate(),
+                        "replaceExisting", req.getReplaceExisting(),
+                        "respectAbsenceRequests", req.getRespectAbsenceRequests(),
+                        "includeWeekend", req.getIncludeWeekend(),
+                        "createdCount", results.size()
+                )
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+
     // ==============================
     // CRUD cũ vẫn giữ nguyên
     // ==============================
@@ -91,10 +116,10 @@ public class WorkScheduleController {
         );
     }
 
-    @PutMapping
-    public ResponseEntity<ApiResponse<WorkScheduleResponse>> update(@RequestBody WorkScheduleRequest req)
+    @PutMapping("/{id}")
+    public ResponseEntity<ApiResponse<WorkScheduleResponse>> update(@PathVariable UUID id, @RequestBody WorkScheduleRequest req)
             throws ResourceNotFoundException {
-        WorkScheduleResponse updated = workScheduleService.update(req);
+        WorkScheduleResponse updated = workScheduleService.update(id, req);
         return ResponseEntity.ok(
                 new ApiResponse<>(HttpStatus.OK.value(), "Work schedule updated successfully",
                         LocalDateTime.now(), updated)

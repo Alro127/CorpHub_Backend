@@ -6,5 +6,5 @@ public enum WorkScheduleStatus {
     COMPLETED,    // Đã hoàn thành ca - check-out
     MISSED,       // Không đi làm / không check-in
     CANCELLED,    // Admin hủy ca
-    LEAVE         // Nghỉ phép (đã được duyệt)
+    ABSENCE         // Nghỉ phép (đã được duyệt)
 }

@@ -2,9 +2,13 @@ package com.example.ticket_helpdesk_backend.specification;
 
 import com.example.ticket_helpdesk_backend.consts.WorkScheduleStatus;
 import com.example.ticket_helpdesk_backend.entity.WorkSchedule;
+import jakarta.persistence.criteria.Expression;
+import jakarta.persistence.criteria.Path;
+import jakarta.validation.constraints.NotNull;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -53,6 +57,10 @@ public class WorkScheduleSpecifications {
         };
     }
 
+    public static Specification<WorkSchedule> workDateEquals(LocalDate date) {
+        return (root, query, cb) -> cb.equal(root.get("workDate"), date);
+    }
+
     /** Tìm theo tên user hoặc tên shift (keywords) */
     public static Specification<WorkSchedule> hasKeywords(String keywords) {
         return (root, query, cb) -> {
@@ -67,4 +75,20 @@ public class WorkScheduleSpecifications {
             );
         };
     }
+
+    public static Specification<WorkSchedule> timeOverlaps(LocalTime newStart, LocalTime newEnd) {
+        return (root, query, cb) -> {
+            Path<LocalTime> start = root.get("shift").get("startTime");
+            Path<LocalTime> end = root.get("shift").get("endTime");
+
+            Expression<LocalTime> startLiteral = cb.literal(newStart);
+            Expression<LocalTime> endLiteral = cb.literal(newEnd);
+            // Trùng nếu (start < newEnd) && (end > newStart)
+            return cb.and(
+                    cb.lessThan(start, endLiteral),
+                    cb.greaterThan(end, startLiteral)
+            );
+        };
+    }
+
 }

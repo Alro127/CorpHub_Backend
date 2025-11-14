@@ -5,6 +5,7 @@ import com.example.ticket_helpdesk_backend.entity.Role;
 import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.util.List;
 import java.util.UUID;
 import java.time.LocalDateTime;
 public class UserSpecifications {
@@ -85,6 +86,19 @@ public class UserSpecifications {
             return cb.equal(emp.get("department").get("id"), departmentId);
         };
     }
+
+    /** 🟩 Lọc theo nhiều phòng ban (sử dụng danh sách departmentIds) */
+    public static Specification<User> belongsToDepartments(List<UUID> departmentIds) {
+        return (root, query, cb) -> {
+            if (departmentIds == null || departmentIds.isEmpty()) {
+                return cb.conjunction();
+            }
+            Join<Object, Object> emp = root.join("employeeProfile", JoinType.LEFT);
+            Join<Object, Object> dep = emp.join("department", JoinType.LEFT);
+            return dep.get("id").in(departmentIds);
+        };
+    }
+
 
     /** 🔍 Tìm kiếm toàn văn theo tên nhân viên, email công ty hoặc số điện thoại */
     public static Specification<User> search(String keyword) {

@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 
 @Data
@@ -14,8 +16,10 @@ public class EmployeeShiftDto {
     private LocalDate workDate;
     private UUID shiftId;
     private String shiftName;
-    private String startTime;
-    private String endTime;
+    private LocalTime startTime;
+    private LocalTime endTime;
     private String notes;
     private WorkScheduleStatus status;
+    private LocalDateTime checkInTime;
+    private LocalDateTime checkOutTime;
 }
