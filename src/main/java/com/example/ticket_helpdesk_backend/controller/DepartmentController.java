@@ -3,6 +3,7 @@ package com.example.ticket_helpdesk_backend.controller;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.DepartmentService;
+import com.example.ticket_helpdesk_backend.service.PositionService;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,6 +21,10 @@ import java.util.UUID;
 public class DepartmentController {
     @Autowired
     private final DepartmentService departmentService;
+
+    @Autowired
+    private final PositionService positionService;
+
     @Autowired
     private JwtUtil jwtUtil;
 
@@ -112,4 +117,64 @@ public class DepartmentController {
         return ResponseEntity.ok(departmentService.assignManager(id, managerId));
     }
 
+    /** 🔹 Tạo position trong phòng ban */
+    @PostMapping("/{departmentId}/positions")
+    public ResponseEntity<?> createPosition(
+            @PathVariable UUID departmentId,
+            @RequestBody PositionRequest request
+    ) throws ResourceNotFoundException {
+        PositionResponse data = positionService.createPosition(departmentId, request);
+        return ResponseEntity.ok(
+                new ApiResponse<>(HttpStatus.OK.value(), "Created successfully", LocalDateTime.now(), data)
+        );
+    }
+
+    /** 🔹 Cập nhật position */
+    @PutMapping("/positions/{id}")
+    public ResponseEntity<?> updatePosition(
+            @PathVariable UUID id,
+            @RequestBody PositionRequest request
+    ) throws ResourceNotFoundException {
+        PositionResponse data = positionService.updatePosition(id, request);
+        return ResponseEntity.ok(
+                new ApiResponse<>(HttpStatus.OK.value(), "Updated successfully", LocalDateTime.now(), data)
+        );
+    }
+
+    /** 🔹 Xóa position */
+    @DeleteMapping("/positions/{id}")
+    public ResponseEntity<?> deletePosition(@PathVariable UUID id) throws ResourceNotFoundException {
+        positionService.deletePosition(id);
+        return ResponseEntity.ok(
+                new ApiResponse<>(HttpStatus.OK.value(), "Deleted successfully", LocalDateTime.now(), null)
+        );
+    }
+
+    /** 🔹 Lấy danh sách position theo phòng ban */
+    @GetMapping("/departments/{departmentId}/positions")
+    public ResponseEntity<?> getPositions(@PathVariable UUID departmentId) {
+        List<PositionResponse> data = positionService.getPositionsByDepartment(departmentId);
+        return ResponseEntity.ok(
+                new ApiResponse<>(HttpStatus.OK.value(), "Fetched successfully", LocalDateTime.now(), data)
+        );
+    }
+
+    /** 🔹 Reorder cấp bậc */
+    @PutMapping("/departments/{departmentId}/positions/reorder")
+    public ResponseEntity<?> reorder(
+            @PathVariable UUID departmentId,
+            @RequestBody List<UUID> orderedIds
+    ) {
+        positionService.reorderPositions(departmentId, orderedIds);
+        return ResponseEntity.ok(
+                new ApiResponse<>(HttpStatus.OK.value(), "Reordered successfully", LocalDateTime.now(), null)
+        );
+    }
+
+
+    //    Tạo position trong phòng ban	POST	/api/departments/{departmentId}/positions
+//    Cập nhật	PUT	/api/positions/{id}
+//    Xoá	DELETE	/api/positions/{id}
+//    Lấy danh sách position theo phòng ban	GET	/api/departments/{id}/positions
+//    Reorder cấp bậc (kéo thả)	PUT	/api/departments/{id}/positions/reorder
 }

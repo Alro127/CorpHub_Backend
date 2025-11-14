@@ -87,5 +87,34 @@ public class AdminEmployeeProfileController {
         );
     }
 
+    @PreAuthorize("@securityService.hasRole('ADMIN')")
+    @PutMapping("/change-department-position/{employeeId}")
+    public ResponseEntity<?> changeDepartmentAndPosition(
+            @RequestHeader("Authorization") String authHeader,
+            @PathVariable UUID employeeId,
+            @RequestParam UUID departmentId,
+            @RequestParam UUID positionId
+
+    ) throws ResourceNotFoundException {
+
+        adminEmployeeProfileService.changeDepartmentAndPosition(employeeId, departmentId, positionId);
+
+
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "Change Department-Position successfully",
+                        LocalDateTime.now(),
+                        null
+                )
+        );
+    }
+
+
+
+//    Lịch sử phòng ban	GET	/api/employee/{id}/department-history
+//    Lịch sử chức danh	GET	/api/employee/{id}/position-history
+
 }
 

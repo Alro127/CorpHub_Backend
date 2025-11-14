@@ -82,13 +82,7 @@ public class EmployeeProfileService {
                 EmployeeJobHistory job = new EmployeeJobHistory();
                 job.setEmployeeProfile(employeeProfile);
 
-                if (j.getDepartmentId() != null) {
-                    Department jobDept = departmentRepository.findById(j.getDepartmentId())
-                            .orElseThrow(() -> new RuntimeException("Department not found for job history"));
-                    job.setDepartment(jobDept);
-                }
 
-                job.setPosition(j.getPosition());
                 job.setContractType(j.getContractType());
                 job.setStartDate(j.getStartDate());
                 job.setEndDate(j.getEndDate());
@@ -225,8 +219,6 @@ public class EmployeeProfileService {
         return getProfile(token).getJobHistories().stream()
                 .map(job -> new EmployeeJobHistoryResponse(
                         job.getId(),
-                        job.getDepartment() != null ? job.getDepartment().getName() : null,
-                        job.getPosition(),
                         job.getContractType(),
                         job.getStartDate(),
                         job.getEndDate(),
