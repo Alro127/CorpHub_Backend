@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,6 +35,7 @@ public class WorkScheduleService {
     private final ModelMapper modelMapper;
     private final AbsenceRequestRepository absenceRequestRepository;
     private final AttendanceRecordRepository attendanceRecordRepository;
+    private final StringRedisTemplate redis;
 
     public WorkScheduleResponse getById(UUID id) throws ResourceNotFoundException {
         WorkSchedule entity = workScheduleRepository.findById(id)
@@ -55,6 +57,8 @@ public class WorkScheduleService {
         entity.setStatus(req.getStatus() != null ? req.getStatus() : WorkScheduleStatus.SCHEDULED);
 
         WorkSchedule saved = workScheduleRepository.save(entity);
+
+        scheduleEndEvent(saved);
         return toResponse(saved);
     }
 
@@ -90,20 +94,28 @@ public class WorkScheduleService {
         return toResponse(entity);
     }
 
-    private WorkScheduleResponse toResponse(WorkSchedule entity) {
+    public WorkScheduleResponse toResponse(WorkSchedule entity) {
         WorkScheduleResponse resp = new WorkScheduleResponse();
         resp.setId(entity.getId());
         resp.setWorkDate(entity.getWorkDate());
         resp.setStatus(entity.getStatus());
 
         // map nested
-        UserDto userDto = UserDto.toUserDto(entity.getUser());
-        ShiftDto shiftDto = modelMapper.map(entity.getShift(), ShiftDto.class);
-        resp.setUser(userDto);
-        resp.setShift(shiftDto);
+        resp.setUser(UserDto.toUserDto(entity.getUser()));
+        resp.setShift(modelMapper.map(entity.getShift(), ShiftDto.class));
+
+        AttendanceRecord ar = entity.getAttendanceRecord();
+        if (ar != null) {
+            resp.setCheckInTime(ar.getCheckInTime());
+            resp.setCheckOutTime(ar.getCheckOutTime());
+        } else {
+            resp.setCheckInTime(null);
+            resp.setCheckOutTime(null);
+        }
 
         return resp;
     }
+
 
     public Page<EmployeeScheduleDto> getEmployeeSchedules(
             int page,
@@ -291,6 +303,8 @@ public class WorkScheduleService {
                 );
 
                 WorkSchedule saved = workScheduleRepository.save(schedule);
+                scheduleEndEvent(saved);
+
                 createdSchedules.add(toResponse(saved));
             }
 
@@ -298,6 +312,28 @@ public class WorkScheduleService {
         }
 
         return createdSchedules;
+    }
+
+    public List<WorkScheduleResponse> getShiftsForUserOnDate(UUID userId, LocalDate date) {
+        List<WorkSchedule> list = workScheduleRepository.findAll(
+                Specification.where(WorkScheduleSpecifications.hasUserId(userId))
+                        .and(WorkScheduleSpecifications.workDateEquals(date))
+        );
+
+        return list.stream()
+                .sorted(Comparator.comparing(ws -> ws.getShift().getStartTime()))
+                .map(this::toResponse)
+                .toList();
+    }
+
+    private void scheduleEndEvent(WorkSchedule ws) {
+        // endTime = LocalTime → phải ghép vào ngày
+        long epoch = ws.getShift().getEndTime()
+                .atDate(ws.getWorkDate())
+                .atZone(java.time.ZoneId.systemDefault())
+                .toEpochSecond();
+
+        redis.opsForZSet().add("schedule_end_events", ws.getId().toString(), epoch);
     }
 
 }

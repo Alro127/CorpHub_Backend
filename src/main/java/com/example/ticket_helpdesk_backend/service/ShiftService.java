@@ -21,14 +21,13 @@ public class ShiftService {
     private final ShiftRepository shiftRepository;
     private final ModelMapper modelMapper;
 
-    public Page<ShiftDto> getAll(int page, int size, String keywords, Boolean isNightShift,
+    public Page<ShiftDto> getAll(int page, int size, String keywords,
                                  LocalTime startFrom, LocalTime endTo) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("startTime").ascending());
 
         Specification<Shift> spec = Specification
                 .where(ShiftSpecifications.hasKeyword(keywords))
-                .and(ShiftSpecifications.isNightShift(isNightShift))
                 .and(ShiftSpecifications.startAfter(startFrom))
                 .and(ShiftSpecifications.endBefore(endTo));
 

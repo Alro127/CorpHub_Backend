@@ -10,6 +10,7 @@ import lombok.Value;
 
 import java.io.Serializable;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 /**
@@ -27,4 +28,6 @@ public class WorkScheduleResponse implements Serializable {
     @NotNull
     LocalDate workDate;
     WorkScheduleStatus status;
+    LocalDateTime checkInTime;
+    LocalDateTime checkOutTime;
 }

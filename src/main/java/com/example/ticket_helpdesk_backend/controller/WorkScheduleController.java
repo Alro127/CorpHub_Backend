@@ -4,6 +4,7 @@ import com.example.ticket_helpdesk_backend.consts.WorkScheduleStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.WorkScheduleService;
+import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -24,6 +25,7 @@ import java.util.UUID;
 public class WorkScheduleController {
 
     private final WorkScheduleService workScheduleService;
+    private final JwtUtil jwtUtil;
 
     /**
      * ✅ API cho UI Timesheet
@@ -63,6 +65,34 @@ public class WorkScheduleController {
 
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping("/today")
+    public ResponseEntity<ApiResponse<List<WorkScheduleResponse>>> getTodayShiftsForUser(
+            @RequestHeader("Authorization") String authHeader
+    ) throws ResourceNotFoundException {
+
+        LocalDate today = LocalDate.now();
+
+        String token = authHeader.substring(7);
+        UUID userId = jwtUtil.getUserId(token);
+
+        List<WorkScheduleResponse> schedules =
+                workScheduleService.getShiftsForUserOnDate(userId, today);
+
+        ApiResponse<List<WorkScheduleResponse>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Fetched today's work schedules successfully",
+                LocalDateTime.now(),
+                schedules,
+                Map.of(
+                        "userId", userId,
+                        "date", today
+                )
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
 
     @PostMapping("/auto-assign")
     @PreAuthorize("hasRole('ADMIN') or hasRole('MANAGER')")

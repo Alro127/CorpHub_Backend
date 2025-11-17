@@ -7,6 +7,13 @@ import java.util.UUID;
 
 public class AttendanceRecordSpecifications {
 
+    // attendance_record.workSchedule.id = wsId
+    public static Specification<AttendanceRecord> hasWorkScheduleId(UUID wsId) {
+        return (root, query, cb) ->
+                wsId == null ? cb.conjunction()
+                        : cb.equal(root.get("workSchedule").get("id"), wsId);
+    }
+
     // attendance_record.workSchedule.id IN (...)
     public static Specification<AttendanceRecord> workScheduleIdIn(List<UUID> wsIds) {
         return (root, query, cb) ->

@@ -30,11 +30,10 @@ public class ShiftController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keywords,
-            @RequestParam(required = false) Boolean isNightShift,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime startFrom,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.TIME) LocalTime endTo
     ) {
-        Page<ShiftDto> pageData = shiftService.getAll(page, size, keywords, isNightShift, startFrom, endTo);
+        Page<ShiftDto> pageData = shiftService.getAll(page, size, keywords, startFrom, endTo);
 
         ApiResponse<List<ShiftDto>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),

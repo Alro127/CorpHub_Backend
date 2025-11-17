@@ -23,26 +23,14 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(RuntimeException.class)
     public ResponseEntity<ApiResponse<?>> handleRuntimeException(RuntimeException ex) {
-        String message = ex.getMessage();
 
-        if (message != null && message.contains("Failed to evaluate expression")) {
-            message = "You do not have permission to perform this action.";
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new ApiResponse<>(
-                            HttpStatus.FORBIDDEN.value(),
-                            message,
-                            LocalDateTime.now(),
-                            null
-                    ));
-        }
-        
-        ApiResponse<?> apiResponse = new ApiResponse<>(
-                HttpStatus.BAD_REQUEST.value(),
-                message,
-                LocalDateTime.now(),
-                null
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(apiResponse);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiResponse<>(
+                        HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                        "Internal server error",
+                        LocalDateTime.now(),
+                        null
+                ));
     }
 
 
