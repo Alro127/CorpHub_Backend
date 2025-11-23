@@ -12,8 +12,18 @@ import java.util.UUID;
 @AllArgsConstructor
 @NoArgsConstructor
 @Builder
-public class DepartmentUsersGroupDto {
+public class DepartmentDetailDto {
     private UUID id;
     private String name;
+    private String description;
+
+    private UserBasicDto manager;
     private List<UserBasicDto> users;
+
+    private List<PositionResponse> positions;
+
+    private List<DepartmentDetailDto> children;
 }
+
+
+

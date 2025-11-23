@@ -6,7 +6,6 @@ import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
-import com.example.ticket_helpdesk_backend.repository.EmployeeDocumentRepository;
 import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
@@ -72,7 +71,7 @@ public class DepartmentService {
 
     private static final String EMPLOYEE_BUCKET = "employee-avatars"; // bucket chứa ảnh nhân viên
 
-    public List<DepartmentUsersGroupDto> getAllDepartmentsWithUsers() {
+    public List<DepartmentDetailDto> getAllDepartmentsWithUsers() {
         List<Department> departments = departmentRepository.findAllWithUsers();
 
         return departments.stream().map(dept -> {
@@ -96,7 +95,7 @@ public class DepartmentService {
                     })
                     .toList();
 
-            return DepartmentUsersGroupDto.builder()
+            return DepartmentDetailDto.builder()
                     .id(dept.getId())
                     .name(dept.getName())
                     .users(userDtos)

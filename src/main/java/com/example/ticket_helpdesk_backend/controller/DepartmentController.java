@@ -56,9 +56,9 @@ public class DepartmentController {
 
     @GetMapping("/with-users")
     public ResponseEntity<?> getAllDepartmentsWithUsers() {
-        List<DepartmentUsersGroupDto> result = departmentService.getAllDepartmentsWithUsers();
+        List<DepartmentDetailDto> result = departmentService.getAllDepartmentsWithUsers();
 
-        ApiResponse<List<DepartmentUsersGroupDto>> response = new ApiResponse<>(
+        ApiResponse<List<DepartmentDetailDto>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "All Departments with users found",
                 LocalDateTime.now(),
@@ -151,7 +151,7 @@ public class DepartmentController {
     }
 
     /** 🔹 Lấy danh sách position theo phòng ban */
-    @GetMapping("/departments/{departmentId}/positions")
+    @GetMapping("/{departmentId}/positions")
     public ResponseEntity<?> getPositions(@PathVariable UUID departmentId) {
         List<PositionResponse> data = positionService.getPositionsByDepartment(departmentId);
         return ResponseEntity.ok(
@@ -160,7 +160,7 @@ public class DepartmentController {
     }
 
     /** 🔹 Reorder cấp bậc */
-    @PutMapping("/departments/{departmentId}/positions/reorder")
+    @PutMapping("/{departmentId}/positions/reorder")
     public ResponseEntity<?> reorder(
             @PathVariable UUID departmentId,
             @RequestBody List<UUID> orderedIds

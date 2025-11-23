@@ -24,9 +24,14 @@ public class PositionResponse {
     public static PositionResponse fromEntity(Position position) {
         PositionResponse res = new PositionResponse();
         res.setId(position.getId());
-        res.getDepartmentDto().setId(position.getDepartment().getId());
-        res.getDepartmentDto().setName(position.getDepartment().getName());
-        res.getDepartmentDto().setDescription(position.getDepartment().getDescription());
+
+        //Khởi tạo trước deptDto để tránh bị lỗi null
+        DepartmentDto deptDto = new DepartmentDto();
+        deptDto.setId(position.getDepartment().getId());
+        deptDto.setName(position.getDepartment().getName());
+        deptDto.setDescription(position.getDepartment().getDescription());
+
+        res.setDepartmentDto(deptDto);
         res.setName(position.getName());
         res.setCode(position.getCode());
         res.setDescription(position.getDescription());
