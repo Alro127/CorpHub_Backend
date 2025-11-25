@@ -1,21 +1,23 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.AbsenceRequestStatus;
+import com.example.ticket_helpdesk_backend.consts.WorkflowActionType;
+import com.example.ticket_helpdesk_backend.consts.WorkflowStatus;
+import com.example.ticket_helpdesk_backend.context.AbsenceWorkflowContextProvider;
 import com.example.ticket_helpdesk_backend.dto.AbsenceReqRequest;
 import com.example.ticket_helpdesk_backend.dto.AbsenceReqResponse;
 import com.example.ticket_helpdesk_backend.dto.UserDto;
-import com.example.ticket_helpdesk_backend.entity.AbsenceRequest;
-import com.example.ticket_helpdesk_backend.entity.AbsenceType;
-import com.example.ticket_helpdesk_backend.entity.User;
+import com.example.ticket_helpdesk_backend.dto.WorkflowStepActionDto;
+import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.AbsenceRequestRepository;
 import com.example.ticket_helpdesk_backend.repository.AbsenceTypeRepository;
+import com.example.ticket_helpdesk_backend.repository.WorkflowInstanceRepository;
+import com.example.ticket_helpdesk_backend.specification.WorkflowSpecifications;
 import jakarta.security.auth.message.AuthException;
 import lombok.AllArgsConstructor;
 import org.modelmapper.ModelMapper;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,9 +25,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 import static com.example.ticket_helpdesk_backend.specification.AbsenceRequestSpecifications.hasUserId;
+import static com.example.ticket_helpdesk_backend.specification.WorkflowSpecifications.*;
 
 @AllArgsConstructor
 @Service
@@ -33,13 +38,29 @@ public class AbsenceRequestService {
 
     private final UserService userService;
     private final AbsenceTypeRepository absenceTypeRepository;
+    private final WorkflowEngineService workflowEngineService;
+    private final WorkflowInstanceRepository workflowInstanceRepository;
     private AbsenceRequestRepository absenceRequestRepository;
     private final ModelMapper modelMapper;
+    private final AbsenceWorkflowContextProvider absenceContext;
 
-    public AbsenceReqResponse mapToDto(AbsenceRequest absenceRequest) {
-        AbsenceReqResponse absenceReqResponse = modelMapper.map(absenceRequest, AbsenceReqResponse.class);
-        absenceReqResponse.setUser(UserDto.toUserDto(absenceRequest.getUser()));
-        return absenceReqResponse;
+    public AbsenceReqResponse mapToDto(AbsenceRequest request) {
+        AbsenceReqResponse response = modelMapper.map(request, AbsenceReqResponse.class);
+        response.setUser(UserDto.toUserDto(request.getUser()));
+
+        Specification<WorkflowInstance> spec = Specification
+                .where(byEntityId(request.getId()))
+                .and(instanceByTargetEntity(absenceContext.getTargetEntity()));
+
+        WorkflowInstance instance = workflowInstanceRepository.findOne(spec).orElse(null);
+
+        if (instance != null) {
+            response.setWorkflowInstanceId(instance.getId());
+            response.setWorkflowStatus(instance.getStatus());
+            response.setCurrentStepOrder(instance.getCurrentStepOrder());
+        }
+
+        return response;
     }
 
     public Page<AbsenceReqResponse> getAll(int page, int size) {
@@ -77,12 +98,95 @@ public class AbsenceRequestService {
         absenceRequest.setCreatedAt(LocalDateTime.now());
         absenceRequest.setUpdatedAt(LocalDateTime.now());
 
-        AbsenceRequest savedAbsenceRequest = absenceRequestRepository.save(absenceRequest);
-        return this.mapToDto(savedAbsenceRequest);
+        try {
+            AbsenceRequest saved = absenceRequestRepository.save(absenceRequest);
+
+            WorkflowTemplate template = absenceType.getWorkflowTemplate();
+
+            if (template != null) {
+                workflowEngineService.startWorkflow(
+                        absenceContext.getTargetEntity(),
+                        template.getName(),
+                        saved.getId(),
+                        userId
+                );
+            }
+
+            return this.mapToDto(saved);
+
+        } catch (Exception ex) {
+
+            // ÉP rollback của transaction
+            throw new RuntimeException("Không thể tạo quy trình phê duyệt. Vui lòng thử lại.");
+        }
     }
 
     public AbsenceReqResponse getById(UUID id) {
         return absenceRequestRepository.findById(id).map(this::mapToDto).orElse(null);
+    }
+
+    public Page<AbsenceReqResponse> getPendingForApprover(UUID userId, int page, int size) {
+
+        Pageable pageable = PageRequest.of(page, size);
+
+        // Lấy instance mà user là người duyệt hiện tại
+        Page<WorkflowInstance> instances = workflowInstanceRepository.findAll(
+                Specification.where(WorkflowSpecifications.byCurrentApprover(userId))
+                        .and(WorkflowSpecifications.instanceByTargetEntity("ABSENCE_REQUEST")),
+                pageable
+        );
+
+
+        List<UUID> requestIds = instances.getContent().stream()
+                .map(WorkflowInstance::getEntityId)
+                .toList();
+
+        List<AbsenceRequest> reqs = absenceRequestRepository.findAllById(requestIds);
+
+        List<AbsenceReqResponse> dtos = reqs.stream()
+                .map(this::mapToDto)
+                .toList();
+
+        return new PageImpl<>(dtos, pageable, instances.getTotalElements());
+    }
+
+    @Transactional
+    public Page<AbsenceReqResponse> getAllApprovals(UUID userId, int page, int size) {
+
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+
+        Page<WorkflowInstance> instancePage =
+                workflowInstanceRepository.findAll(
+                        WorkflowSpecifications.userInvolved(userId),
+                        pageable
+                );
+
+        return instancePage.map(instance -> {
+
+            // Chỉ lấy Absence Request
+            if (!"ABSENCE_REQUEST".equals(instance.getTemplate().getTargetEntity())) {
+                return null;
+            }
+
+            AbsenceRequest req = absenceRequestRepository.findById(instance.getEntityId())
+                    .orElse(null);
+
+            if (req == null) return null;
+
+            AbsenceReqResponse dto = mapToDto(req);
+
+            // status workflow
+            dto.setWorkflowStatus(instance.getStatus());
+            dto.setCurrentStepOrder(instance.getCurrentStepOrder());
+            dto.setCurrentApproverId(instance.getCurrentApproverId());
+
+            // lịch sử duyệt
+            List<WorkflowStepActionDto> actions =
+                    WorkflowStepActionDto.toDtoList(instance.getActions());
+            dto.setWorkflowActions(actions);
+
+            return dto;
+        });
     }
 
     @Transactional
@@ -132,6 +236,37 @@ public class AbsenceRequestService {
 
         AbsenceRequest saved = absenceRequestRepository.save(absenceRequest);
         return mapToDto(saved);
+    }
+
+    @Transactional
+    public AbsenceReqResponse approveOrReject(UUID instanceId,
+                                              UUID actorId,
+                                              boolean approve,
+                                              String comment) {
+
+        workflowEngineService.handleAction(
+                instanceId,
+                actorId,
+                approve ? WorkflowActionType.APPROVE : WorkflowActionType.REJECT,
+                comment
+        );
+
+        // Lấy lại request sau khi workflow cập nhật trạng thái
+        WorkflowInstance instance = workflowInstanceRepository.findById(instanceId).orElseThrow();
+
+        AbsenceRequest request = absenceRequestRepository.findById(instance.getEntityId())
+                .orElseThrow();
+
+        // Cập nhật trạng thái đơn theo workflow
+        if (instance.getStatus() == WorkflowStatus.APPROVED) {
+            request.setStatus(AbsenceRequestStatus.APPROVED);
+        }
+        if (instance.getStatus() == WorkflowStatus.REJECTED) {
+            request.setStatus(AbsenceRequestStatus.REJECTED);
+        }
+
+        absenceRequestRepository.save(request);
+        return mapToDto(request);
     }
 
 }

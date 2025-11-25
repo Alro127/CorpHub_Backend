@@ -1,6 +1,7 @@
 package com.example.ticket_helpdesk_backend.dto;
 
 import com.example.ticket_helpdesk_backend.consts.AbsenceRequestStatus;
+import com.example.ticket_helpdesk_backend.consts.WorkflowStatus;
 import com.example.ticket_helpdesk_backend.entity.AbsenceRequest;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -12,6 +13,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -37,8 +39,15 @@ public class AbsenceReqResponse implements Serializable {
     @NotNull
     @Size(max = 20)
     AbsenceRequestStatus status;
-    UserDto approver;
-    LocalDateTime approvedAt;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
+
+    UUID workflowInstanceId;
+    WorkflowStatus workflowStatus;
+    Integer currentStepOrder;
+    UUID currentApproverId;
+
+    List<WorkflowStepActionDto> workflowActions;
+
+
 }

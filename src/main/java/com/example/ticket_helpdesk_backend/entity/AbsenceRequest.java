@@ -57,13 +57,6 @@ public class AbsenceRequest {
     @Column(name = "status", nullable = false, length = 20)
     private AbsenceRequestStatus status;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "approver_id")
-    private User approver;
-
-    @Column(name = "approved_at")
-    private LocalDateTime approvedAt;
-
     @ColumnDefault("getdate()")
     @Column(name = "created_at")
     private LocalDateTime createdAt;
@@ -71,5 +64,6 @@ public class AbsenceRequest {
     @ColumnDefault("getdate()")
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
 
 }

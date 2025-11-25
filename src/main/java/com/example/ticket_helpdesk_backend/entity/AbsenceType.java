@@ -63,4 +63,7 @@ public class AbsenceType {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "workflow_template_id")
+    private WorkflowTemplate workflowTemplate;
 }
