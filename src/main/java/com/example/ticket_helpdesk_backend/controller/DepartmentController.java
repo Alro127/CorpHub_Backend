@@ -178,17 +178,38 @@ public class DepartmentController {
         );
     }
 
-    @PutMapping("/{dragId}/move")
+    @PatchMapping("/{dragId}/move")
     public ResponseEntity<?> moveDepartment(
             @PathVariable UUID dragId,
             @RequestBody DepartmentMovingRequest request) throws ResourceNotFoundException {
-        departmentService.moveDepartment(dragId, request.getNewParentId());
-        return ResponseEntity.ok(new ApiResponse<>(
-                        HttpStatus.OK.value(),
-                        "Department moved successfully",
-                        LocalDateTime.now(),
-                        null
-                ));
+        try {
+            departmentService.moveDepartment(dragId, request.getNewParentId());
+
+            return ResponseEntity.ok(new ApiResponse<>(
+                    HttpStatus.OK.value(),
+                    "Department moved successfully",
+                    LocalDateTime.now(),
+                    null
+            ));
+
+        } catch (IllegalArgumentException ex) {
+
+            return ResponseEntity.badRequest().body(new ApiResponse<>(
+                    HttpStatus.BAD_REQUEST.value(),
+                    ex.getMessage(),
+                    LocalDateTime.now(),
+                    null
+            ));
+
+        } catch (ResourceNotFoundException ex) {
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiResponse<>(
+                    HttpStatus.NOT_FOUND.value(),
+                    ex.getMessage(),
+                    LocalDateTime.now(),
+                    null
+            ));
+        }
     }
 
 
