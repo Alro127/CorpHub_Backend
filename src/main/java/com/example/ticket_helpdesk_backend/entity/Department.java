@@ -16,10 +16,10 @@ import java.util.UUID;
 @Entity
 @Table(name = "department")
 public class Department {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     @ColumnDefault("newid()")
-    @Column(name = "id", nullable = false)
     private UUID id;
 
     @Size(max = 100)
@@ -29,14 +29,28 @@ public class Department {
 
     @Nationalized
     @Lob
-    @Column(name = "description")
     private String description;
 
+    // -----------------------------
+    // 🔥 Quan hệ phòng ban cha – con
+    // -----------------------------
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    private Department parent;
+
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = false)
+    private List<Department> children = new ArrayList<>();
+
+    // -----------------------------
+    // 👤 Manager
+    // -----------------------------
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "manager_id")
     private EmployeeProfile manager;
 
+    // -----------------------------
+    // 👥 Danh sách nhân viên
+    // -----------------------------
     @OneToMany(mappedBy = "department", fetch = FetchType.LAZY)
     private List<EmployeeProfile> employeeProfiles = new ArrayList<>();
-
 }

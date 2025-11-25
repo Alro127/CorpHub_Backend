@@ -1,8 +1,6 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.BucketName;
-import com.example.ticket_helpdesk_backend.consts.TicketPriority;
-import com.example.ticket_helpdesk_backend.consts.TicketStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
@@ -13,14 +11,12 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -51,6 +47,15 @@ public class EmployeeProfileService {
     TicketCategoryRepository ticketCategoryRepository;
 
     @Autowired
+    CompetencyTypeRepository competencyTypeRepository;
+
+    @Autowired
+    CompetencyTypeRepository competencyLevelRepository;
+
+    @Autowired
+    PositionRepository positionRepository;
+
+    @Autowired
     JwtUtil jwtUtil;
 
 
@@ -74,19 +79,17 @@ public class EmployeeProfileService {
             employeeProfile.setDepartment(dept);
         }
 
+        // Chức danh mặc định khi vừa được tạo hồ sơ nhân viên
+        Position defaultPosition = positionRepository.findFirstByDepartmentIdOrderByLevelOrderAsc(request.getDepartmentId());
+        employeeProfile.setPosition(defaultPosition);
+
         // ====== JobHistories ======
         if (request.getJobHistories() != null && !request.getJobHistories().isEmpty()) {
             List<EmployeeJobHistory> histories = request.getJobHistories().stream().map(j -> {
                 EmployeeJobHistory job = new EmployeeJobHistory();
                 job.setEmployeeProfile(employeeProfile);
 
-                if (j.getDepartmentId() != null) {
-                    Department jobDept = departmentRepository.findById(j.getDepartmentId())
-                            .orElseThrow(() -> new RuntimeException("Department not found for job history"));
-                    job.setDepartment(jobDept);
-                }
 
-                job.setPosition(j.getPosition());
                 job.setContractType(j.getContractType());
                 job.setStartDate(j.getStartDate());
                 job.setEndDate(j.getEndDate());
@@ -99,21 +102,28 @@ public class EmployeeProfileService {
         }
 
         // ====== Competencies ======
-        if (request.getCompetencies() != null && !request.getCompetencies().isEmpty()) {
-            List<EmployeeCompetency> competencies = request.getCompetencies().stream().map(c -> {
-                EmployeeCompetency competency = new EmployeeCompetency();
-                competency.setEmployeeProfile(employeeProfile);
-                competency.setType(c.getType());
-                competency.setName(c.getName());
-                competency.setLevel(c.getLevel());
-                competency.setIssuedBy(c.getIssuedBy());
-                competency.setIssuedDate(c.getIssuedDate());
-                competency.setNote(c.getNote());
-                return competency;
-            }).toList();
-
-            employeeProfile.setCompetencies(competencies);
-        }
+//        if (request.getCompetencies() != null && !request.getCompetencies().isEmpty()) {
+//            List<EmployeeCompetency> competencies = request.getCompetencies().stream().map(c -> {
+//                EmployeeCompetency competency = new EmployeeCompetency();
+//                competency.setEmployeeProfile(employeeProfile);
+//                try {
+//                    competency.setType(
+//                            competencyTypeRepository.findById(c.getType())
+//                                    .orElseThrow(() -> new ResourceNotFoundException("CompetencyType not found: " + c.getType()))
+//                    );
+//                } catch (ResourceNotFoundException e) {
+//                    throw new RuntimeException(e);
+//                }
+//                competency.setName(c.getName());
+//                competency.setLevel(competencyLevelRepository.findBy(c.getLevel()));
+//                competency.setIssuedBy(c.getIssuedBy());
+//                competency.setIssuedDate(c.getIssuedDate());
+//                competency.setNote(c.getNote());
+//                return competency;
+//            }).toList();
+//
+//            employeeProfile.setCompetencies(competencies);
+//        }
 
         // ====== Lưu EmployeeProfile ======
         employeeProfileRepository.save(employeeProfile);
@@ -216,8 +226,6 @@ public class EmployeeProfileService {
         return getProfile(token).getJobHistories().stream()
                 .map(job -> new EmployeeJobHistoryResponse(
                         job.getId(),
-                        job.getDepartment() != null ? job.getDepartment().getName() : null,
-                        job.getPosition(),
                         job.getContractType(),
                         job.getStartDate(),
                         job.getEndDate(),
@@ -226,13 +234,9 @@ public class EmployeeProfileService {
                 )).toList();
     }
 
-    public List<EmployeeCompetencyResponse> getMyCompetencies(String token) {
+    public List<EmployeeCompetencyDto> getMyCompetencies(String token) {
         return getProfile(token).getCompetencies().stream()
-                .map(c -> new EmployeeCompetencyResponse(
-                        c.getId(), c.getType(), c.getName(),
-                        c.getLevel(), c.getIssuedBy(),
-                        c.getIssuedDate(), c.getNote()
-                )).toList();
+                .map(EmployeeCompetencyDto::fromEntity).toList();
     }
 
     public List<EmployeeDocumentResponse> getMyDocuments(String token) {

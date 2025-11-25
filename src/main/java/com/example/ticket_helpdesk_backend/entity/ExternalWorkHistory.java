@@ -9,10 +9,10 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 @Entity
-@Table(name = "employee_job_history")
+@Table(name = "external_work_history")
 @Getter
 @Setter
-public class EmployeeJobHistory {
+public class ExternalWorkHistory {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -22,18 +22,18 @@ public class EmployeeJobHistory {
     @JoinColumn(name = "employee_id", nullable = false)
     private EmployeeProfile employeeProfile;
 
-    @Column(length = 100)
-    private String contractType;
-    // Ví dụ: PROBATION, FIXED_TERM, UNLIMITED_TERM, SEASONAL...
+    @Nationalized
+    @Column(nullable = false, length = 255)
+    private String companyName;
 
-    @Column(length = 100)
-    private String employmentStatus;
-    // Ví dụ: OJT, PROBATION, OFFICIAL, TERMINATED, SUSPENDED...
+    @Nationalized
+    @Column(nullable = false, length = 255)
+    private String position; // chức danh tại công ty cũ
 
     private LocalDate startDate;
     private LocalDate endDate;
 
     @Nationalized
     @Column(columnDefinition = "nvarchar(max)")
-    private String note;
+    private String description; // mô tả công việc, dự án đã tham gia
 }

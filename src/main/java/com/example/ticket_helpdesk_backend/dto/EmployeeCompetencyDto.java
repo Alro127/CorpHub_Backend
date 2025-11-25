@@ -1,7 +1,7 @@
 package com.example.ticket_helpdesk_backend.dto;
 
 import com.example.ticket_helpdesk_backend.consts.VerificationStatus;
-import com.example.ticket_helpdesk_backend.entity.EmployeeCompetency;
+import com.example.ticket_helpdesk_backend.entity.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -13,13 +13,11 @@ import java.util.UUID;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class EmployeeCompetencyResponse {
-
+public class EmployeeCompetencyDto {
     private UUID id;
 
-    // --- Loại năng lực ---
+    // --- Thông tin loại năng lực ---
     private UUID typeId;
-    private String typeCode;
     private String typeName;
 
     // --- Thông tin năng lực ---
@@ -31,13 +29,10 @@ public class EmployeeCompetencyResponse {
     private LocalDateTime expireDate;
     private String note;
 
-    // --- Tài liệu chứng minh ---
+    // --- Liên kết tài liệu ---
     private UUID documentId;
-    private LocalDateTime uploadDate;
-    private String fileName;
-    private String fileType;
 
-    // --- Thông tin xác thực ---
+    // --- Xác thực ---
     private String certificateCode;
     private String verifyUrl;
     private VerificationStatus verificationStatus;
@@ -48,28 +43,22 @@ public class EmployeeCompetencyResponse {
     private UUID uploadedById;
     private String uploadedByName;
 
-    // --- Người sở hữu ---
-    private UUID employeeProfileId;
-    private String employeeName;
-    private String employeeCode;
-    private String departmentName;
-
     private UUID updatedBy;
     private String updatedByName;
     private LocalDateTime updatedDate;
 
     // =============================
-    // Mapping từ Entity → Response
+    // Mapping từ Entity → DTO
     // =============================
-    public static EmployeeCompetencyResponse fromEntity(EmployeeCompetency entity) {
+    public static EmployeeCompetencyDto fromEntity(EmployeeCompetency entity) {
         if (entity == null) return null;
 
-        EmployeeCompetencyResponse dto = new EmployeeCompetencyResponse();
+        EmployeeCompetencyDto dto = new EmployeeCompetencyDto();
         dto.setId(entity.getId());
 
+        // Type
         if (entity.getType() != null) {
             dto.setTypeId(entity.getType().getId());
-            dto.setTypeCode(entity.getType().getCode());
             dto.setTypeName(entity.getType().getName());
         }
 
@@ -83,36 +72,56 @@ public class EmployeeCompetencyResponse {
         dto.setExpireDate(entity.getExpireDate());
         dto.setNote(entity.getNote());
 
-        if (entity.getDocument() != null) {
+        // Document
+        if (entity.getDocument() != null)
             dto.setDocumentId(entity.getDocument().getId());
-            dto.setFileName(entity.getDocument().getFileName());
-            dto.setFileType(entity.getDocument().getFileType());
-            dto.setUploadDate(entity.getDocument().getUploadDate());
-        }
+
+        // Verification
         dto.setCertificateCode(entity.getCertificateCode());
         dto.setVerifyUrl(entity.getVerifyUrl());
         dto.setVerificationStatus(entity.getVerificationStatus());
         dto.setVerifiedBy(entity.getVerifiedBy());
         dto.setVerifiedDate(entity.getVerifiedDate());
 
+        // Uploader
         if (entity.getUploadedBy() != null) {
             dto.setUploadedById(entity.getUploadedBy().getId());
-            if (entity.getUploadedBy().getEmployeeProfile() != null)
-                dto.setUploadedByName(entity.getUploadedBy().getEmployeeProfile().getFullName());
+            dto.setUploadedByName(entity.getUploadedBy().getEmployeeProfile().getFullName()); // giả sử có field fullName
         }
-
-        if (entity.getUpdatedBy() != null) {
-            dto.setUpdatedBy(entity.getUpdatedBy().getId());
-            if (entity.getUpdatedBy().getEmployeeProfile() != null)
-                dto.setUpdatedByName(entity.getUpdatedBy().getEmployeeProfile().getFullName());
-        }
-        dto.setUpdatedDate(entity.getUpdatedDate());
-
-        dto.setEmployeeProfileId(entity.getEmployeeProfile().getId());
-        dto.setEmployeeName(entity.getEmployeeProfile().getFullName());
-        dto.setEmployeeCode(entity.getEmployeeProfile().getCode());
-        dto.setDepartmentName(entity.getEmployeeProfile().getDepartment().getName());
 
         return dto;
+    }
+
+    // =============================
+    // Mapping từ DTO → Entity
+    // =============================
+    public static EmployeeCompetency toEntity(EmployeeCompetencyDto dto,
+                                              EmployeeProfile employee,
+                                              CompetencyType type,
+                                              CompetencyLevel level,
+                                              EmployeeDocument document,
+                                              User uploader) {
+        if (dto == null) return null;
+
+        EmployeeCompetency entity = new EmployeeCompetency();
+        entity.setId(dto.getId());
+        entity.setEmployeeProfile(employee);
+        entity.setType(type);
+        entity.setName(dto.getName());
+        entity.setLevel(level);
+        entity.setIssuedBy(dto.getIssuedBy());
+        entity.setIssuedDate(dto.getIssuedDate());
+        entity.setExpireDate(dto.getExpireDate());
+        entity.setNote(dto.getNote());
+
+        entity.setDocument(document);
+        entity.setCertificateCode(dto.getCertificateCode());
+        entity.setVerifyUrl(dto.getVerifyUrl());
+        entity.setVerificationStatus(dto.getVerificationStatus() != null ? dto.getVerificationStatus() : VerificationStatus.PENDING);
+        entity.setVerifiedBy(dto.getVerifiedBy());
+        entity.setVerifiedDate(dto.getVerifiedDate());
+        entity.setUploadedBy(uploader);
+
+        return entity;
     }
 }

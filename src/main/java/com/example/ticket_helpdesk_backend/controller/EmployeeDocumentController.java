@@ -2,6 +2,7 @@ package com.example.ticket_helpdesk_backend.controller;
 
 import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import com.example.ticket_helpdesk_backend.dto.DocumentMetaDto;
+import com.example.ticket_helpdesk_backend.dto.DocumentRelationCheckDto;
 import com.example.ticket_helpdesk_backend.dto.DocumentTypeDto;
 import com.example.ticket_helpdesk_backend.entity.DocumentType;
 import com.example.ticket_helpdesk_backend.entity.EmployeeDocument;
@@ -38,13 +39,13 @@ public class EmployeeDocumentController {
     ) throws IOException, ResourceNotFoundException {
 
         String token = authHeader.substring(7);
-        boolean success = employeeDocumentService.uploadDocuments(token, files, metaList);
+        List<UUID>  success = employeeDocumentService.uploadDocuments(token, files, metaList);
 
-        ApiResponse<String> response = new ApiResponse<>(
+        ApiResponse<List<UUID>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
-                success ? "Upload documents successfully" : "Upload documents failed",
+                success.isEmpty() ? "Upload documents successfully" : "Upload documents failed",
                 LocalDateTime.now(),
-                null
+                success
         );
         return ResponseEntity.ok(response);
     }
@@ -82,6 +83,32 @@ public class EmployeeDocumentController {
             return ResponseEntity.internalServerError()
                     .body("Không thể tải xuống tài liệu: " + e.getMessage());
         }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> delete(@PathVariable UUID id) throws ResourceNotFoundException {
+        employeeDocumentService.delete(id);
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "Delete competency successfully",
+                        LocalDateTime.now(),
+                        null
+                )
+        );
+    }
+
+    @GetMapping("/{id}/check-relations")
+    public ResponseEntity<?> checkRelationWithCompetency(@PathVariable UUID id) {
+
+        DocumentRelationCheckDto dto = employeeDocumentService.checkRelations(id);
+        ApiResponse<DocumentRelationCheckDto> response = new ApiResponse<>(
+                200,
+                "Get document types successfully",
+                LocalDateTime.now(),
+                dto
+        );
+        return ResponseEntity.ok(response);
     }
 
 

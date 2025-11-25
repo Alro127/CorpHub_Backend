@@ -13,8 +13,6 @@ import java.util.UUID;
 @AllArgsConstructor
 public class EmployeeJobHistoryResponse {
     private UUID id;
-    private String departmentName;
-    private String position;
     private String contractType;
     private LocalDate startDate;
     private LocalDate endDate;
@@ -25,8 +23,6 @@ public class EmployeeJobHistoryResponse {
         if (entity == null) return null;
         return new EmployeeJobHistoryResponse(
                 entity.getId(),
-                entity.getDepartment() != null ? entity.getDepartment().getName() : null,
-                entity.getPosition(),
                 entity.getContractType(),
                 entity.getStartDate(),
                 entity.getEndDate(),

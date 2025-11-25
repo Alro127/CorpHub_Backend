@@ -1,6 +1,5 @@
 package com.example.ticket_helpdesk_backend.dto;
 
-import com.example.ticket_helpdesk_backend.entity.EmployeeJobHistory;
 import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
 import com.example.ticket_helpdesk_backend.entity.User;
 import lombok.AllArgsConstructor;
@@ -34,7 +33,7 @@ public class EmployeeProfileResponse {
 
     private UserSummary user; // Thông tin tài khoản
     private List<EmployeeJobHistoryResponse> jobHistories;
-    private List<EmployeeCompetencyResponse> competencies;
+    private List<EmployeeCompetencyDto> competencies;
     private List<EmployeeDocumentResponse> documents;
     private List<ActivityTimelineResponse> timeline; // Nhật ký hoạt động
 
@@ -86,7 +85,7 @@ public class EmployeeProfileResponse {
 
         if (profile.getCompetencies() != null) {
             res.setCompetencies(profile.getCompetencies().stream()
-                    .map(EmployeeCompetencyResponse::fromEntity)
+                    .map(EmployeeCompetencyDto::fromEntity)
                     .collect(Collectors.toList()));
         }
 
