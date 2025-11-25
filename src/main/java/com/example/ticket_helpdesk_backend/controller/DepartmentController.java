@@ -109,12 +109,19 @@ public class DepartmentController {
         return ResponseEntity.noContent().build();
     }
 
-    @PutMapping("/{id}/assign-manager/{managerId}")
-    public ResponseEntity<DepartmentManagementDto> assignManager(
+    @PatchMapping("/{id}/assign-manager/{managerId}")
+    public ResponseEntity<?> assignManager(
             @PathVariable UUID id,
             @PathVariable UUID managerId
     ) throws ResourceNotFoundException {
-        return ResponseEntity.ok(departmentService.assignManager(id, managerId));
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "Assign manager successfully",
+                        LocalDateTime.now(),
+                        departmentService.assignManager(id, managerId))
+        );
     }
 
     /** 🔹 Tạo position trong phòng ban */
@@ -161,7 +168,7 @@ public class DepartmentController {
 
     /** 🔹 Reorder cấp bậc */
     @PutMapping("/{departmentId}/positions/reorder")
-    public ResponseEntity<?> reorder(
+    public ResponseEntity<?> reorderPosition(
             @PathVariable UUID departmentId,
             @RequestBody List<UUID> orderedIds
     ) {
@@ -169,6 +176,19 @@ public class DepartmentController {
         return ResponseEntity.ok(
                 new ApiResponse<>(HttpStatus.OK.value(), "Reordered successfully", LocalDateTime.now(), null)
         );
+    }
+
+    @PutMapping("/{dragId}/move")
+    public ResponseEntity<?> moveDepartment(
+            @PathVariable UUID dragId,
+            @RequestBody DepartmentMovingRequest request) throws ResourceNotFoundException {
+        departmentService.moveDepartment(dragId, request.getNewParentId());
+        return ResponseEntity.ok(new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "Department moved successfully",
+                        LocalDateTime.now(),
+                        null
+                ));
     }
 
 

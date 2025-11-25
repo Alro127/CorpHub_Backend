@@ -9,12 +9,14 @@ import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
+import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
@@ -72,36 +74,71 @@ public class DepartmentService {
     private static final String EMPLOYEE_BUCKET = "employee-avatars"; // bucket chứa ảnh nhân viên
 
     public List<DepartmentDetailDto> getAllDepartmentsWithUsers() {
-        List<Department> departments = departmentRepository.findAllWithUsers();
+        List<Department> all = departmentRepository.findAllWithUsers();
 
-        return departments.stream().map(dept -> {
-            List<UserBasicDto> userDtos = dept.getEmployeeProfiles().stream()
-                    .filter(ep -> ep.getUser() != null)
-                    .map(ep -> {
-                        String avatarKey = ep.getAvatar();
-                        String avatarUrl = null;
-
-                        // ✅ Nếu có avatar, tạo presigned URL
-                        if (avatarKey != null && !avatarKey.isEmpty()) {
-                            avatarUrl = fileStorageService.getPresignedUrl(EMPLOYEE_BUCKET, avatarKey);
-                        }
-
-                        return UserBasicDto.builder()
-                                .id(ep.getUser().getId())
-                                .fullName(ep.getFullName())
-                                .email(ep.getUser().getUsername())
-                                .avatar(avatarUrl)
-                                .build();
-                    })
-                    .toList();
-
-            return DepartmentDetailDto.builder()
-                    .id(dept.getId())
-                    .name(dept.getName())
-                    .users(userDtos)
-                    .build();
-        }).toList();
+        return all.stream()
+                .filter(d -> d.getParent() == null)
+                .map(this::mapDepartment)
+                .toList();
     }
+
+    // Mapping từ EmployeeProfile sang UserDepartmentDto để phục vụ cho việc quản lý phòng ban
+    private UserDepartmentDto mapEmployee(EmployeeProfile ep) {
+        if (ep == null || ep.getUser() == null) return null;
+
+        String avatarKey = ep.getAvatar();
+        String avatarUrl = null;
+
+        if (avatarKey != null && !avatarKey.isEmpty()) {
+            avatarUrl = fileStorageService.getPresignedUrl(EMPLOYEE_BUCKET, avatarKey);
+        }
+
+        UUID positionId = null;
+        String positionName = null;
+        Integer levelOrder = null;
+        if (ep.getPosition() != null) {
+            positionId = ep.getPosition().getId();
+            positionName = ep.getPosition().getName();
+            levelOrder = ep.getPosition().getLevelOrder();
+        }
+
+        return UserDepartmentDto.builder()
+                .userId(ep.getUser().getId())
+                .fullName(ep.getFullName())
+                .email(ep.getUser().getUsername())
+                .avatar(avatarUrl)
+                .positionId(positionId)
+                .positionName(positionName)
+                .levelOrder(levelOrder)
+                .build();
+    }
+
+    private DepartmentDetailDto mapDepartment(Department dept) {
+
+        // Map users
+        List<UserDepartmentDto> users = dept.getEmployeeProfiles().stream()
+                .map(this::mapEmployee)
+                .filter(Objects::nonNull)
+                .toList();
+
+        // Map manager
+        UserDepartmentDto managerDto = mapEmployee(dept.getManager());
+
+        // Map children (ĐỆ QUY)
+        List<DepartmentDetailDto> childDtos = dept.getChildren().stream()
+                .map(this::mapDepartment)
+                .toList();
+
+        return DepartmentDetailDto.builder()
+                .id(dept.getId())
+                .name(dept.getName())
+                .description(dept.getDescription())
+                .manager(managerDto)
+                .users(users)
+                .children(childDtos)
+                .build();
+    }
+
 
     public DepartmentManagementDto createDepartment(DepartmentManagementDto dto) throws ResourceNotFoundException {
         if (departmentRepository.existsByName(dto.getName())) {
@@ -151,6 +188,43 @@ public class DepartmentService {
         Department updated = departmentRepository.save(department);
         return DepartmentManagementDto.fromEntity(updated);
     }
+
+    @Transactional
+    public void moveDepartment(UUID dragId, UUID newParentId) throws ResourceNotFoundException {
+
+        Department drag = departmentRepository.findById(dragId)
+                .orElseThrow(() -> new ResourceNotFoundException("Department not found: " + dragId));
+
+        Department newParent = null;
+
+        if (newParentId != null) {
+            newParent = departmentRepository.findById(newParentId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Parent not found: " + newParentId));
+
+            // ❌ 1. Không được move vào chính nó
+            if (drag.getId().equals(newParent.getId())) {
+                throw new IllegalArgumentException("Cannot move a department into itself.");
+            }
+
+            // ❌ 2. Không được move vào con của chính nó → tạo vòng lặp
+            if (isDescendant(drag, newParent)) {
+                throw new IllegalArgumentException("Cannot move department into its descendant.");
+            }
+        }
+
+        // ✔ 3. Set parent mới
+        drag.setParent(newParent);
+        departmentRepository.save(drag);
+    }
+
+
+    // ====== Helper: check xem parentNew có phải con của drag không ======
+    private boolean isDescendant(Department parent, Department child) {
+        if (child.getParent() == null) return false;
+        if (child.getParent().getId().equals(parent.getId())) return true;
+        return isDescendant(parent, child.getParent());
+    }
+
 
 //    public List<DepartmentManagementDto> getAllDepartments() {
 //        return departmentRepository.findAll().stream()

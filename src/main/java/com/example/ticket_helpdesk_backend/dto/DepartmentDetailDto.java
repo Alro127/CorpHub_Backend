@@ -17,13 +17,12 @@ public class DepartmentDetailDto {
     private String name;
     private String description;
 
-    private UserBasicDto manager;
-    private List<UserBasicDto> users;
-
-    private List<PositionResponse> positions;
+    private UserDepartmentDto manager;
+    private List<UserDepartmentDto> users;
 
     private List<DepartmentDetailDto> children;
 }
+
 
 
 
