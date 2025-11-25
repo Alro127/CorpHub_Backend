@@ -53,6 +53,9 @@ public class EmployeeProfileService {
     CompetencyTypeRepository competencyLevelRepository;
 
     @Autowired
+    PositionRepository positionRepository;
+
+    @Autowired
     JwtUtil jwtUtil;
 
 
@@ -75,6 +78,10 @@ public class EmployeeProfileService {
                     .orElseThrow(() -> new RuntimeException("Department not found"));
             employeeProfile.setDepartment(dept);
         }
+
+        // Chức danh mặc định khi vừa được tạo hồ sơ nhân viên
+        Position defaultPosition = positionRepository.findFirstByDepartmentIdOrderByLevelOrderAsc(request.getDepartmentId());
+        employeeProfile.setPosition(defaultPosition);
 
         // ====== JobHistories ======
         if (request.getJobHistories() != null && !request.getJobHistories().isEmpty()) {

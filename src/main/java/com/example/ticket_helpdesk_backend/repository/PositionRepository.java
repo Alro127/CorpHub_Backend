@@ -11,4 +11,6 @@ import java.util.UUID;
 public interface PositionRepository extends JpaRepository<Position, UUID> {
 
     List<Position> findByDepartmentIdOrderByLevelOrderAsc(UUID departmentId);
+
+    Position findFirstByDepartmentIdOrderByLevelOrderAsc(UUID deptId);
 }
