@@ -1,6 +1,7 @@
 package com.example.ticket_helpdesk_backend.dto;
 
 import com.example.ticket_helpdesk_backend.consts.WorkflowStepType;
+import com.example.ticket_helpdesk_backend.model.ApproverDefinition;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
@@ -15,17 +16,26 @@ import java.util.UUID;
 @Data
 @RequiredArgsConstructor
 public class WorkflowStepResponse implements Serializable {
-    UUID id;
+
+    private UUID id;
+
     @NotNull
     @Size(max = 200)
-    String name;
+    private String name;
+
     @NotNull
-    Integer stepOrder;
+    private Integer stepOrder;
+
     @NotNull
-    WorkflowStepType stepType;
-    @Size(max = 100)
-    String assignedRole;
-    String conditionExpr;
+    private WorkflowStepType stepType;
+
+    /** Trả ra mô hình approver dạng JSON (type + params) */
     @NotNull
-    LocalDateTime createdAt;
+    private ApproverDefinition approver;
+
+    /** Optional: điều kiện của step */
+    private String conditionExpr;
+
+    @NotNull
+    private LocalDateTime createdAt;
 }

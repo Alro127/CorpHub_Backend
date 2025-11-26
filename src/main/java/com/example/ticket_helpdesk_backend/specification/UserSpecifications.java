@@ -151,6 +151,83 @@ public class UserSpecifications {
         };
     }
 
+    public static Specification<User> hasPositionCode(String code) {
+        return (root, query, cb) -> {
+            if (code == null || code.isBlank()) return cb.conjunction();
+
+            Join<Object, Object> emp = root.join("employeeProfile", JoinType.LEFT);
+            Join<Object, Object> pos = emp.join("position", JoinType.LEFT);
+
+            return cb.equal(cb.lower(pos.get("code")), code.toLowerCase());
+        };
+    }
+
+    public static Specification<User> hasPositionLevel(Integer level) {
+        return (root, query, cb) -> {
+            if (level == null) return cb.conjunction();
+
+            Join<Object, Object> emp = root.join("employeeProfile", JoinType.LEFT);
+            Join<Object, Object> pos = emp.join("position", JoinType.LEFT);
+
+            return cb.equal(pos.get("levelOrder"), level);
+        };
+    }
+
+    public static Specification<User> hasPositionCodeInDepartment(String code, UUID deptId) {
+        return (root, query, cb) -> {
+
+            if (code == null || deptId == null)
+                return cb.conjunction();
+
+            Join<Object, Object> emp = root.join("employeeProfile", JoinType.LEFT);
+            Join<Object, Object> pos = emp.join("position", JoinType.LEFT);
+            Join<Object, Object> dep = emp.join("department", JoinType.LEFT);
+
+            return cb.and(
+                    cb.equal(cb.lower(pos.get("code")), code.toLowerCase()),
+                    cb.equal(dep.get("id"), deptId)
+            );
+        };
+    }
+
+    public static Specification<User> hasPositionLevelInDepartment(Integer level, UUID deptId) {
+        return (root, query, cb) -> {
+
+            if (level == null || deptId == null)
+                return cb.conjunction();
+
+            Join<Object, Object> emp = root.join("employeeProfile", JoinType.LEFT);
+            Join<Object, Object> pos = emp.join("position", JoinType.LEFT);
+            Join<Object, Object> dep = emp.join("department", JoinType.LEFT);
+
+            return cb.and(
+                    cb.equal(pos.get("levelOrder"), level),
+                    cb.equal(dep.get("id"), deptId)
+            );
+        };
+    }
+
+    public static Specification<User> isSameDepartment(UUID requesterId) {
+        return inSameDepartmentAsUser(requesterId);
+    }
+
+    public static Specification<User> activeOnly() {
+        return isActive(true);
+    }
+
+    public static Specification<User> isManagerOf(UUID userId) {
+        return (root, query, cb) -> {
+
+            Subquery<UUID> sub = query.subquery(UUID.class);
+            Root<User> u2 = sub.from(User.class);
+            Join<Object,Object> emp2 = u2.join("employeeProfile", JoinType.LEFT);
+
+            sub.select(emp2.get("manager").get("id"))
+                    .where(cb.equal(u2.get("id"), userId));
+
+            return root.get("id").in(sub);
+        };
+    }
 
     /** 🧩 Kết hợp động nhiều điều kiện */
     public static Specification<User> buildFilter(

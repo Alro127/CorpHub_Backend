@@ -27,36 +27,48 @@ public class WorkflowStepService {
     private final WorkflowTemplateRepository templateRepo;
     private final ModelMapper modelMapper;
 
+    /** -------------------------
+     *  GET STEPS
+     * ------------------------- */
     public List<WorkflowStepResponse> getSteps(UUID templateId) {
         WorkflowTemplate template = templateRepo.findById(templateId)
                 .orElseThrow(() -> new RuntimeException("Template not found"));
 
         return stepRepo.findAll(
-                Specification.where(WorkflowSpecifications.byTemplate(template)),
-                Sort.by("stepOrder").ascending()
-        ).stream().map((element) -> modelMapper.map(element, WorkflowStepResponse.class)).collect(Collectors.toList());
+                        Specification.where(WorkflowSpecifications.byTemplate(template)),
+                        Sort.by("stepOrder").ascending()
+                ).stream()
+                .map(step -> modelMapper.map(step, WorkflowStepResponse.class))
+                .collect(Collectors.toList());
     }
 
+    /** -------------------------
+     *  CREATE STEP
+     * ------------------------- */
     @Transactional
     public WorkflowStepResponse createStep(WorkflowStepRequest req) {
         WorkflowTemplate template = templateRepo.findById(req.getTemplateId())
                 .orElseThrow(() -> new RuntimeException("Template not found"));
 
         WorkflowStep step = WorkflowStep.builder()
-                .id(UUID.randomUUID())
+                .id(UUID.randomUUID())                           // optional, still allowed
                 .template(template)
                 .name(req.getName())
                 .stepOrder(req.getStepOrder())
                 .stepType(req.getStepType())
-                .assignedRole(req.getAssignedRole())
+                .approver(req.getApprover())                    // set approver JSON
                 .conditionExpr(req.getConditionExpr())
                 .createdAt(LocalDateTime.now())
                 .build();
 
         stepRepo.save(step);
+
         return modelMapper.map(step, WorkflowStepResponse.class);
     }
 
+    /** -------------------------
+     *  UPDATE STEP
+     * ------------------------- */
     @Transactional
     public WorkflowStepResponse updateStep(UUID stepId, WorkflowStepRequest req) {
 
@@ -69,21 +81,23 @@ public class WorkflowStepService {
         if (req.getStepType() != null)
             step.setStepType(req.getStepType());
 
-        if (req.getAssignedRole() != null)
-            step.setAssignedRole(req.getAssignedRole());
+        if (req.getApprover() != null)
+            step.setApprover(req.getApprover());
 
         if (req.getConditionExpr() != null)
             step.setConditionExpr(req.getConditionExpr());
 
-        if (req.getStepOrder() != null && req.getStepOrder() > 0) {
+        if (req.getStepOrder() != null && req.getStepOrder() > 0)
             step.setStepOrder(req.getStepOrder());
-        }
 
         stepRepo.save(step);
 
         return modelMapper.map(step, WorkflowStepResponse.class);
     }
 
+    /** -------------------------
+     *  DELETE STEP
+     * ------------------------- */
     @Transactional
     public void deleteStep(UUID stepId) {
         if (!stepRepo.existsById(stepId)) {
@@ -92,4 +106,3 @@ public class WorkflowStepService {
         stepRepo.deleteById(stepId);
     }
 }
-

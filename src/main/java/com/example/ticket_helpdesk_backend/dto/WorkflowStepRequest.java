@@ -1,28 +1,34 @@
 package com.example.ticket_helpdesk_backend.dto;
 
-import com.example.ticket_helpdesk_backend.consts.UserRole;
 import com.example.ticket_helpdesk_backend.consts.WorkflowStepType;
+import com.example.ticket_helpdesk_backend.model.ApproverDefinition;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
-import lombok.NoArgsConstructor;
-import lombok.RequiredArgsConstructor;
 
 import java.io.Serializable;
 import java.util.UUID;
 
 @Data
-@RequiredArgsConstructor
 public class WorkflowStepRequest implements Serializable {
-    UUID templateId;
+
+    @NotNull
+    private UUID templateId;
+
     @NotNull
     @Size(max = 200)
-    String name;
+    private String name;
+
     @NotNull
-    Integer stepOrder;
+    private Integer stepOrder;
+
     @NotNull
-    WorkflowStepType stepType;
-    @Size(max = 100)
-    UserRole assignedRole;
-    String conditionExpr;
+    private WorkflowStepType stepType;
+
+    /** ApproverDefinition chứa: type + params (USER, POSITION, ROLE, DEPARTMENT...) */
+    @NotNull
+    private ApproverDefinition approver;
+
+    /** Optional condition */
+    private String conditionExpr;
 }

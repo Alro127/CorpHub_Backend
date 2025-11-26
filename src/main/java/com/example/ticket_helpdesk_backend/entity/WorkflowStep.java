@@ -2,6 +2,8 @@ package com.example.ticket_helpdesk_backend.entity;
 
 import com.example.ticket_helpdesk_backend.consts.UserRole;
 import com.example.ticket_helpdesk_backend.consts.WorkflowStepType;
+import com.example.ticket_helpdesk_backend.model.ApproverDefinition;
+import com.example.ticket_helpdesk_backend.service.helper.ApproverDefinitionConverter;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -54,10 +56,9 @@ public class WorkflowStep {
     @Column(name = "step_type", nullable = false)
     private WorkflowStepType stepType;
 
-    @Size(max = 100)
-    @Enumerated(EnumType.STRING)
-    @Column(name = "assigned_role", length = 100)
-    private UserRole assignedRole;
+    @Convert(converter = ApproverDefinitionConverter.class)
+    @Column(name = "approver", columnDefinition = "NVARCHAR(MAX)")
+    private ApproverDefinition approver;
 
     @Nationalized
     @Lob
