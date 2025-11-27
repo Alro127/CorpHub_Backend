@@ -1,10 +1,10 @@
 package com.example.ticket_helpdesk_backend.service.helper;
 
 import com.example.ticket_helpdesk_backend.consts.ApproverType;
+import com.example.ticket_helpdesk_backend.consts.UserRelationKey;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.model.ApproverDefinition;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
-import com.example.ticket_helpdesk_backend.specification.UserSpecifications;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Component;
@@ -32,6 +32,7 @@ public class ApproverResolver {
 
         return switch (type) {
             case USER -> resolveUser(params);
+            case USER_RELATION -> resolveByUserRelation(params, ctx);
             case POSITION -> resolveByPosition(params, ctx);
             case POSITION_LEVEL -> resolveByPositionLevel(params, ctx);
             case DEPARTMENT -> resolveByDepartment(params, ctx);
@@ -39,12 +40,44 @@ public class ApproverResolver {
     }
 
     // ============================================================
-    // 1️⃣ USER — chỉ trả về userId đã cấu hình
+    // USER — chỉ trả về userId đã cấu hình
     // ============================================================
     private UUID resolveUser(Map<String, Object> params) {
         return UUID.fromString(params.get("userId").toString());
     }
-    
+
+    // ============================================================
+    // USER_RELATION — tìm người liên quan đến user
+    // ============================================================
+    private UUID resolveByUserRelation(Map<String, Object> params, Map<String, Object> ctx) {
+
+        UserRelationKey key = UserRelationKey.valueOf(params.get("key").toString());
+        UUID requesterId = (UUID) ctx.get("requesterId");
+
+        User requester = userRepository.findById(requesterId)
+                .orElseThrow(() -> new RuntimeException("Requester not found"));
+
+        var profile = requester.getEmployeeProfile();
+        if (profile == null) return null;
+
+        return switch (key) {
+
+            case DIRECT_MANAGER -> {
+                if (profile.getManager() != null && profile.getManager().getUser() != null)
+                    yield profile.getManager().getUser().getId();
+                yield null;
+            }
+
+            case DEPARTMENT_MANAGER -> {
+                var dept = profile.getDepartment();
+                if (dept != null && dept.getManager() != null && dept.getManager().getUser() != null)
+                    yield dept.getManager().getUser().getId();
+                yield null;
+            }
+        };
+    }
+
+
     // ============================================================
     // 3️⃣ POSITION — tìm User theo Position.code + cùng phòng ban
     // ============================================================

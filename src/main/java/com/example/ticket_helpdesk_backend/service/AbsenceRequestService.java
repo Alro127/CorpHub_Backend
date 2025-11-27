@@ -115,7 +115,7 @@ public class AbsenceRequestService {
             return this.mapToDto(saved);
 
         } catch (Exception ex) {
-
+            ex.printStackTrace();
             // ÉP rollback của transaction
             throw new RuntimeException("Không thể tạo quy trình phê duyệt. Vui lòng thử lại.");
         }

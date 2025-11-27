@@ -40,10 +40,6 @@ public class AbsenceType {
     private Boolean requireProof;
 
     @ColumnDefault("1")
-    @Column(name = "require_approval_lv")
-    private Integer requireApprovalLv;
-
-    @ColumnDefault("1")
     @Column(name = "affect_quota")
     private Boolean affectQuota;
 

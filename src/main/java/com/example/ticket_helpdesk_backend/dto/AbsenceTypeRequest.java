@@ -29,9 +29,9 @@ public class AbsenceTypeRequest implements Serializable {
     @Size(max = 1000, message = "Description's length must be not longer than 100")
     String description;
     Boolean requireProof;
-    Integer requireApprovalLv;
     Boolean affectQuota;
     BigDecimal maxPerRequest;
     @NotNull(message = "Gender must not be null")
     Gender genderLimit;
+    UUID workflowTemplateId;
 }

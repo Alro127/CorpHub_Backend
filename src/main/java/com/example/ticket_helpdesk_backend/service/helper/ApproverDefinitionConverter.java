@@ -13,6 +13,7 @@ public class ApproverDefinitionConverter implements AttributeConverter<ApproverD
     @Override
     public String convertToDatabaseColumn(ApproverDefinition value) {
         try {
+            if (value == null) return null;
             return objectMapper.writeValueAsString(value);
         } catch (Exception e) {
             throw new RuntimeException("JSON write error", e);
@@ -22,10 +23,14 @@ public class ApproverDefinitionConverter implements AttributeConverter<ApproverD
     @Override
     public ApproverDefinition convertToEntityAttribute(String dbData) {
         try {
+            if (dbData == null || dbData.isBlank()) {
+                return null;
+            }
             return objectMapper.readValue(dbData, ApproverDefinition.class);
         } catch (Exception e) {
-            throw new RuntimeException("JSON read error", e);
+            throw new RuntimeException("JSON read error: " + dbData, e);
         }
     }
+
 }
 

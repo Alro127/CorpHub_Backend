@@ -50,8 +50,7 @@ public class WorkflowStepService {
         WorkflowTemplate template = templateRepo.findById(req.getTemplateId())
                 .orElseThrow(() -> new RuntimeException("Template not found"));
 
-        WorkflowStep step = WorkflowStep.builder()
-                .id(UUID.randomUUID())                           // optional, still allowed
+        WorkflowStep step = WorkflowStep.builder()                 // optional, still allowed
                 .template(template)
                 .name(req.getName())
                 .stepOrder(req.getStepOrder())

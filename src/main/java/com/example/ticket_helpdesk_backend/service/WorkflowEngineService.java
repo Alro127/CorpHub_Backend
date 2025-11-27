@@ -51,32 +51,24 @@ public class WorkflowEngineService {
             UUID entityId,
             UUID createdBy
     ) {
-
-        // 1. Lấy template
         WorkflowTemplate template = templateRepo.findOne(
                 Specification.where(WorkflowSpecifications.byTargetEntity(targetEntity))
                         .and(WorkflowSpecifications.byName(templateName))
         ).orElseThrow(() -> new RuntimeException("Template not found"));
 
-        // 2. Build context
+        // Build context
         Map<String, Object> ctx = getProvider(targetEntity).buildContext(entityId);
+        ctx.put("requesterId", createdBy);   // <-- FIX HERE
 
-        // 3. Lấy toàn bộ step theo thứ tự
         List<WorkflowStep> steps = stepRepo.findAll(
                 Specification.where(WorkflowSpecifications.byTemplate(template)),
                 Sort.by("stepOrder").ascending()
         );
 
-        // 4. Tìm step đầu tiên khớp điều kiện
         WorkflowStep firstStep = findFirstMatchStep(steps, ctx);
-        if (firstStep == null) {
-            throw new RuntimeException("No workflow steps matched condition");
-        }
 
-        // 5. Resolve approver bằng hệ thống chuẩn (ApproverResolver)
         UUID approverId = approverResolver.resolve(firstStep.getApprover(), ctx);
 
-        // 6. Tạo instance workflow
         WorkflowInstance instance = WorkflowInstance.builder()
                 .template(template)
                 .entityId(entityId)
@@ -86,14 +78,13 @@ public class WorkflowEngineService {
                 .currentApproverId(approverId)
                 .build();
 
-        // 7. Nếu step đầu tiên không ai duyệt → tự skip sang bước kế
         if (approverId == null) {
             moveToNextStep(instance, steps, ctx);
-            return instanceRepo.save(instance);
         }
 
         return instanceRepo.save(instance);
     }
+
 
     private WorkflowStep findFirstMatchStep(List<WorkflowStep> steps, Map<String, Object> ctx) {
         return steps.stream()
@@ -118,6 +109,7 @@ public class WorkflowEngineService {
 
         Map<String, Object> ctx =
                 getProvider(template.getTargetEntity()).buildContext(instance.getEntityId());
+        ctx.put("requesterId", instance.getCreatedBy());
 
         if (instance.getCurrentStepOrder() == null) {
             throw new RuntimeException("No current step to act on");

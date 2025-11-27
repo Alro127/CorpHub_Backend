@@ -29,10 +29,11 @@ public class AbsenceTypeResponse implements Serializable {
     String name;
     String description;
     Boolean requireProof;
-    Integer requireApprovalLv;
     Boolean affectQuota;
     BigDecimal maxPerRequest;
     Gender genderLimit;
+    UUID workflowTemplateId;
+    String workflowTemplateName;
     LocalDateTime createdAt;
     LocalDateTime updatedAt;
 }
