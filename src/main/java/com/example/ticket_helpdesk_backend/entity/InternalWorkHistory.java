@@ -22,20 +22,24 @@ public class InternalWorkHistory {
     private EmployeeProfile employeeProfile;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "department_id")
-    private Department department; // phòng ban nhân viên được chuyển đến
+    @JoinColumn(name = "department_id", nullable = false)
+    private Department department;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "position_id")
-    private Position position; // chức danh được bổ nhiệm / thăng chức
+    @JoinColumn(name = "position_id", nullable = false)
+    private Position position;
 
-    private LocalDate startDate;
-    private LocalDate endDate;
+    @Column(name = "effective_date", nullable = false)
+    private LocalDate effectiveDate;
 
-    @Column(length = 100)
+    @Column(length = 50, nullable = false)
     private String changeType;
-    // EX: TRANSFER / PROMOTION / DEMOTION / ASSIGNMENT
+    // TRANSFER / PROMOTION / DEMOTION / ROTATION / ASSIGNMENT
 
     @Column(length = 255)
-    private String reason; // lý do: cơ cấu, thăng chức, điều chuyển...
+    private String reason;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "request_id")
+    private PositionChangeRequest request;
 }
