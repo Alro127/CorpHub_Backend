@@ -3,10 +3,12 @@ package com.example.ticket_helpdesk_backend.service;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.Department;
 import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
+import com.example.ticket_helpdesk_backend.entity.Position;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
+import com.example.ticket_helpdesk_backend.repository.PositionRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import jakarta.transaction.Transactional;
@@ -28,6 +30,8 @@ public class DepartmentService {
     private EmployeeProfileRepository employeeProfileRepository;
     @Autowired
     private UserRepository userRepository;
+    @Autowired
+    private PositionRepository positionRepository;
     @Autowired
     private ModelMapper modelMapper;
     @Autowired
@@ -224,6 +228,48 @@ public class DepartmentService {
         if (child.getParent().getId().equals(parent.getId())) return true;
         return isDescendant(parent, child.getParent());
     }
+
+    @Transactional
+    public List<DepartmentPositionDto> getDepartmentWithPosition() {
+
+        // Lấy tất cả phòng ban
+        List<Department> departments = departmentRepository.findAll();
+
+        return departments.stream()
+                .map(department -> {
+                    // Lấy positions thuộc department này
+                    List<Position> positions = positionRepository.findByDepartmentIdOrderByLevelOrderAsc(department.getId());
+
+                    return toDepartmentPositionDto(department, positions);
+                })
+                .toList();
+    }
+
+    private DepartmentPositionDto toDepartmentPositionDto(
+            Department department,
+            List<Position> positions
+    ) {
+        DepartmentPositionDto dto = new DepartmentPositionDto();
+        dto.setDepartmentId(department.getId());
+        dto.setDepartmentName(department.getName());
+
+        List<PositionInDepartmentDto> mappedPositions = positions.stream()
+                .map(p -> {
+                    PositionInDepartmentDto pd = new PositionInDepartmentDto();
+                    pd.setId(p.getId());
+                    pd.setName(p.getName());
+                    pd.setCode(p.getCode());
+                    pd.setDescription(p.getDescription());
+                    pd.setLevelOrder(p.getLevelOrder());
+                    return pd;
+                })
+                .toList();
+
+        dto.setPositions(mappedPositions);
+        return dto;
+    }
+
+
 
 
 //    public List<DepartmentManagementDto> getAllDepartments() {
