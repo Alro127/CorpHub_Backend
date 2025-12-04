@@ -90,7 +90,7 @@ public class AuthService {
                 user.getId(),
                 user.getEmployeeProfile().getFullName(),
                 user.getUsername(),
-                user.getEmployeeProfile().getAvatar(),
+                user.getEmployeeProfile().getAvatar() != null ? fileStorageService.getPresignedUrl(BUCKET_NAME, user.getEmployeeProfile().getAvatar()) : null,
                 user.getRole().getName(),
                 user.getActive(),
                 newAccessToken,
