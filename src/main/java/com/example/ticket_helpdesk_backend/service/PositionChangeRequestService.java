@@ -8,10 +8,12 @@ import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
 import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
 import com.example.ticket_helpdesk_backend.repository.PositionChangeRequestRepository;
 import com.example.ticket_helpdesk_backend.repository.PositionRepository;
+import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -27,16 +29,18 @@ public class PositionChangeRequestService {
     private final DepartmentRepository departmentRepository;
     private final PositionRepository positionRepository;
     private final EmployeeProfileRepository employeeRepository;
-
+    private final PositionChangeAttachmentService positionChangeAttachmentService;
+    private final JwtUtil jwtUtil;
 
     @Transactional
-    public PositionChangeRequestDetailDto createRequest(PositionChangeRequestCreateDto dto) {
+    public PositionChangeRequestDetailDto createRequest(PositionChangeRequestCreateDto dto, String token) {
+        UUID createBy_Id = jwtUtil.getUserId(token);
 
         // 1. Load entity chính
         EmployeeProfile employee = employeeProfileRepository.findById(UUID.fromString(dto.getEmployeeId()))
                 .orElseThrow(() -> new RuntimeException("Employee not found"));
 
-        EmployeeProfile createdBy = employeeRepository.findById(UUID.fromString(dto.getCreatedById()))
+        EmployeeProfile createdBy = employeeRepository.findById(createBy_Id)
                 .orElseThrow(() -> new RuntimeException("CreatedBy employee not found"));
 
         Position newPosition = positionRepository.findById(UUID.fromString(dto.getNewPositionId()))
@@ -72,12 +76,23 @@ public class PositionChangeRequestService {
         request.setStatus("pending"); // mặc định khi tạo xong chờ phê duyệt
 
         // 3. Ánh xạ attachments (nếu có)
-        if (dto.getAttachments() != null && !dto.getAttachments().isEmpty()) {
-            List<PositionChangeAttachment> attachmentEntities = dto.getAttachments().stream()
-                    .map(a -> mapAttachmentDtoToEntity(a, request))
-                    .collect(Collectors.toList());
-            request.setAttachments(attachmentEntities);
+        if (dto.getAttachments() != null) {
+            List<PositionChangeAttachment> savedAttachments = dto.getAttachments()
+                    .stream()
+                    .map(a -> positionChangeAttachmentService.saveAttachment(a, request))
+                    .toList();
+
+            request.setAttachments(savedAttachments);
         }
+
+        request.setEffectDate(LocalDate.now());
+
+        if(createdBy.getUser().getRole().getName().equals("ROLE_USER")) {
+            request.setStatus("PENDING");
+        }
+
+        //if role = admin -> status = approve
+        // if role = employee -> pending
 
         // 4. Lưu DB (cascade attachments)
         PositionChangeRequest saved = requestRepository.save(request);
