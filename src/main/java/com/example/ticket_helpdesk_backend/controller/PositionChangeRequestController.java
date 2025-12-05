@@ -49,6 +49,12 @@ public class PositionChangeRequestController {
 
     @GetMapping("/employee/{employeeId}")
     public ResponseEntity<?> list(@PathVariable UUID employeeId) {
-        return ResponseEntity.ok(service.getRequestsByEmployee(employeeId));
+        ApiResponse<List<PositionChangeRequestDetailDto>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Get PositionChangeRequestDetailDto successfully",
+                LocalDateTime.now(),
+                service.getRequestsByEmployee(employeeId)
+        );
+        return ResponseEntity.ok(response);
     }
 }
