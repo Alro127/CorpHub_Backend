@@ -10,4 +10,10 @@ import java.util.UUID;
 @Repository
 public interface PositionChangeRequestRepository extends JpaRepository<PositionChangeRequest, UUID> {
     List<PositionChangeRequest> findByEmployeeIdOrderByCreatedAtDesc(UUID employeeId);
+
+    // Cho HR/Admin filter theo status (có thể mở rộng sau)
+    List<PositionChangeRequest> findByStatusOrderByCreatedAtDesc(String status);
+    // Lấy theo trạng thái
+    List<PositionChangeRequest> findByStatusOrderByUpdatedAtDesc(String status);
+
 }

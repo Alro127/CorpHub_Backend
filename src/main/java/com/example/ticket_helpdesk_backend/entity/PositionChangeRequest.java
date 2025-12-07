@@ -15,16 +15,21 @@ import java.util.UUID;
 @Setter
 public class PositionChangeRequest {
 
+    public static final String STATUS_DRAFT      = "DRAFT";
+    public static final String STATUS_PENDING    = "PENDING";   // chờ bước đầu (manager)
+    public static final String STATUS_IN_REVIEW  = "IN_REVIEW"; // đang phê duyệt (>= step 2)
+    public static final String STATUS_REJECTED   = "REJECTED";
+    public static final String STATUS_FINALIZED  = "FINALIZED"; // đã duyệt xong + có thể upload quyết định
+    public static final String STATUS_DONE = "DONE"; // HR upload file công bố
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
-    // Nhân viên được thay đổi
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id", nullable = false)
     private EmployeeProfile employee;
 
-    // Chức danh/phòng ban cũ
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "old_position_id")
     private Position oldPosition;
@@ -42,8 +47,7 @@ public class PositionChangeRequest {
     private Department newDepartment;
 
     @Column(length = 50, nullable = false)
-    private String type;
-    // promotion / transfer / rotation / demotion / assignment
+    private String type; // promotion / transfer / rotation / demotion / assignment
 
     @Column(name = "effect_date", nullable = false)
     private LocalDate effectDate;
@@ -51,14 +55,12 @@ public class PositionChangeRequest {
     @Column(length = 255)
     private String reason;
 
-    // Người tạo yêu cầu (nhân viên / manager / HR / Admin)
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", nullable = false)
     private EmployeeProfile createdBy;
 
     @Column(length = 50, nullable = false)
     private String status;
-    // draft → pending → approved → done → rejected
 
     @OneToMany(mappedBy = "request", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PositionChangeAttachment> attachments = new ArrayList<>();
@@ -69,6 +71,13 @@ public class PositionChangeRequest {
 
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+
+    // Helper
+    public boolean isFinalized() {
+        return STATUS_FINALIZED.equals(this.status);
+    }
+
+    public boolean isRejected() {
+        return STATUS_REJECTED.equals(this.status);
+    }
 }
-
-

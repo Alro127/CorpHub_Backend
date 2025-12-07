@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -57,4 +58,38 @@ public class PositionChangeRequestController {
         );
         return ResponseEntity.ok(response);
     }
+
+    @GetMapping
+    public ResponseEntity<?> listAll(
+            @RequestParam(required = false) String status
+    ) {
+        ApiResponse<List<PositionChangeRequestDetailDto>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Get PositionChangeRequests successfully",
+                LocalDateTime.now(),
+                service.getAll(status)
+        );
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/upload-decision")
+    public ResponseEntity<?> uploadDecision(
+            @PathVariable UUID id,
+            @RequestPart("file") MultipartFile file,
+            @RequestHeader("Authorization") String authHeader
+    ) {
+        String token = authHeader.substring(7);
+
+        service.uploadDecisionFile(id, file, token);
+
+        ApiResponse<String> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Decision document uploaded and request completed",
+                LocalDateTime.now(),
+                "DONE"
+        );
+
+        return ResponseEntity.ok(response);
+    }
+
 }

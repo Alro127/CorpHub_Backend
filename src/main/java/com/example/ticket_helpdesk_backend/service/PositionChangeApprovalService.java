@@ -1,9 +1,11 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.dto.PositionChangeApprovalDto;
 import com.example.ticket_helpdesk_backend.entity.InternalWorkHistory;
 import com.example.ticket_helpdesk_backend.entity.PositionChangeApproval;
 import com.example.ticket_helpdesk_backend.entity.PositionChangeRequest;
 import com.example.ticket_helpdesk_backend.repository.PositionChangeApprovalRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -15,56 +17,75 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class PositionChangeApprovalService{
 
-    private final PositionChangeApprovalRepository approvalRepo;
+    private final PositionChangeApprovalRepository approvalRepository;
     private final PositionChangeRequestService requestService;
     private final InternalWorkHistoryService historyService;
 
-    public PositionChangeApproval approve(UUID approvalId, String comment) {
 
-        PositionChangeApproval approval = approvalRepo.findById(approvalId)
+    @Transactional
+    public PositionChangeApproval approve(UUID stepId, String comment) {
+        PositionChangeApproval step = approvalRepository.findById(stepId)
                 .orElseThrow(() -> new RuntimeException("Approval step not found"));
 
-        approval.setDecision("approved");
-        approval.setComment(comment);
-        approval.setDecidedAt(LocalDateTime.now());
-        approvalRepo.save(approval);
-
-        // Kiểm tra xem tất cả các bước đã duyệt chưa
-        List<PositionChangeApproval> steps = approvalRepo.findByRequestIdOrderByStepOrder(
-                approval.getRequest().getId()
-        );
-
-        boolean allApproved = steps.stream()
-                .allMatch(s -> "approved".equals(s.getDecision()));
-
-        if (allApproved) {
-            requestService.updateStatus(approval.getRequest().getId(), "approved");
-
-            // Tạo lịch sử InternalWorkHistory
-            createWorkHistory(approval.getRequest());
+        if (!PositionChangeApproval.DECISION_PENDING.equals(step.getDecision())) {
+            throw new RuntimeException("This step has already been processed");
         }
 
-        return approval;
+        step.setDecision(PositionChangeApproval.DECISION_APPROVED);
+        step.setComment(comment);
+        step.setDecidedAt(LocalDateTime.now());
+        approvalRepository.save(step);
+
+        PositionChangeRequest request = step.getRequest();
+
+        // Kiểm tra còn step pending nào không
+        var nextPendingOpt = approvalRepository
+                .findFirstByRequestIdAndDecisionOrderByStepOrderAsc(
+                        request.getId(),
+                        PositionChangeApproval.DECISION_PENDING
+                );
+
+        if (nextPendingOpt.isEmpty()) {
+            // Không còn step pending -> finalize
+            requestService.finalizeRequest(request.getId());
+            createWorkHistory(request);
+        } else {
+            // Còn step pending -> có thể cập nhật status request sang IN_REVIEW (nếu muốn)
+            if (PositionChangeRequest.STATUS_PENDING.equals(request.getStatus())) {
+                requestService.updateStatus(request.getId(), PositionChangeRequest.STATUS_IN_REVIEW);
+            }
+        }
+
+        return step;
     }
 
-    public PositionChangeApproval reject(UUID approvalId, String comment) {
-        PositionChangeApproval approval = approvalRepo.findById(approvalId)
+    @Transactional
+    public PositionChangeApproval reject(UUID stepId, String comment) {
+        PositionChangeApproval step = approvalRepository.findById(stepId)
                 .orElseThrow(() -> new RuntimeException("Approval step not found"));
 
-        approval.setDecision("rejected");
-        approval.setComment(comment);
-        approval.setDecidedAt(LocalDateTime.now());
-        approvalRepo.save(approval);
+        if (!PositionChangeApproval.DECISION_PENDING.equals(step.getDecision())) {
+            throw new RuntimeException("This step has already been processed");
+        }
+
+        step.setDecision(PositionChangeApproval.DECISION_REJECTED);
+        step.setComment(comment);
+        step.setDecidedAt(LocalDateTime.now());
+        approvalRepository.save(step);
 
         // Update trạng thái request
-        requestService.updateStatus(approval.getRequest().getId(), "rejected");
+        requestService.updateStatus(step.getRequest().getId(), PositionChangeRequest.STATUS_REJECTED);
 
-        return approval;
+        return step;
     }
 
-    public List<PositionChangeApproval> getSteps(UUID requestId) {
-        return approvalRepo.findByRequestIdOrderByStepOrder(requestId);
+    public List<PositionChangeApprovalDto> getSteps(UUID requestId) {
+        return approvalRepository.findByRequestIdOrderByStepOrderAsc(requestId)
+                .stream()
+                .map(PositionChangeApprovalDto::mapToDto)
+                .toList();
     }
+
 
     private void createWorkHistory(PositionChangeRequest req) {
         InternalWorkHistory history = new InternalWorkHistory();

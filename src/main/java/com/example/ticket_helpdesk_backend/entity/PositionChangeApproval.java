@@ -12,6 +12,14 @@ import java.util.UUID;
 @Setter
 public class PositionChangeApproval {
 
+    public static final String ROLE_MANAGER = "MANAGER";
+    public static final String ROLE_HR      = "HR";
+    public static final String ROLE_ADMIN   = "ADMIN";
+
+    public static final String DECISION_PENDING  = "PENDING";
+    public static final String DECISION_APPROVED = "APPROVED";
+    public static final String DECISION_REJECTED = "REJECTED";
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -30,11 +38,10 @@ public class PositionChangeApproval {
     private String role; // MANAGER / HR / ADMIN
 
     @Column(length = 50, nullable = false)
-    private String decision; // pending / approved / rejected
+    private String decision; // PENDING / APPROVED / REJECTED
 
     @Column(length = 255)
     private String comment;
 
     private LocalDateTime decidedAt;
 }
-
