@@ -154,13 +154,13 @@ public class AbsenceRequestService {
     }
 
     @Transactional
-    public Page<AbsenceReqResponse> getAllApprovals(UUID userId, int page, int size) {
+    public Page<AbsenceReqResponse> getAllApprovals(UUID userId, int page, int size, WorkflowActionType action) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
         Page<WorkflowInstance> instancePage =
                 workflowInstanceRepository.findAll(
-                        WorkflowSpecifications.userInvolved(userId),
+                        WorkflowSpecifications.byActionOfUser(action, userId),
                         pageable
                 );
 

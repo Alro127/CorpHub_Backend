@@ -1,5 +1,8 @@
 package com.example.ticket_helpdesk_backend.controller;
 
+import com.example.ticket_helpdesk_backend.consts.AbsenceRequestStatus;
+import com.example.ticket_helpdesk_backend.consts.WorkflowActionType;
+import com.example.ticket_helpdesk_backend.consts.WorkflowStatus;
 import com.example.ticket_helpdesk_backend.dto.AbsenceReqResponse;
 import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import com.example.ticket_helpdesk_backend.dto.AbsenceReqRequest;
@@ -89,12 +92,13 @@ public class AbsenceRequestController {
     public ResponseEntity<?> getMyApprovals(
             @RequestHeader("Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) WorkflowActionType action
     ) {
         UUID userId = jwtUtil.getUserId(authHeader.substring(7));
 
         Page<AbsenceReqResponse> pageData =
-                absenceRequestService.getAllApprovals(userId, page, size);
+                absenceRequestService.getAllApprovals(userId, page, size, action);
 
         ApiResponse<List<AbsenceReqResponse>> response =
                 new ApiResponse<>(
