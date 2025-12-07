@@ -28,7 +28,7 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                 .body(new ApiResponse<>(
                         HttpStatus.INTERNAL_SERVER_ERROR.value(),
-                        "Internal server error",
+                        ex.getMessage(),
                         LocalDateTime.now(),
                         null
                 ));

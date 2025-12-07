@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.specification;
 
+import com.example.ticket_helpdesk_backend.consts.WorkflowActionType;
 import com.example.ticket_helpdesk_backend.consts.WorkflowStatus;
 import com.example.ticket_helpdesk_backend.entity.WorkflowInstance;
 import com.example.ticket_helpdesk_backend.entity.WorkflowStep;
@@ -65,9 +66,47 @@ public class WorkflowSpecifications {
     }
 
     public static Specification<WorkflowInstance> byStatus(WorkflowStatus status) {
-        return (root, query, cb) ->
-                cb.equal(root.get("status"), status);
+        return (root, query, cb) -> {
+            if (status == null) {
+                return cb.conjunction();
+            }
+            return cb.equal(root.get("status"), status);
+        };
     }
+
+    public static Specification<WorkflowInstance> byActionOfUser(
+            WorkflowActionType action,
+            UUID approverId
+    ) {
+        return (root, query, cb) -> {
+            if (approverId == null) {
+                return cb.conjunction(); // không filter
+            }
+
+            // SUBQUERY tìm action của user này
+            assert query != null;
+            var subQuery = query.subquery(UUID.class);
+            var actionRoot = subQuery.from(WorkflowStepAction.class);
+
+            subQuery.select(actionRoot.get("instance").get("id"))
+                    .where(
+                            cb.equal(actionRoot.get("actor").get("id"), approverId),
+
+                            action == null
+                                    ? cb.conjunction()
+                                    : cb.equal(actionRoot.get("action"), action)
+                    );
+
+            if (action == null) {
+                // TRƯỜNG HỢP: CHƯA TỪNG ACTION
+                return cb.not(root.get("id").in(subQuery));
+            }
+
+            // TRƯỜNG HỢP: ĐÃ ACTION
+            return root.get("id").in(subQuery);
+        };
+    }
+
 
     public static Specification<WorkflowInstance> userInvolved(UUID userId) {
         return (root, query, cb) -> {

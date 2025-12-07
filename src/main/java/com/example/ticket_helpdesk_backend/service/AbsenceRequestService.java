@@ -10,9 +10,11 @@ import com.example.ticket_helpdesk_backend.dto.UserDto;
 import com.example.ticket_helpdesk_backend.dto.WorkflowStepActionDto;
 import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
+import com.example.ticket_helpdesk_backend.repository.AbsenceBalanceRepository;
 import com.example.ticket_helpdesk_backend.repository.AbsenceRequestRepository;
 import com.example.ticket_helpdesk_backend.repository.AbsenceTypeRepository;
 import com.example.ticket_helpdesk_backend.repository.WorkflowInstanceRepository;
+import com.example.ticket_helpdesk_backend.specification.AbsenceBalanceSpecifications;
 import com.example.ticket_helpdesk_backend.specification.WorkflowSpecifications;
 import jakarta.security.auth.message.AuthException;
 import lombok.AllArgsConstructor;
@@ -40,6 +42,7 @@ public class AbsenceRequestService {
     private final AbsenceTypeRepository absenceTypeRepository;
     private final WorkflowEngineService workflowEngineService;
     private final WorkflowInstanceRepository workflowInstanceRepository;
+    private final AbsenceBalanceRepository absenceBalanceRepository;
     private AbsenceRequestRepository absenceRequestRepository;
     private final ModelMapper modelMapper;
     private final AbsenceWorkflowContextProvider absenceContext;
@@ -151,13 +154,13 @@ public class AbsenceRequestService {
     }
 
     @Transactional
-    public Page<AbsenceReqResponse> getAllApprovals(UUID userId, int page, int size) {
+    public Page<AbsenceReqResponse> getAllApprovals(UUID userId, int page, int size, WorkflowActionType action) {
 
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
 
         Page<WorkflowInstance> instancePage =
                 workflowInstanceRepository.findAll(
-                        WorkflowSpecifications.userInvolved(userId),
+                        WorkflowSpecifications.byActionOfUser(action, userId),
                         pageable
                 );
 
@@ -260,6 +263,26 @@ public class AbsenceRequestService {
         // Cập nhật trạng thái đơn theo workflow
         if (instance.getStatus() == WorkflowStatus.APPROVED) {
             request.setStatus(AbsenceRequestStatus.APPROVED);
+            if (request.getAbsenceType().getAffectQuota())
+            {
+                UUID userId = request.getUser().getId();
+                UUID typeId = request.getAbsenceType().getId();
+                Integer year = request.getCreatedAt().getYear();
+
+                AbsenceBalance balance = absenceBalanceRepository.findOne(
+                        Specification.where(AbsenceBalanceSpecifications.hasUserId(userId))
+                                .and(AbsenceBalanceSpecifications.hasAbsenceTypeId(typeId))
+                                .and(AbsenceBalanceSpecifications.hasYear(year))
+                ).orElseThrow(() -> new RuntimeException(
+                        "AbsenceBalance not found for user=" + userId +
+                                " type=" + typeId +
+                                " year=" + year
+                ));
+
+                balance.setUsedDays(balance.getUsedDays().add(request.getDurationDays()));
+
+                absenceBalanceRepository.save(balance);
+            }
         }
         if (instance.getStatus() == WorkflowStatus.REJECTED) {
             request.setStatus(AbsenceRequestStatus.REJECTED);
