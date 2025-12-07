@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.controller;
 
+import com.example.ticket_helpdesk_backend.consts.RoomStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.RoomService;
@@ -35,7 +36,7 @@ public class RoomController {
             @RequestParam(required = false) UUID departmentId,
             @RequestParam(required = false) Integer minCapacity,
             @RequestParam(required = false) BigDecimal minArea,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) RoomStatus status,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "9") int size
             ) {
