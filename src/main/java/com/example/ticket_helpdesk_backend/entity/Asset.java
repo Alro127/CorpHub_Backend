@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.entity;
 
+import com.example.ticket_helpdesk_backend.consts.AssetStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -39,11 +40,10 @@ public class Asset {
     @JoinColumn(name = "category_id")
     private com.example.ticket_helpdesk_backend.entity.AssetCategory category;
 
-    @Size(max = 20)
     @NotNull
-    @Nationalized
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private AssetStatus status;
 
     @Column(name = "\"value\"", precision = 18, scale = 2)
     private BigDecimal value;

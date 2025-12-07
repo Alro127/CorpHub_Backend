@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.dto;
 
+import com.example.ticket_helpdesk_backend.consts.AssetStatus;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -29,7 +30,7 @@ public class AssetResponse implements Serializable {
     AssetCategoryDto category;
     @NotNull
     @Size(max = 20)
-    String status;
+    AssetStatus status;
     BigDecimal value;
     LocalDate purchaseDate;
     LocalDate warranty;
