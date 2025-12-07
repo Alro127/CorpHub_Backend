@@ -44,12 +44,17 @@ public class AbsenceRequestService {
     private final WorkflowInstanceRepository workflowInstanceRepository;
     private final AbsenceBalanceRepository absenceBalanceRepository;
     private AbsenceRequestRepository absenceRequestRepository;
+    private final AbsenceAttachmentService absenceAttachmentService;
     private final ModelMapper modelMapper;
     private final AbsenceWorkflowContextProvider absenceContext;
 
     public AbsenceReqResponse mapToDto(AbsenceRequest request) {
         AbsenceReqResponse response = modelMapper.map(request, AbsenceReqResponse.class);
         response.setUser(UserDto.toUserDto(request.getUser()));
+
+//        response.setAttachmentUrl(
+//                absenceAttachmentService.generatePresignedUrl(request.getAttachmentUrl())
+//        );
 
         Specification<WorkflowInstance> spec = Specification
                 .where(byEntityId(request.getId()))
@@ -77,30 +82,92 @@ public class AbsenceRequestService {
         return absenceRequestRepository.findAll(spec, pageable).map(this::mapToDto);
     }
 
+//    @Transactional
+//    public AbsenceReqResponse create(UUID userId, AbsenceReqRequest request) throws ResourceNotFoundException {
+//        AbsenceRequest absenceRequest = modelMapper.map(request, AbsenceRequest.class);
+//        User user = userService.getUserById(userId);
+//        AbsenceType absenceType = absenceTypeRepository.findById(request.getAbsenceTypeId())
+//                .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại nghỉ phép"));
+//
+//        // ✅ Validate logic ngày
+//        if (request.getEndDate().isBefore(request.getStartDate())) {
+//            throw new IllegalArgumentException("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu");
+//        }
+//
+//        // ✅ Tính số ngày nghỉ
+//        BigDecimal duration = BigDecimal.valueOf(
+//                ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate()) + 1
+//        );
+//        absenceRequest.setDurationDays(duration);
+//
+//        absenceRequest.setUser(user);
+//        absenceRequest.setAbsenceType(absenceType);
+//        absenceRequest.setStatus(AbsenceRequestStatus.PENDING);
+//        absenceRequest.setCreatedAt(LocalDateTime.now());
+//        absenceRequest.setUpdatedAt(LocalDateTime.now());
+//
+//        try {
+//            AbsenceRequest saved = absenceRequestRepository.save(absenceRequest);
+//
+//            WorkflowTemplate template = absenceType.getWorkflowTemplate();
+//
+//            if (template != null) {
+//                workflowEngineService.startWorkflow(
+//                        absenceContext.getTargetEntity(),
+//                        template.getName(),
+//                        saved.getId(),
+//                        userId
+//                );
+//            }
+//
+//            return this.mapToDto(saved);
+//
+//        } catch (Exception ex) {
+//            ex.printStackTrace();
+//            // ÉP rollback của transaction
+//            throw new RuntimeException("Không thể tạo quy trình phê duyệt. Vui lòng thử lại.");
+//        }
+//    }
+
     @Transactional
     public AbsenceReqResponse create(UUID userId, AbsenceReqRequest request) throws ResourceNotFoundException {
-        AbsenceRequest absenceRequest = modelMapper.map(request, AbsenceRequest.class);
+
         User user = userService.getUserById(userId);
+
         AbsenceType absenceType = absenceTypeRepository.findById(request.getAbsenceTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại nghỉ phép"));
 
-        // ✅ Validate logic ngày
+        // 🔥 1. Kiểm tra nếu loại nghỉ phép yêu cầu minh chứng
+        if (Boolean.TRUE.equals(absenceType.getRequireProof())) {
+            if (request.getAttachmentUrl() == null || request.getAttachmentUrl().isBlank()) {
+                throw new IllegalArgumentException("Loại nghỉ phép này yêu cầu phải có file minh chứng.");
+            }
+        }
+
+        // 🔥 2. Validate ngày
         if (request.getEndDate().isBefore(request.getStartDate())) {
             throw new IllegalArgumentException("Ngày kết thúc phải sau hoặc bằng ngày bắt đầu");
         }
 
-        // ✅ Tính số ngày nghỉ
+        // 🔥 3. Map entity
+        AbsenceRequest absenceRequest = new AbsenceRequest();
+        absenceRequest.setUser(user);
+        absenceRequest.setAbsenceType(absenceType);
+        absenceRequest.setStartDate(request.getStartDate());
+        absenceRequest.setEndDate(request.getEndDate());
+        absenceRequest.setReason(request.getReason());
+        absenceRequest.setAttachmentUrl(request.getAttachmentUrl());
+        absenceRequest.setStatus(AbsenceRequestStatus.PENDING);
+        absenceRequest.setCreatedAt(LocalDateTime.now());
+        absenceRequest.setUpdatedAt(LocalDateTime.now());
+
+        // 🔥 4. Tính số ngày
         BigDecimal duration = BigDecimal.valueOf(
                 ChronoUnit.DAYS.between(request.getStartDate(), request.getEndDate()) + 1
         );
         absenceRequest.setDurationDays(duration);
 
-        absenceRequest.setUser(user);
-        absenceRequest.setAbsenceType(absenceType);
-        absenceRequest.setStatus(AbsenceRequestStatus.PENDING);
-        absenceRequest.setCreatedAt(LocalDateTime.now());
-        absenceRequest.setUpdatedAt(LocalDateTime.now());
-
+        // 🔥 5. Lưu DB + tạo workflow
         try {
             AbsenceRequest saved = absenceRequestRepository.save(absenceRequest);
 
@@ -123,6 +190,7 @@ public class AbsenceRequestService {
             throw new RuntimeException("Không thể tạo quy trình phê duyệt. Vui lòng thử lại.");
         }
     }
+
 
     public AbsenceReqResponse getById(UUID id) {
         return absenceRequestRepository.findById(id).map(this::mapToDto).orElse(null);
@@ -204,6 +272,7 @@ public class AbsenceRequestService {
             throw new IllegalStateException("Chỉ có thể xóa đơn đang chờ duyệt");
         }
 
+        absenceAttachmentService.deleteProofFile(absenceRequest.getAttachmentUrl());
         absenceRequestRepository.delete(absenceRequest);
     }
 
@@ -224,6 +293,12 @@ public class AbsenceRequestService {
 
         AbsenceType absenceType = absenceTypeRepository.findById(request.getAbsenceTypeId())
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy loại nghỉ phép"));
+
+        // Nếu có file mới → xóa file cũ + ghi đè
+        if (request.getAttachmentUrl() != null && !request.getAttachmentUrl().equals(absenceRequest.getAttachmentUrl())) {
+            absenceAttachmentService.deleteProofFile(absenceRequest.getAttachmentUrl());
+            absenceRequest.setAttachmentUrl(request.getAttachmentUrl());
+        }
 
         absenceRequest.setAbsenceType(absenceType);
         absenceRequest.setStartDate(request.getStartDate());
