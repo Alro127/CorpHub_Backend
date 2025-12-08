@@ -212,6 +212,18 @@ public class DepartmentController {
         }
     }
 
+    // Phân quyền
+    @GetMapping("/with-position")
+    public ResponseEntity<?> getDepartmentWithPositions() {
+        ApiResponse<List<DepartmentPositionDto>> response = new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Get Departments with Positions successfully",
+                LocalDateTime.now(),
+                departmentService.getDepartmentWithPosition()
+        );
+        return ResponseEntity.ok(response);
+    }
+
 
     //    Tạo position trong phòng ban	POST	/api/departments/{departmentId}/positions
 //    Cập nhật	PUT	/api/positions/{id}

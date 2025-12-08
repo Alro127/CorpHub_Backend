@@ -3,11 +3,9 @@ package com.example.ticket_helpdesk_backend.controller;
 import com.example.ticket_helpdesk_backend.consts.AbsenceRequestStatus;
 import com.example.ticket_helpdesk_backend.consts.WorkflowActionType;
 import com.example.ticket_helpdesk_backend.consts.WorkflowStatus;
-import com.example.ticket_helpdesk_backend.dto.AbsenceReqResponse;
-import com.example.ticket_helpdesk_backend.dto.ApiResponse;
-import com.example.ticket_helpdesk_backend.dto.AbsenceReqRequest;
-import com.example.ticket_helpdesk_backend.dto.ApproveRejectRequest;
+import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
+import com.example.ticket_helpdesk_backend.service.AbsenceAttachmentService;
 import com.example.ticket_helpdesk_backend.service.AbsenceRequestService;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import jakarta.security.auth.message.AuthException;
@@ -17,6 +15,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +28,7 @@ import java.util.UUID;
 public class AbsenceRequestController {
 
     private final AbsenceRequestService absenceRequestService;
+    private final AbsenceAttachmentService absenceAttachmentService;
     private final JwtUtil jwtUtil;
 
     /* ----------------------------------------------------
