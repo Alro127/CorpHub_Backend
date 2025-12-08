@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.dto.InternalWorkHistoryDto;
 import com.example.ticket_helpdesk_backend.entity.InternalWorkHistory;
 import com.example.ticket_helpdesk_backend.repository.InternalWorkHistoryRepository;
 import lombok.RequiredArgsConstructor;
@@ -10,15 +11,27 @@ import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
-public class InternalWorkHistoryService{
+public class InternalWorkHistoryService {
 
     private final InternalWorkHistoryRepository repository;
 
-    public InternalWorkHistory createHistory(InternalWorkHistory history) {
-        return repository.save(history);
+    /* -----------------------------
+     * CREATE NEW HISTORY
+     * ----------------------------- */
+    public InternalWorkHistoryDto createHistory(InternalWorkHistory history) {
+        InternalWorkHistory saved = repository.save(history);
+        return InternalWorkHistoryDto.mapToDto(saved);
     }
 
-    public List<InternalWorkHistory> getByEmployee(UUID employeeId) {
-        return repository.findByEmployeeProfileIdOrderByEffectiveDateDesc(employeeId);
+    /* -----------------------------
+     * GET ALL BY EMPLOYEE
+     * ----------------------------- */
+    public List<InternalWorkHistoryDto> getByEmployee(UUID employeeId) {
+        return repository.findByEmployeeProfileIdOrderByEffectiveDateDesc(employeeId)
+                .stream()
+                .map(InternalWorkHistoryDto::mapToDto)
+                .toList();
     }
+
 }
+
