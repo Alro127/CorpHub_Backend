@@ -4,6 +4,7 @@ import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import com.example.ticket_helpdesk_backend.dto.AttachmentUploadResponse;
 import com.example.ticket_helpdesk_backend.service.AbsenceAttachmentService;
 import com.example.ticket_helpdesk_backend.service.AbsenceRequestService;
+import com.example.ticket_helpdesk_backend.service.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.http.HttpStatus;
@@ -14,89 +15,85 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.InputStream;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/absence/attachments")
 @RequiredArgsConstructor
 public class AbsenceAttachmentController {
 
-    private final AbsenceAttachmentService absenceAttachmentService;
-    private final AbsenceRequestService 
+    private final AbsenceAttachmentService attachmentService;
+    private final FileStorageService fileStorageService;
 
-    /* ----------------------------------------------------
-     * 1️⃣ Upload file tạm trước khi submit request
-     * ---------------------------------------------------- */
-    @PostMapping("/upload")
-    public ResponseEntity<?> uploadProof(@RequestParam("file") MultipartFile file) {
+    /* -----------------------------------------
+     * 1️⃣ Upload file tạm trước khi submit
+     * ----------------------------------------- */
+    @PostMapping("/upload-temp")
+    public ResponseEntity<?> uploadTemp(@RequestParam("file") MultipartFile file) {
 
-        String objectKey = absenceAttachmentService.uploadProofFile(file);
-        String presignedUrl = absenceAttachmentService.generatePresignedUrl(objectKey);
+        String objectKey = attachmentService.uploadTemp(file);
+        String url = fileStorageService.getPresignedUrl("absence", objectKey);
 
         return ResponseEntity.ok(
                 new ApiResponse<>(
-                        HttpStatus.OK.value(),
-                        "Upload attachment successfully",
+                        200,
+                        "Temporary upload successful",
                         LocalDateTime.now(),
-                        new AttachmentUploadResponse(objectKey, presignedUrl)
+                        new AttachmentUploadResponse(objectKey, url)
                 )
         );
     }
 
-    /* ----------------------------------------------------
-     * 2️⃣ Xóa attachment tạm trước khi submit
-     * ---------------------------------------------------- */
-    @DeleteMapping
-    public ResponseEntity<?> deleteTempAttachment(@RequestParam String objectKey) {
+    @DeleteMapping("/temp")
+    public ResponseEntity<?> deleteTemp(@RequestParam String objectKey) {
 
-        absenceAttachmentService.deleteProofFile(objectKey);
-
-
+        attachmentService.deleteTemp(objectKey);
 
         return ResponseEntity.ok(
-                new ApiResponse<>(
-                        HttpStatus.OK.value(),
-                        "Attachment deleted successfully",
-                        LocalDateTime.now(),
-                        null
-                )
+                new ApiResponse<>(200, "Temp file deleted", LocalDateTime.now(), null)
         );
     }
 
-    /* ----------------------------------------------------
-     * 3️⃣ Thay thế attachment (xóa file cũ, upload file mới)
-     * ---------------------------------------------------- */
-    @PutMapping
-    public ResponseEntity<?> replaceAttachment(
-            @RequestParam("file") MultipartFile newFile,
-            @RequestParam("oldKey") String oldKey
+    /* -----------------------------------------
+     * 2️⃣ Replace attachment sau submit
+     * ----------------------------------------- */
+    @PutMapping("/{requestId}")
+    public ResponseEntity<?> replace(
+            @PathVariable UUID requestId,
+            @RequestParam("file") MultipartFile file
     ) {
-        // 1. Xóa file cũ
-        absenceAttachmentService.deleteProofFile(oldKey);
-
-        // 2. Upload file mới
-        String newKey = absenceAttachmentService.uploadProofFile(newFile);
-        String newUrl = absenceAttachmentService.generatePresignedUrl(newKey);
+        var result = attachmentService.replaceAttachment(requestId, file);
 
         return ResponseEntity.ok(
-                new ApiResponse<>(
-                        HttpStatus.OK.value(),
-                        "Attachment replaced successfully",
-                        LocalDateTime.now(),
-                        new AttachmentUploadResponse(newKey, newUrl)
-                )
+                new ApiResponse<>(200, "Attachment replaced", LocalDateTime.now(), result)
         );
     }
 
-    @GetMapping("/download")
-    public ResponseEntity<?> downloadAttachment(@RequestParam String objectKey) {
-        InputStream fileStream = absenceAttachmentService.downloadFile(objectKey);
-        String contentType = absenceAttachmentService.detectContentType(objectKey);
+    /* -----------------------------------------
+     * 3️⃣ Delete attachment sau submit
+     * ----------------------------------------- */
+    @DeleteMapping("/{requestId}")
+    public ResponseEntity<?> delete(@PathVariable UUID requestId) {
+
+        attachmentService.deleteAttachment(requestId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(200, "Attachment deleted", LocalDateTime.now(), null)
+        );
+    }
+
+    /* -----------------------------------------
+     * 4️⃣ Download attachment
+     * ----------------------------------------- */
+    @GetMapping("/{requestId}/download")
+    public ResponseEntity<?> download(@PathVariable UUID requestId) {
+
+        InputStream stream = attachmentService.downloadAttachment(requestId);
 
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment; filename=\"" + Paths.get(objectKey).getFileName() + "\"")
-                .header("Content-Type", contentType != null ? contentType : "application/octet-stream")
-                .body(new InputStreamResource(fileStream));
+                .header("Content-Disposition", "attachment")
+                .body(new InputStreamResource(stream));
     }
-
 }
+
 

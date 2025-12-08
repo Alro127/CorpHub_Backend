@@ -82,6 +82,17 @@ public class AbsenceRequestService {
         return absenceRequestRepository.findAll(spec, pageable).map(this::mapToDto);
     }
 
+    public AbsenceRequest getEntityById(UUID id) {
+        return absenceRequestRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Absence request not found"));
+    }
+
+    public void updateAttachment(UUID id, String newObjectKey) {
+        AbsenceRequest request = getEntityById(id);
+        request.setAttachmentUrl(newObjectKey);
+        absenceRequestRepository.save(request);
+    }
+
 //    @Transactional
 //    public AbsenceReqResponse create(UUID userId, AbsenceReqRequest request) throws ResourceNotFoundException {
 //        AbsenceRequest absenceRequest = modelMapper.map(request, AbsenceRequest.class);
@@ -272,7 +283,7 @@ public class AbsenceRequestService {
             throw new IllegalStateException("Chỉ có thể xóa đơn đang chờ duyệt");
         }
 
-        absenceAttachmentService.deleteProofFile(absenceRequest.getAttachmentUrl());
+        absenceAttachmentService.deleteAttachment(id);
         absenceRequestRepository.delete(absenceRequest);
     }
 
@@ -296,7 +307,6 @@ public class AbsenceRequestService {
 
         // Nếu có file mới → xóa file cũ + ghi đè
         if (request.getAttachmentUrl() != null && !request.getAttachmentUrl().equals(absenceRequest.getAttachmentUrl())) {
-            absenceAttachmentService.deleteProofFile(absenceRequest.getAttachmentUrl());
             absenceRequest.setAttachmentUrl(request.getAttachmentUrl());
         }
 
