@@ -27,6 +27,10 @@ public class AbsenceAttachmentService {
                 .orElseThrow(() -> new RuntimeException("Absence request not found"));
     }
 
+    public String getObjectKey(UUID requestId) {
+        return getById(requestId).getAttachmentUrl();
+    }
+
     public String uploadTemp(MultipartFile file) {
         return fileStorageService.uploadFile(BUCKET, file, PREFIX);
     }
@@ -41,22 +45,21 @@ public class AbsenceAttachmentService {
     public AttachmentUploadResponse replaceAttachment(UUID requestId, MultipartFile file) {
 
         AbsenceRequest req = getById(requestId);
-        String oldKey = req.getAttachmentUrl();
 
-        // Xóa file cũ
-        if (oldKey != null) {
-            fileStorageService.deleteFile(BUCKET, oldKey);
+        // Remove old
+        if (req.getAttachmentUrl() != null) {
+            fileStorageService.deleteFile(BUCKET, req.getAttachmentUrl());
         }
 
-        // Upload file mới
+        // Upload new
         String newKey = fileStorageService.uploadFile(BUCKET, file, PREFIX);
-        String newUrl = fileStorageService.getPresignedUrl(BUCKET, newKey);
+        String preview = fileStorageService.getPresignedUrl(BUCKET, newKey);
+        String fileName = extractFileName(newKey);
 
-        // Update DB trực tiếp
         req.setAttachmentUrl(newKey);
         repository.save(req);
 
-        return new AttachmentUploadResponse(newKey, newUrl);
+        return new AttachmentUploadResponse(newKey, preview, fileName);
     }
 
     /* ------------------------------------------
@@ -91,4 +94,9 @@ public class AbsenceAttachmentService {
             return "application/octet-stream";
         }
     }
+    public String extractFileName(String objectKey) {
+        if (objectKey == null) return null;
+        return objectKey.substring(objectKey.indexOf("_") + 1);
+    }
+
 }

@@ -34,12 +34,14 @@ public class AbsenceAttachmentController {
         String objectKey = attachmentService.uploadTemp(file);
         String url = fileStorageService.getPresignedUrl("absence", objectKey);
 
+        String fileName = attachmentService.extractFileName(objectKey);
+
         return ResponseEntity.ok(
                 new ApiResponse<>(
                         200,
                         "Temporary upload successful",
                         LocalDateTime.now(),
-                        new AttachmentUploadResponse(objectKey, url)
+                        new AttachmentUploadResponse(objectKey, url, fileName)
                 )
         );
     }
@@ -88,12 +90,17 @@ public class AbsenceAttachmentController {
     @GetMapping("/{requestId}/download")
     public ResponseEntity<?> download(@PathVariable UUID requestId) {
 
+        String objectKey = attachmentService.getObjectKey(requestId);
+        String fileName = attachmentService.extractFileName(objectKey);
+        String contentType = attachmentService.detectContentType(objectKey);
         InputStream stream = attachmentService.downloadAttachment(requestId);
 
         return ResponseEntity.ok()
-                .header("Content-Disposition", "attachment")
+                .header("Content-Disposition", "attachment; filename=\"" + fileName + "\"")
+                .header("Content-Type", contentType)
                 .body(new InputStreamResource(stream));
     }
+
 }
 
 
