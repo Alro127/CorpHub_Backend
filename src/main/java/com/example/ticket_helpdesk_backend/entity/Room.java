@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.entity;
 
+import com.example.ticket_helpdesk_backend.consts.RoomStatus;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -40,11 +41,10 @@ public class Room {
     @Column(name = "area", precision = 10, scale = 2)
     private BigDecimal area;
 
-    @Size(max = 20)
     @NotNull
-    @Nationalized
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
-    private String status;
+    private RoomStatus status;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "department_id")

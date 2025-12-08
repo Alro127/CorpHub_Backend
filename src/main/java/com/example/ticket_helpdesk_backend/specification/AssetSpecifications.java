@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.specification;
 
+import com.example.ticket_helpdesk_backend.consts.AssetStatus;
 import com.example.ticket_helpdesk_backend.entity.Asset;
 import com.example.ticket_helpdesk_backend.entity.Room;
 import com.example.ticket_helpdesk_backend.entity.AssetCategory;
@@ -28,10 +29,10 @@ public class AssetSpecifications {
         };
     }
 
-    public static Specification<Asset> hasStatus(String status) {
+    public static Specification<Asset> hasStatus(AssetStatus status) {
         return (root, query, cb) -> {
-            if (status == null || status.trim().isEmpty()) return null;
-            return cb.equal(cb.lower(root.get("status")), status.toLowerCase());
+            if (status == null) return null;
+            return cb.equal(root.get("status"), status);
         };
     }
 

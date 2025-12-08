@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.consts.RoomStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.Asset;
 import com.example.ticket_helpdesk_backend.entity.Room;
@@ -64,7 +65,7 @@ public class RoomService {
         return mapToResponse(room);
     }
 
-    public Page<RoomResponse> getAllRooms(int page, int size, String keywords, UUID typeId, UUID departmentId, Integer minCapacity, BigDecimal minArea, String status) {
+    public Page<RoomResponse> getAllRooms(int page, int size, String keywords, UUID typeId, UUID departmentId, Integer minCapacity, BigDecimal minArea, RoomStatus status) {
         System.out.println(departmentId);
 
         Specification<Room> spec = Specification.where(hasName(keywords))
@@ -128,7 +129,7 @@ public class RoomService {
         // 1️⃣ Lấy tất cả phòng có capacity >= yêu cầu và status = "AVAILABLE"
         List<Room> candidateRooms = roomRepository.findAll(
                 Specification.where(RoomSpecifications.hasMinCapacity(roomRequirement.getCapacity()))
-                        .and(RoomSpecifications.hasStatus("AVAILABLE"))
+                        .and(RoomSpecifications.hasStatus(RoomStatus.AVAILABLE))
         );
 
         // 2️⃣ Lọc ra các phòng có đủ tài sản

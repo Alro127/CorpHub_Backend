@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.dto;
 
+import com.example.ticket_helpdesk_backend.consts.RoomStatus;
 import jakarta.validation.constraints.*;
 import lombok.Value;
 
@@ -20,7 +21,7 @@ public class RoomRequest implements Serializable {
     String name;
 
     @NotNull(message = "Room type cannot be null")
-    UUID type_id;
+    UUID typeId;
 
     @Min(value = 1, message = "Capacity must be at least 1")
     Integer capacity;
@@ -28,9 +29,8 @@ public class RoomRequest implements Serializable {
     @DecimalMin(value = "0.0", inclusive = false, message = "Area must be greater than 0")
     BigDecimal area;
 
-    @NotBlank(message = "Status cannot be blank")
-    @Size(max = 20, message = "Status cannot exceed 20 characters")
-    String status;
+    @NotNull(message = "Status must not be null")
+    RoomStatus status;
 
     @NotNull(message = "Department ID cannot be null")
     UUID departmentId;

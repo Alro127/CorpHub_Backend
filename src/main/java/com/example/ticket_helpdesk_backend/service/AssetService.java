@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.consts.AssetStatus;
 import com.example.ticket_helpdesk_backend.dto.AssetCategoryDto;
 import com.example.ticket_helpdesk_backend.dto.AssetRequest;
 import com.example.ticket_helpdesk_backend.dto.AssetResponse;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -38,7 +40,7 @@ public class AssetService {
                 () -> new ResourceNotFoundException("Asset not found")), AssetResponse.class);
     }
 
-    public Page<AssetResponse> getAllAssets(int page, int size, String keywords, UUID categoryId, String status) {
+    public Page<AssetResponse> getAllAssets(int page, int size, String keywords, UUID categoryId, AssetStatus status) {
         Specification<Asset> spec = Specification.where(hasKeyword(keywords)
                         .and(hasCategory(categoryId)).and(hasStatus(status)));
         Pageable pageable = PageRequest.of(page, size);
@@ -117,5 +119,16 @@ public class AssetService {
         assetRepository.save(asset);
 
         return true;
+    }
+
+    public Map<AssetStatus, Integer> getAssetCounts() {
+        Map<AssetStatus, Integer> result = new java.util.HashMap<>();
+
+        for (AssetStatus assetStatus : AssetStatus.values()) {
+            int count = assetRepository.countByStatus(assetStatus);
+            result.put(assetStatus, count);
+        }
+
+        return result;
     }
 }

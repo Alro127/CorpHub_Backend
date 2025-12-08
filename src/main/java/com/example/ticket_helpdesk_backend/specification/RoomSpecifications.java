@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.specification;
 
+import com.example.ticket_helpdesk_backend.consts.RoomStatus;
 import com.example.ticket_helpdesk_backend.entity.Room;
 import com.example.ticket_helpdesk_backend.entity.Department;
 import org.springframework.data.jpa.domain.Specification;
@@ -26,12 +27,13 @@ public class RoomSpecifications {
     }
 
     // 🔍 Tìm theo trạng thái
-    public static Specification<Room> hasStatus(String status) {
+    public static Specification<Room> hasStatus(RoomStatus status) {
         return (root, query, cb) -> {
-            if (status == null || status.trim().isEmpty()) return null;
-            return cb.equal(cb.lower(root.get("status")), status.toLowerCase());
+            if (status == null) return null;
+            return cb.equal(root.get("status"), status);
         };
     }
+
 
     // 🔍 Tìm theo sức chứa >= min
     public static Specification<Room> hasMinCapacity(Integer min) {

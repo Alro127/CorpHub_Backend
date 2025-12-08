@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.dto;
 
+import com.example.ticket_helpdesk_backend.consts.RoomStatus;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -28,7 +29,7 @@ public class RoomResponse implements Serializable {
     BigDecimal area;
     @NotNull
     @Size(max = 20)
-    String status;
+    RoomStatus status;
     DepartmentDto department;
     List<AssetResponse> assets;
 }

@@ -2,10 +2,7 @@ package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.WorkScheduleStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
-import com.example.ticket_helpdesk_backend.entity.AttendanceRecord;
-import com.example.ticket_helpdesk_backend.entity.Shift;
-import com.example.ticket_helpdesk_backend.entity.User;
-import com.example.ticket_helpdesk_backend.entity.WorkSchedule;
+import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.*;
 import com.example.ticket_helpdesk_backend.specification.AbsenceRequestSpecifications;
@@ -84,6 +81,20 @@ public class WorkScheduleService {
 
         WorkSchedule updated = workScheduleRepository.save(existing);
         return toResponse(updated);
+    }
+
+    @Transactional
+    public void updateWorkSchedulesFromAbsenceRequest(AbsenceRequest absenceRequest) {
+        Specification<WorkSchedule> spec = Specification.where(WorkScheduleSpecifications.hasUserId(absenceRequest.getUser().getId()))
+                .and(WorkScheduleSpecifications.workDateFrom(absenceRequest.getStartDate()))
+                .and(WorkScheduleSpecifications.workDateTo(absenceRequest.getEndDate()))
+                .and(WorkScheduleSpecifications.hasStatus(WorkScheduleStatus.SCHEDULED));
+
+        List<WorkSchedule> workSchedules = workScheduleRepository.findAll(spec);
+        for (WorkSchedule workSchedule : workSchedules) {
+            workSchedule.setStatus(WorkScheduleStatus.ABSENCE);
+            workScheduleRepository.save(workSchedule);
+        }
     }
 
     @Transactional

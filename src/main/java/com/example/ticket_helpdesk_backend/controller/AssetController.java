@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.controller;
 
+import com.example.ticket_helpdesk_backend.consts.AssetStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.AssetService;
@@ -31,10 +32,12 @@ public class AssetController {
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String keywords,
             @RequestParam(required = false) UUID categoryId,
-            @RequestParam(required = false) String status) {
+            @RequestParam(required = false) AssetStatus status) {
         Page<AssetResponse> pageData = assetService.getAllAssets(
                 page, size, keywords, categoryId, status
         );
+
+        Map<AssetStatus, Integer> assetCounts = assetService.getAssetCounts();
         ApiResponse<List<AssetResponse>> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
                 "Fetched all assets successfully",
@@ -45,7 +48,8 @@ public class AssetController {
                         "size", pageData.getSize(),
                         "totalElements", pageData.getTotalElements(),
                         "totalPages", pageData.getTotalPages(),
-                        "last", pageData.isLast()
+                        "last", pageData.isLast(),
+                        "assetCounts", assetCounts
                 )
         );
         return ResponseEntity.ok(response);

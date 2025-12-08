@@ -1,6 +1,7 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.RoomRequirementStatus;
+import com.example.ticket_helpdesk_backend.consts.RoomStatus;
 import com.example.ticket_helpdesk_backend.dto.RoomAllocationSuggestion;
 import com.example.ticket_helpdesk_backend.dto.RoomRequirementDto;
 import com.example.ticket_helpdesk_backend.entity.Meeting;
@@ -97,6 +98,7 @@ public class RoomRequirementService {
         roomRequirementRepository.delete(roomRequirement);
     }
 
+    @Transactional
     public Boolean setUpRoom(UUID id, UUID roomId) {
         try {
 
@@ -110,6 +112,8 @@ public class RoomRequirementService {
             roomRequirement.setRoom(room);
             roomRequirement.setStatus(RoomRequirementStatus.ACCEPTED);
             roomRequirementRepository.save(roomRequirement);
+
+            room.setStatus(RoomStatus.RESERVED);
 
             Meeting meeting = roomRequirement.getMeeting();
             meeting.setLocation(room.getName());
@@ -154,7 +158,7 @@ public class RoomRequirementService {
                     .filter(r -> matchingHelper.isAvailable(r, req.getStartTime(), req.getEndTime()))
                     .filter(r -> matchingHelper.hasCapacity(r, req.getCapacity()))
                     .filter(r -> matchingHelper.hasRequiredAssets(r, req.getRoomRequirementAssets()))
-                    .filter(r -> r.getStatus().equalsIgnoreCase("AVAILABLE"))
+                    .filter(r -> r.getStatus().equals(RoomStatus.AVAILABLE))
                     .toList();
 
             // Xếp hạng độ phù hợp

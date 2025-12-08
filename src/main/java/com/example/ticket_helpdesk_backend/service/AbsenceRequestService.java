@@ -43,6 +43,7 @@ public class AbsenceRequestService {
     private final WorkflowEngineService workflowEngineService;
     private final WorkflowInstanceRepository workflowInstanceRepository;
     private final AbsenceBalanceRepository absenceBalanceRepository;
+    private final WorkScheduleService workScheduleService;
     private AbsenceRequestRepository absenceRequestRepository;
     private final AbsenceAttachmentService absenceAttachmentService;
     private final ModelMapper modelMapper;
@@ -368,6 +369,9 @@ public class AbsenceRequestService {
 
                 absenceBalanceRepository.save(balance);
             }
+
+            workScheduleService.updateWorkSchedulesFromAbsenceRequest(request);
+
         }
         if (instance.getStatus() == WorkflowStatus.REJECTED) {
             request.setStatus(AbsenceRequestStatus.REJECTED);
