@@ -244,4 +244,29 @@ public class EmployeeProfileService {
                 .map(EmployeeDocumentResponse::fromEntity)
                 .toList();
     }
+
+    @Transactional
+    public EmployeeContactInfoUpdateDto updateMyContactInfo(String token, EmployeeContactInfoUpdateDto request) throws ResourceNotFoundException {
+        UUID userId = jwtUtil.getUserId(token);
+
+        EmployeeProfile profile = employeeProfileRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee profile not found for current user"));
+
+        // Validate
+        validateContactInfo(request);
+
+        profile.setPersonalEmail(request.getPersonalEmail());
+        profile.setPhone(request.getPhone());
+        profile.setAddress(request.getAddress());
+        profile.setAbout(request.getAbout());
+
+        return EmployeeContactInfoUpdateDto.fromEntity(employeeProfileRepository.save(profile));
+    }
+
+    private void validateContactInfo(EmployeeContactInfoUpdateDto request) {
+        // Ví dụ: validate phone VN đơn giản
+        if (request.getPhone() != null && !request.getPhone().matches("^[0-9+]{8,20}$")) {
+            throw new IllegalArgumentException("Invalid phone number format");
+        }
+    }
 }
