@@ -1,6 +1,7 @@
 package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.BucketName;
+import com.example.ticket_helpdesk_backend.consts.UserRole;
 import com.example.ticket_helpdesk_backend.dto.DocumentMetaDto;
 import com.example.ticket_helpdesk_backend.dto.DocumentRelationCheckDto;
 import com.example.ticket_helpdesk_backend.dto.DocumentTypeDto;
@@ -34,7 +35,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class EmployeeDocumentService {
 
-    private final EmployeeDocumentRepository documentRepository;
+
 
     @Autowired
     EmployeeProfileRepository employeeProfileRepository;
@@ -55,7 +56,7 @@ public class EmployeeDocumentService {
     JwtUtil jwtUtil;
 
     public EmployeeDocument getById(UUID id) throws ResourceNotFoundException {
-        return documentRepository.findById(id)
+        return employeeDocumentRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tài liệu với id: " + id));
     }
 
@@ -102,18 +103,23 @@ public class EmployeeDocumentService {
     }
 
     @Transactional
-    public void delete(UUID id) throws ResourceNotFoundException {
+    public void delete(UUID id, String token) throws ResourceNotFoundException {
+
+        String role = jwtUtil.getRole(token);
 
         if (employeeCompetencyRepository.existsByDocumentId(id)) {
             throw new IllegalStateException("Document is attached with employee competency.");
         }
 
-        EmployeeDocument employeeDocument = documentRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Document not found"));;
+        EmployeeDocument employeeDocument = employeeDocumentRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Document not found"));
 
+        if (employeeDocument.getDocumentType().getCode().equals("DECISION") && !(UserRole.ROLE_HR.toString().equals(role)) || UserRole.ROLE_HR_MANAGER.toString().equals(role)) {
+            throw new IllegalStateException("You do not have permission to delete company policy documents.");
+        }
         fileStorageService.deleteFile(BucketName.EMPLOYEE_DOCUMENT.getBucketName(), employeeDocument.getFileUrl());
 
-        documentRepository.deleteById(id);
+        employeeDocumentRepository.deleteById(id);
     }
 
     @Transactional(readOnly = true)
