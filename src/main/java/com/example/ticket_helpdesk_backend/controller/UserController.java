@@ -243,4 +243,18 @@ public class UserController {
             return ResponseEntity.internalServerError().body(errorResponse);
         }
     }
+
+    @GetMapping("/{id}")
+    public ApiResponse<?> getUserDetail(
+            @PathVariable UUID id
+    ) throws ResourceNotFoundException {
+        UserDetailResponse detail = userService.getUserDetail(id);
+
+        return new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Get user detail successfully",
+                LocalDateTime.now(),
+                detail
+        );
+    }
 }
