@@ -233,7 +233,7 @@ public class PositionChangeRequestService {
 
         // 1. Upload file lên MinIO
         String bucket = "employee-documents";
-        String prefix = "decisions/" + request.getEmployee().getId();
+        String prefix =  "decisions_" + request.getEmployee().getFullName();
         String fileKey = fileStorageService.uploadFile(bucket, file, prefix);
         String fileUrl = fileStorageService.getPresignedUrl(bucket, fileKey);
 
