@@ -32,9 +32,6 @@ public class EmployeeProfileResponse {
     private String about;
 
     private UserSummary user; // Thông tin tài khoản
-    private List<EmployeeJobHistoryResponse> jobHistories;
-    private List<EmployeeCompetencyDto> competencies;
-    private List<EmployeeDocumentResponse> documents;
     private List<ActivityTimelineResponse> timeline; // Nhật ký hoạt động
 
     // ---- Inner class ----
@@ -74,25 +71,6 @@ public class EmployeeProfileResponse {
                     u.getRole() != null ? u.getRole().getName() : null,
                     u.getActive()
             ));
-        }
-
-        // convert các list con nếu có (jobHistories, competencies, documents)
-        if (profile.getJobHistories() != null) {
-            res.setJobHistories(profile.getJobHistories().stream()
-                    .map(EmployeeJobHistoryResponse::fromEntity)
-                    .collect(Collectors.toList()));
-        }
-
-        if (profile.getCompetencies() != null) {
-            res.setCompetencies(profile.getCompetencies().stream()
-                    .map(EmployeeCompetencyDto::fromEntity)
-                    .collect(Collectors.toList()));
-        }
-
-        if (profile.getDocuments() != null) {
-            res.setDocuments(profile.getDocuments().stream()
-                    .map(EmployeeDocumentResponse::fromEntity)
-                    .collect(Collectors.toList()));
         }
 
         return res;

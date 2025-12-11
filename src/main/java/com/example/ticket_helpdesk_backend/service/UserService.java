@@ -2,6 +2,7 @@ package com.example.ticket_helpdesk_backend.service;
 
 import com.example.ticket_helpdesk_backend.consts.UserRole;
 import com.example.ticket_helpdesk_backend.dto.*;
+import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
@@ -268,6 +269,31 @@ public class UserService {
 //        return user;
 //    }
 
+    @Transactional(readOnly = true)
+    public UserDetailResponse getUserDetail(UUID id) throws ResourceNotFoundException {
+
+        User user = userRepository.findDetailById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found"));
+
+        EmployeeProfile e = user.getEmployeeProfile();
+
+        return new UserDetailResponse(
+                user.getId(),
+                user.getUsername(),
+                user.getActive(),
+                user.getRole().getName(),
+                new UserDetailResponse.EmployeeSummary(
+                        e.getId(),
+                        e.getFullName(),
+                        e.getGender(),
+                        e.getPhone(),
+                        e.getPersonalEmail(),
+                        fileStorageService.getPresignedUrl(BUCKET_NAME,e.getAvatar()),
+                        e.getDepartment().getName(),
+                        e.getPosition().getName()
+                )
+        );
+    }
 
     public User getUserById(UUID userId) throws ResourceNotFoundException {
         return userRepository.findById(userId).orElseThrow(() -> new ResourceNotFoundException("User not found with id: "+ userId));

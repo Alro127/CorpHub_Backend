@@ -2,30 +2,25 @@ package com.example.ticket_helpdesk_backend.controller;
 
 import com.example.ticket_helpdesk_backend.consts.BucketName;
 import com.example.ticket_helpdesk_backend.dto.*;
-import com.example.ticket_helpdesk_backend.entity.EmployeeDocument;
+import com.example.ticket_helpdesk_backend.entity.EmployeeAdministrativeInfo;
 import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.EmployeeDocumentService;
 import com.example.ticket_helpdesk_backend.service.EmployeeProfileService;
 import com.example.ticket_helpdesk_backend.service.FileStorageService;
-import org.apache.commons.fileupload.disk.DiskFileItem;
-import org.apache.commons.io.IOUtils;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.io.ClassPathResource;
-import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -166,6 +161,22 @@ public class EmployeeProfileController {
 //        return ResponseEntity.ok(response);
 //    }
 
+    //@PreAuthorize("@securityService.hasRole('EMPLOYEE')")
+    @PatchMapping("/me/contact-info")
+    public ApiResponse<?> updateMyContactInfo(
+            @RequestHeader("Authorization") String authHeader,
+            @Valid @RequestBody EmployeeContactInfoUpdateDto request) throws ResourceNotFoundException {
+        String token = authHeader.substring(7);
+        EmployeeContactInfoUpdateDto updated = employeeProfileService.updateMyContactInfo(token, request);
+
+        return new ApiResponse<>(
+                HttpStatus.OK.value(),
+                "Update contact info successfully",
+                LocalDateTime.now(),
+                updated
+        );
+    }
+
     // 1️⃣ Thông tin cơ bản
     @GetMapping("/me")
     public ResponseEntity<?> getMyProfile(@RequestHeader("Authorization") String authHeader) {
@@ -197,5 +208,78 @@ public class EmployeeProfileController {
         var documents = employeeProfileService.getMyDocuments(token);
         return ResponseEntity.ok(new ApiResponse<>(200, "Get document employee profile successfully", LocalDateTime.now(), documents));
     }
+
+
+    @PreAuthorize("@securityService.hasRole('HR') or @securityService.hasRole('ADMIN')")
+    @PatchMapping("/{id}/basic-info")
+    public ApiResponse<HrEmployeeBasicInfoResponse> updateBasicInfo(
+            @PathVariable UUID id,
+            @Valid @RequestBody HrEmployeeBasicInfoUpdateRequest request) throws ResourceNotFoundException {
+
+        EmployeeProfile updated = employeeProfileService.updateBasicInfo(id, request);
+
+        HrEmployeeBasicInfoResponse dto = HrEmployeeBasicInfoResponse.toBasicInfo(updated);
+
+        return new ApiResponse<>(
+                200,
+                "Update basic info successfully",
+                LocalDateTime.now(),
+                dto
+        );
+    }
+
+    @PreAuthorize("@securityService.hasRole('HR') or @securityService.hasRole('ADMIN')")
+    @PatchMapping("/{id}/contact-info")
+    public ApiResponse<HrEmployeeContactInfoResponse> updateContactInfo(
+            @PathVariable UUID id,
+            @Valid @RequestBody HrEmployeeContactInfoUpdateRequest request) throws ResourceNotFoundException {
+
+        EmployeeProfile updated = employeeProfileService.updateContactInfo(id, request);
+
+        HrEmployeeContactInfoResponse dto = HrEmployeeContactInfoResponse.toContactInfo(updated);
+
+        return new ApiResponse<>(
+                200,
+                "Update contact info successfully",
+                LocalDateTime.now(),
+                dto
+        );
+    }
+
+
+    @PreAuthorize("@securityService.hasRole('HR') or @securityService.hasRole('ADMIN')")
+    @PatchMapping("/{id}/administrative-info")
+    public ApiResponse<HrEmployeeAdministrativeInfoResponse> updateAdministrativeInfo(
+            @PathVariable UUID id,
+            @Valid @RequestBody EmployeeAdministrativeInfoDto request) throws ResourceNotFoundException {
+
+        EmployeeAdministrativeInfo updated = employeeProfileService.updateAdministrativeInfo(id, request);
+
+        HrEmployeeAdministrativeInfoResponse dto =
+                HrEmployeeAdministrativeInfoResponse.toAdministrativeInfo(updated);
+
+        return new ApiResponse<>(
+                200,
+                "Update administrative info successfully",
+                LocalDateTime.now(),
+                dto
+        );
+    }
+    @PreAuthorize("@securityService.hasRole('HR') or @securityService.hasRole('ADMIN')")
+    @GetMapping("/{id}/full-detail")
+    public ResponseEntity<?> getEmployeeFullDetail(@PathVariable UUID id) throws ResourceNotFoundException {
+
+        EmployeeFullDetailResponse detail = employeeProfileService.getEmployeeFullDetail(id);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(
+                        HttpStatus.OK.value(),
+                        "Get full employee detail successfully",
+                        LocalDateTime.now(),
+                        detail
+                )
+        );
+    }
+
 
 }

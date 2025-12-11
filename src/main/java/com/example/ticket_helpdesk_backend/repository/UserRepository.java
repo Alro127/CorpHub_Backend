@@ -28,5 +28,12 @@ public interface UserRepository extends JpaRepository<User, UUID>, JpaSpecificat
             "   OR LOWER(u.username) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<User> searchByFullNameOrUsername(@Param("keyword") String keyword);
 
-
+    @Query("""
+       SELECT u FROM User u
+       JOIN FETCH u.employeeProfile e
+       JOIN FETCH e.department d
+       JOIN FETCH e.position p
+       WHERE u.id = :id
+       """)
+    Optional<User> findDetailById(@Param("id") UUID id);
 }

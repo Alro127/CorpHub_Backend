@@ -17,8 +17,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class EmployeeProfileService {
@@ -50,10 +52,22 @@ public class EmployeeProfileService {
     CompetencyTypeRepository competencyTypeRepository;
 
     @Autowired
-    CompetencyTypeRepository competencyLevelRepository;
+    EmployeeCompetencyService employeeCompetencyService;
 
     @Autowired
     PositionRepository positionRepository;
+
+    @Autowired
+    EmployeeAdministrativeInfoRepository employeeAdministrativeInfoRepository;
+
+    @Autowired
+    EmployeeDocumentService employeeDocumentService;
+
+    @Autowired
+    InternalWorkHistoryService internalWorkHistoryService;
+
+    @Autowired
+    PositionChangeRequestService positionChangeRequestService;
 
     @Autowired
     JwtUtil jwtUtil;
@@ -243,5 +257,176 @@ public class EmployeeProfileService {
         return getProfile(token).getDocuments().stream()
                 .map(EmployeeDocumentResponse::fromEntity)
                 .toList();
+    }
+
+    @Transactional
+    public EmployeeContactInfoUpdateDto updateMyContactInfo(String token, EmployeeContactInfoUpdateDto request) throws ResourceNotFoundException {
+        UUID userId = jwtUtil.getUserId(token);
+
+        EmployeeProfile profile = employeeProfileRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee profile not found for current user"));
+
+        // Validate
+        validateContactInfo(request);
+
+        profile.setPersonalEmail(request.getPersonalEmail());
+        profile.setPhone(request.getPhone());
+        profile.setAddress(request.getAddress());
+        profile.setAbout(request.getAbout());
+
+        return EmployeeContactInfoUpdateDto.fromEntity(employeeProfileRepository.save(profile));
+    }
+
+    private void validateContactInfo(EmployeeContactInfoUpdateDto request) {
+        // Ví dụ: validate phone VN đơn giản
+        if (request.getPhone() != null && !request.getPhone().matches("^[0-9+]{8,20}$")) {
+            throw new IllegalArgumentException("Invalid phone number format");
+        }
+    }
+
+    @Transactional
+    public EmployeeAdministrativeInfo updateAdministrativeInfo(UUID employeeId,
+                                                               EmployeeAdministrativeInfoDto request) throws ResourceNotFoundException {
+
+        EmployeeProfile profile = employeeProfileRepository.findById(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        EmployeeAdministrativeInfo info = employeeAdministrativeInfoRepository.findByEmployeeProfileId(employeeId)
+                .orElseGet(() -> {
+                    EmployeeAdministrativeInfo newInfo = new EmployeeAdministrativeInfo();
+                    newInfo.setEmployeeProfile(profile);
+                    return newInfo;
+                });
+
+        if (request.getIdentityIssuedDate() != null &&
+                request.getIdentityIssuedDate().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("Identity issued date cannot be in the future");
+        }
+
+        info.setIdentityNumber(request.getIdentityNumber());
+        info.setIdentityIssuedDate(request.getIdentityIssuedDate());
+        info.setIdentityIssuedPlace(request.getIdentityIssuedPlace());
+        info.setTaxCode(request.getTaxCode());
+        info.setSocialInsuranceNumber(request.getSocialInsuranceNumber());
+        info.setBankAccountNumber(request.getBankAccountNumber());
+        info.setBankName(request.getBankName());
+        info.setMaritalStatus(request.getMaritalStatus());
+        info.setNote(request.getNote());
+
+        return employeeAdministrativeInfoRepository.save(info);
+    }
+
+    @Transactional
+    public EmployeeProfile updateBasicInfo(UUID employeeId, HrEmployeeBasicInfoUpdateRequest request) throws ResourceNotFoundException {
+        EmployeeProfile profile = employeeProfileRepository.findById(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        profile.setFullName(request.getFullName());
+        profile.setDob(request.getDob());
+        profile.setGender(request.getGender());
+
+        // thêm validate dob nếu cần
+        if (request.getDob() != null && request.getDob().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("Date of birth cannot be in the future");
+        }
+
+        return employeeProfileRepository.save(profile);
+    }
+
+    @Transactional
+    public EmployeeProfile updateContactInfo(UUID employeeId, HrEmployeeContactInfoUpdateRequest request) throws ResourceNotFoundException {
+        EmployeeProfile profile = employeeProfileRepository.findById(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        if (request.getPersonalEmail() != null) {
+            profile.setPersonalEmail(request.getPersonalEmail());
+        }
+        if (request.getPhone() != null) {
+            if (!request.getPhone().matches("^[0-9+]{8,20}$")) {
+                throw new IllegalArgumentException("Invalid phone number format");
+            }
+            profile.setPhone(request.getPhone());
+        }
+        if (request.getAddress() != null) {
+            profile.setAddress(request.getAddress());
+        }
+        if (request.getAbout() != null) {
+            profile.setAbout(request.getAbout());
+        }
+
+        return employeeProfileRepository.save(profile);
+    }
+
+    public EmployeeFullDetailResponse getEmployeeFullDetail(UUID employeeId) throws ResourceNotFoundException {
+
+        EmployeeProfile profile = employeeProfileRepository.findById(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        // Avatar presigned URL
+        String avatarUrl = null;
+        if (profile.getAvatar() != null) {
+            avatarUrl = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
+        }
+
+        // Administrative Info
+        EmployeeAdministrativeInfo admin = profile.getAdministrativeInfo();
+        var adminDto = EmployeeAdministrativeInfoDto.fromEntity(admin);
+
+        // Competencies
+        List<EmployeeCompetencyResponse> competencies =
+                employeeCompetencyService.getByEmployeeId(employeeId);
+
+        // Documents
+        List<EmployeeDocumentResponse> documents =
+                employeeDocumentService.getByEmployeeId(employeeId);
+
+        for (var document : documents) {
+            document.setFileUrl(fileStorageService.getPresignedUrl(BucketName.EMPLOYEE_DOCUMENT.getBucketName(),document.getFileUrl()));
+        }
+
+        // Internal Work History
+        var internalHistories = internalWorkHistoryService.getByEmployee(employeeId);
+
+        // Position Change Requests
+        var positionRequests = positionChangeRequestService.getRequestsByEmployee(employeeId);
+
+        // Build DTO
+        EmployeeFullDetailResponse dto = new EmployeeFullDetailResponse();
+
+        // --- Personal info ---
+        dto.setId(profile.getId());
+        dto.setCode(profile.getCode());
+        dto.setFullName(profile.getFullName());
+        dto.setAvatarUrl(avatarUrl);
+        dto.setGender(profile.getGender());
+        dto.setDob(profile.getDob());
+        dto.setPhone(profile.getPhone());
+        dto.setPersonalEmail(profile.getPersonalEmail());
+        dto.setAddress(profile.getAddress());
+        dto.setAbout(profile.getAbout());
+        dto.setJoinDate(profile.getJoinDate());
+
+        // --- Job info ---
+        dto.setPositionId(profile.getPosition() != null ? profile.getPosition().getId() : null);
+        dto.setPositionName(profile.getPosition() != null ? profile.getPosition().getName() : null);
+
+        dto.setDepartmentId(profile.getDepartment() != null ? profile.getDepartment().getId() : null);
+        dto.setDepartmentName(profile.getDepartment() != null ? profile.getDepartment().getName() : null);
+
+        dto.setManagerId(profile.getDepartment().getManager() != null ? profile.getDepartment().getManager().getId() : null);
+        dto.setManagerName(profile.getDepartment().getManager() != null ? profile.getDepartment().getManager().getFullName() : null);
+
+        dto.setActive(profile.getUser() != null ? profile.getUser().getActive() : null);
+
+        // --- Administrative info ---
+        dto.setAdministrativeInfo(adminDto);
+
+        // --- Collections ---
+        dto.setCompetencies(competencies);
+        dto.setDocuments(documents);
+        dto.setInternalHistories(internalHistories);
+        dto.setPositionChangeRequests(positionRequests);
+
+        return dto;
     }
 }

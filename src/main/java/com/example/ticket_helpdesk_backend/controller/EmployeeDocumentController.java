@@ -86,8 +86,9 @@ public class EmployeeDocumentController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> delete(@PathVariable UUID id) throws ResourceNotFoundException {
-        employeeDocumentService.delete(id);
+    public ResponseEntity<?> delete(@PathVariable UUID id, @RequestHeader("Authorization") String authHeader) throws ResourceNotFoundException {
+        String token = authHeader.substring(7);
+        employeeDocumentService.delete(id, token);
         return ResponseEntity.ok(
                 new ApiResponse<>(
                         HttpStatus.OK.value(),
