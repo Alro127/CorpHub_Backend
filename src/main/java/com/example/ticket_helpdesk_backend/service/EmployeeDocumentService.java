@@ -5,6 +5,7 @@ import com.example.ticket_helpdesk_backend.consts.UserRole;
 import com.example.ticket_helpdesk_backend.dto.DocumentMetaDto;
 import com.example.ticket_helpdesk_backend.dto.DocumentRelationCheckDto;
 import com.example.ticket_helpdesk_backend.dto.DocumentTypeDto;
+import com.example.ticket_helpdesk_backend.dto.EmployeeDocumentResponse;
 import com.example.ticket_helpdesk_backend.entity.DocumentType;
 import com.example.ticket_helpdesk_backend.entity.EmployeeCompetency;
 import com.example.ticket_helpdesk_backend.entity.EmployeeDocument;
@@ -126,6 +127,13 @@ public class EmployeeDocumentService {
     public DocumentRelationCheckDto checkRelations(UUID documentId) {
         List<EmployeeCompetency> list = employeeCompetencyRepository.findByDocumentId(documentId);
         return DocumentRelationCheckDto.fromEntities(list);
+    }
+
+    public List<EmployeeDocumentResponse> getByEmployeeId (UUID employeeId) {
+        return employeeDocumentRepository.findByEmployeeProfile_Id(employeeId)
+                .stream()
+                .map(EmployeeDocumentResponse::fromEntity)
+                .collect(Collectors.toList());
     }
 
 }

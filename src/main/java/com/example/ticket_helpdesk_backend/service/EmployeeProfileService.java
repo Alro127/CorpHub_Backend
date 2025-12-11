@@ -17,8 +17,10 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class EmployeeProfileService {
@@ -50,10 +52,22 @@ public class EmployeeProfileService {
     CompetencyTypeRepository competencyTypeRepository;
 
     @Autowired
-    CompetencyTypeRepository competencyLevelRepository;
+    EmployeeCompetencyService employeeCompetencyService;
 
     @Autowired
     PositionRepository positionRepository;
+
+    @Autowired
+    EmployeeAdministrativeInfoRepository employeeAdministrativeInfoRepository;
+
+    @Autowired
+    EmployeeDocumentService employeeDocumentService;
+
+    @Autowired
+    InternalWorkHistoryService internalWorkHistoryService;
+
+    @Autowired
+    PositionChangeRequestService positionChangeRequestService;
 
     @Autowired
     JwtUtil jwtUtil;
@@ -268,5 +282,171 @@ public class EmployeeProfileService {
         if (request.getPhone() != null && !request.getPhone().matches("^[0-9+]{8,20}$")) {
             throw new IllegalArgumentException("Invalid phone number format");
         }
+    }
+
+    @Transactional
+    public EmployeeAdministrativeInfo updateAdministrativeInfo(UUID employeeId,
+                                                               EmployeeAdministrativeInfoDto request) throws ResourceNotFoundException {
+
+        EmployeeProfile profile = employeeProfileRepository.findById(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        EmployeeAdministrativeInfo info = employeeAdministrativeInfoRepository.findByEmployeeProfileId(employeeId)
+                .orElseGet(() -> {
+                    EmployeeAdministrativeInfo newInfo = new EmployeeAdministrativeInfo();
+                    newInfo.setEmployeeProfile(profile);
+                    return newInfo;
+                });
+
+        if (request.getIdentityIssuedDate() != null &&
+                request.getIdentityIssuedDate().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("Identity issued date cannot be in the future");
+        }
+
+        info.setIdentityNumber(request.getIdentityNumber());
+        info.setIdentityIssuedDate(request.getIdentityIssuedDate());
+        info.setIdentityIssuedPlace(request.getIdentityIssuedPlace());
+        info.setTaxCode(request.getTaxCode());
+        info.setSocialInsuranceNumber(request.getSocialInsuranceNumber());
+        info.setBankAccountNumber(request.getBankAccountNumber());
+        info.setBankName(request.getBankName());
+        info.setMaritalStatus(request.getMaritalStatus());
+        info.setNote(request.getNote());
+
+        return employeeAdministrativeInfoRepository.save(info);
+    }
+
+    @Transactional
+    public EmployeeProfile updateBasicInfo(UUID employeeId, HrEmployeeBasicInfoUpdateRequest request) throws ResourceNotFoundException {
+        EmployeeProfile profile = employeeProfileRepository.findById(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        profile.setFullName(request.getFullName());
+        profile.setDob(request.getDob());
+        profile.setGender(request.getGender());
+
+        if (request.getPositionId() != null) {
+            Position position = positionRepository.findById(request.getPositionId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Position not found"));
+            profile.setPosition(position);
+        } else {
+            profile.setPosition(null);
+        }
+
+        if (request.getDepartmentId() != null) {
+            Department department = departmentRepository.findById(request.getDepartmentId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+            profile.setDepartment(department);
+        } else {
+            profile.setDepartment(null);
+        }
+
+        if (request.getManagerId() != null) {
+            EmployeeProfile manager = employeeProfileRepository.findById(request.getManagerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Manager not found"));
+            profile.setManager(manager);
+        } else {
+            profile.setManager(null);
+        }
+
+        // thêm validate dob nếu cần
+        if (request.getDob() != null && request.getDob().isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("Date of birth cannot be in the future");
+        }
+
+        return employeeProfileRepository.save(profile);
+    }
+
+    @Transactional
+    public EmployeeProfile updateContactInfo(UUID employeeId, HrEmployeeContactInfoUpdateRequest request) throws ResourceNotFoundException {
+        EmployeeProfile profile = employeeProfileRepository.findById(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        if (request.getPersonalEmail() != null) {
+            profile.setPersonalEmail(request.getPersonalEmail());
+        }
+        if (request.getPhone() != null) {
+            if (!request.getPhone().matches("^[0-9+]{8,20}$")) {
+                throw new IllegalArgumentException("Invalid phone number format");
+            }
+            profile.setPhone(request.getPhone());
+        }
+        if (request.getAddress() != null) {
+            profile.setAddress(request.getAddress());
+        }
+        if (request.getAbout() != null) {
+            profile.setAbout(request.getAbout());
+        }
+
+        return employeeProfileRepository.save(profile);
+    }
+
+    public EmployeeFullDetailResponse getEmployeeFullDetail(UUID employeeId) throws ResourceNotFoundException {
+
+        EmployeeProfile profile = employeeProfileRepository.findById(employeeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        // Avatar presigned URL
+        String avatarUrl = null;
+        if (profile.getAvatar() != null) {
+            avatarUrl = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
+        }
+
+        // Administrative Info
+        EmployeeAdministrativeInfo admin = profile.getAdministrativeInfo();
+        var adminDto = EmployeeAdministrativeInfoDto.fromEntity(admin);
+
+        // Competencies
+        List<EmployeeCompetencyResponse> competencies =
+                employeeCompetencyService.getByEmployeeId(employeeId);
+
+        // Documents
+        List<EmployeeDocumentResponse> documents =
+                employeeDocumentService.getByEmployeeId(employeeId);
+
+        // Internal Work History
+        var internalHistories = internalWorkHistoryService.getByEmployee(employeeId);
+
+        // Position Change Requests
+        var positionRequests = positionChangeRequestService.getRequestsByEmployee(employeeId);
+
+        // Build DTO
+        EmployeeFullDetailResponse dto = new EmployeeFullDetailResponse();
+
+        // --- Personal info ---
+        dto.setId(profile.getId());
+        dto.setCode(profile.getCode());
+        dto.setFullName(profile.getFullName());
+        dto.setAvatarUrl(avatarUrl);
+        dto.setGender(profile.getGender());
+        dto.setDob(profile.getDob());
+        dto.setPhone(profile.getPhone());
+        dto.setPersonalEmail(profile.getPersonalEmail());
+        dto.setAddress(profile.getAddress());
+        dto.setAbout(profile.getAbout());
+        dto.setJoinDate(profile.getJoinDate());
+
+        // --- Job info ---
+        dto.setPositionId(profile.getPosition() != null ? profile.getPosition().getId() : null);
+        dto.setPositionName(profile.getPosition() != null ? profile.getPosition().getName() : null);
+
+        dto.setDepartmentId(profile.getDepartment() != null ? profile.getDepartment().getId() : null);
+        dto.setDepartmentName(profile.getDepartment() != null ? profile.getDepartment().getName() : null);
+
+        dto.setManagerId(profile.getManager() != null ? profile.getManager().getId() : null);
+        dto.setManagerName(profile.getManager() != null ? profile.getManager().getFullName() : null);
+
+        dto.setActive(profile.getUser() != null ? profile.getUser().getActive() : null);
+
+        // --- Administrative info ---
+        dto.setAdministrativeInfo(adminDto);
+
+        // --- Collections ---
+        dto.setCompetencies(competencies);
+        dto.setDocuments(documents);
+        dto.setInternalHistories(internalHistories);
+        dto.setPositionChangeRequests(positionRequests);
+
+        return dto;
     }
 }
