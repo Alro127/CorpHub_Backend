@@ -18,9 +18,5 @@ public class HrEmployeeBasicInfoUpdateRequest {
 
     @Size(max = 10)
     private String gender;
-
-    private UUID positionId;
-    private UUID departmentId;
-    private UUID managerId;
 }
 

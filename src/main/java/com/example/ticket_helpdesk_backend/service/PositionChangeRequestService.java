@@ -79,7 +79,12 @@ public class PositionChangeRequestService {
         request.setReason(dto.getReason());
         request.setCreatedBy(createdBy);
         request.setCreatedAt(LocalDateTime.now());
-        request.setStatus(PositionChangeRequest.STATUS_PENDING);
+
+        boolean isAdminCreator = createdBy.getUser().getRole().getName().equals(UserRole.ROLE_ADMIN.toString());
+
+        request.setStatus(isAdminCreator
+                ? PositionChangeRequest.STATUS_DONE
+                : PositionChangeRequest.STATUS_PENDING);
 
         // Attachments
         if (dto.getAttachments() != null) {
@@ -94,7 +99,7 @@ public class PositionChangeRequestService {
         PositionChangeRequest saved = requestRepository.save(request);
 
         // Tạo các bước phê duyệt theo workflow
-        generateApprovalSteps(saved);
+        generateApprovalSteps(saved, isAdminCreator);
 
         return PositionChangeRequestDetailDto.mapEntityToDetailDto(saved);
     }
@@ -102,7 +107,24 @@ public class PositionChangeRequestService {
 //    // ================= WORKFLOW GENERATION =================
 //
     @Transactional
-    protected void generateApprovalSteps(PositionChangeRequest request) {
+    protected void generateApprovalSteps(PositionChangeRequest request, boolean isAdminCreator) {
+
+        if (isAdminCreator) {
+            // ADMIN tự duyệt luôn
+            EmployeeProfile admin = request.getCreatedBy();
+
+            PositionChangeApproval adminStep = new PositionChangeApproval();
+            adminStep.setRequest(request);
+            adminStep.setStepOrder(1);
+            adminStep.setApprover(admin);
+            adminStep.setRole(PositionChangeApproval.ROLE_ADMIN);
+            adminStep.setDecision(PositionChangeApproval.DECISION_PENDING);
+
+
+            approvalRepository.save(adminStep);
+            return;
+        }
+
         int step = 1;
 
         // Step 1: Manager của employee.department
@@ -119,7 +141,7 @@ public class PositionChangeRequestService {
         managerStep.setDecision(PositionChangeApproval.DECISION_PENDING);
 
         // Step 2: HR_MANAGER
-        EmployeeProfile hrManager = employeeProfileRepository.findFirstByUserRoleName(UserRole.ROLE_HR_MANAGER.toString())
+        EmployeeProfile hrManager = employeeProfileRepository.findFirstByUserRoleName(UserRole.ROLE_HR.toString())
                 .orElseThrow(() -> new RuntimeException("HR Manager not found"));
         PositionChangeApproval hrStep = new PositionChangeApproval();
         hrStep.setRequest(request);

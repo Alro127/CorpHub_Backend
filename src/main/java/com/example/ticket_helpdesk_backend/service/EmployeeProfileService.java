@@ -325,30 +325,6 @@ public class EmployeeProfileService {
         profile.setDob(request.getDob());
         profile.setGender(request.getGender());
 
-        if (request.getPositionId() != null) {
-            Position position = positionRepository.findById(request.getPositionId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Position not found"));
-            profile.setPosition(position);
-        } else {
-            profile.setPosition(null);
-        }
-
-        if (request.getDepartmentId() != null) {
-            Department department = departmentRepository.findById(request.getDepartmentId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
-            profile.setDepartment(department);
-        } else {
-            profile.setDepartment(null);
-        }
-
-        if (request.getManagerId() != null) {
-            EmployeeProfile manager = employeeProfileRepository.findById(request.getManagerId())
-                    .orElseThrow(() -> new ResourceNotFoundException("Manager not found"));
-            profile.setManager(manager);
-        } else {
-            profile.setManager(null);
-        }
-
         // thêm validate dob nếu cần
         if (request.getDob() != null && request.getDob().isAfter(LocalDate.now())) {
             throw new IllegalArgumentException("Date of birth cannot be in the future");
@@ -404,6 +380,10 @@ public class EmployeeProfileService {
         List<EmployeeDocumentResponse> documents =
                 employeeDocumentService.getByEmployeeId(employeeId);
 
+        for (var document : documents) {
+            document.setFileUrl(fileStorageService.getPresignedUrl(BucketName.EMPLOYEE_DOCUMENT.getBucketName(),document.getFileUrl()));
+        }
+
         // Internal Work History
         var internalHistories = internalWorkHistoryService.getByEmployee(employeeId);
 
@@ -433,8 +413,8 @@ public class EmployeeProfileService {
         dto.setDepartmentId(profile.getDepartment() != null ? profile.getDepartment().getId() : null);
         dto.setDepartmentName(profile.getDepartment() != null ? profile.getDepartment().getName() : null);
 
-        dto.setManagerId(profile.getManager() != null ? profile.getManager().getId() : null);
-        dto.setManagerName(profile.getManager() != null ? profile.getManager().getFullName() : null);
+        dto.setManagerId(profile.getDepartment().getManager() != null ? profile.getDepartment().getManager().getId() : null);
+        dto.setManagerName(profile.getDepartment().getManager() != null ? profile.getDepartment().getManager().getFullName() : null);
 
         dto.setActive(profile.getUser() != null ? profile.getUser().getActive() : null);
 
