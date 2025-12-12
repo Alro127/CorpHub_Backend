@@ -17,6 +17,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.text.Normalizer;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -72,11 +73,8 @@ public class EmployeeProfileService {
     @Autowired
     JwtUtil jwtUtil;
 
-
-
-
     @Transactional
-    public boolean createEmployeeProfile(CreateEmployeeProfileRequest request, String token) throws ResourceNotFoundException {
+    public EmployeeProfile createEmployeeProfile(CreateEmployeeProfileRequest request) throws ResourceNotFoundException {
 
         // ====== Tạo hồ sơ nhân viên ======
         EmployeeProfile employeeProfile = new EmployeeProfile();
@@ -85,65 +83,77 @@ public class EmployeeProfileService {
         employeeProfile.setGender(request.getGender());
         employeeProfile.setPhone(request.getPhone());
         employeeProfile.setPersonalEmail(request.getPersonalEmail());
-        employeeProfile.setAvatar(request.getAvatar());
+        employeeProfile.setJoinDate(request.getJoinDate());
+        employeeProfile.setCode(generateEmployeeCode(request.getFullName()));
 
         if (request.getDepartmentId() != null) {
             Department dept = departmentRepository.findById(request.getDepartmentId())
-                    .orElseThrow(() -> new RuntimeException("Department not found"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
             employeeProfile.setDepartment(dept);
         }
 
         // Chức danh mặc định khi vừa được tạo hồ sơ nhân viên
-        Position defaultPosition = positionRepository.findFirstByDepartmentIdOrderByLevelOrderAsc(request.getDepartmentId());
-        employeeProfile.setPosition(defaultPosition);
-
-        // ====== JobHistories ======
-        if (request.getJobHistories() != null && !request.getJobHistories().isEmpty()) {
-            List<EmployeeJobHistory> histories = request.getJobHistories().stream().map(j -> {
-                EmployeeJobHistory job = new EmployeeJobHistory();
-                job.setEmployeeProfile(employeeProfile);
-
-
-                job.setContractType(j.getContractType());
-                job.setStartDate(j.getStartDate());
-                job.setEndDate(j.getEndDate());
-                job.setEmploymentStatus(j.getEmploymentStatus());
-                job.setNote(j.getNote());
-                return job;
-            }).toList();
-
-            employeeProfile.setJobHistories(histories);
+        Position position = positionRepository.findFirstByDepartmentIdOrderByLevelOrderAsc(request.getDepartmentId());
+        if (request.getPositionId() != null) {
+            position = positionRepository.findById(request.getPositionId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Position not found"));
         }
 
-        // ====== Competencies ======
-//        if (request.getCompetencies() != null && !request.getCompetencies().isEmpty()) {
-//            List<EmployeeCompetency> competencies = request.getCompetencies().stream().map(c -> {
-//                EmployeeCompetency competency = new EmployeeCompetency();
-//                competency.setEmployeeProfile(employeeProfile);
-//                try {
-//                    competency.setType(
-//                            competencyTypeRepository.findById(c.getType())
-//                                    .orElseThrow(() -> new ResourceNotFoundException("CompetencyType not found: " + c.getType()))
-//                    );
-//                } catch (ResourceNotFoundException e) {
-//                    throw new RuntimeException(e);
-//                }
-//                competency.setName(c.getName());
-//                competency.setLevel(competencyLevelRepository.findBy(c.getLevel()));
-//                competency.setIssuedBy(c.getIssuedBy());
-//                competency.setIssuedDate(c.getIssuedDate());
-//                competency.setNote(c.getNote());
-//                return competency;
-//            }).toList();
-//
-//            employeeProfile.setCompetencies(competencies);
-//        }
+        employeeProfile.setPosition(position);
 
         // ====== Lưu EmployeeProfile ======
-        employeeProfileRepository.save(employeeProfile);
+        return employeeProfileRepository.save(employeeProfile);
 
+    }
 
-        return true;
+    public String generateEmployeeCode(String fullName) {
+        if (fullName == null || fullName.isBlank()) {
+            throw new IllegalArgumentException("Full name is required to generate employee code");
+        }
+
+        // Chuẩn hóa khoảng trắng
+        String normalized = fullName.trim().replaceAll("\\s+", " ");
+
+        // Bỏ dấu tiếng Việt
+        String noAccent = removeVietnameseAccent(normalized);
+
+        String[] parts = noAccent.split(" ");
+        if (parts.length < 2) {
+            throw new IllegalArgumentException("Full name must include at least first name and last name");
+        }
+
+        // Last name (Tên)
+        String lastName = capitalize(parts[parts.length - 1]);
+
+        // Initial của họ + tên lót
+        StringBuilder initials = new StringBuilder();
+        for (int i = 0; i < parts.length - 1; i++) {
+            initials.append(Character.toUpperCase(parts[i].charAt(0)));
+        }
+
+        String baseCode = lastName + initials;
+
+        // Đếm số code đã tồn tại
+        long count = employeeProfileRepository.countByCodeStartingWith(baseCode);
+
+        // Trả về code cuối
+        return count == 0 ? baseCode : baseCode + count;
+    }
+    
+    private String removeVietnameseAccent(String input) {
+        if (input == null) return null;
+
+        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
+        String withoutAccent = normalized.replaceAll("\\p{InCombiningDiacriticalMarks}+", "");
+
+        // Xử lý riêng chữ Đ/đ
+        return withoutAccent
+                .replace("Đ", "D")
+                .replace("đ", "d");
+    }
+
+    private String capitalize(String input) {
+        return input.substring(0, 1).toUpperCase() + input.substring(1);
     }
 
 //    public List<EmployeeProfileResponse> getAllEmployeeProfiles() {

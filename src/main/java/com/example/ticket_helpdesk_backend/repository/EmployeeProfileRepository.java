@@ -20,4 +20,7 @@ public interface EmployeeProfileRepository extends JpaRepository<EmployeeProfile
 
     // Lấy tất cả admin (nếu cần)
     List<EmployeeProfile> findByUserRoleName(String roleName);
+
+    // Đếm để tính số trong việc tạo code nhân viên
+    long countByCodeStartingWith(String codePrefix);
 }

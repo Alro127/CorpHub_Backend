@@ -37,37 +37,21 @@ public class EmployeeProfileController {
 
     private final String bucketName = "employee-avatars";
 
-    @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> createEmployeeProfile(
-            @RequestHeader("Authorization") String authHeader,
-            @RequestPart("profile") CreateEmployeeProfileRequest request,
-            @RequestPart(value = "avatar", required = false) MultipartFile avatarFile
-    ) throws ResourceNotFoundException, IOException {
-        String token = authHeader.substring(7);
-        String fileUrl;
-        if (avatarFile != null && !avatarFile.isEmpty()) {
-            fileUrl = fileStorageService.uploadFile(BucketName.EMPLOYEE_AVATAR.getBucketName(), avatarFile, request.getFullName());
-        } else {
-            ClassPathResource defaultAvatar = new ClassPathResource("static/avatars/default.png");
-            try (InputStream inputStream = defaultAvatar.getInputStream()) {
-                fileUrl = fileStorageService.uploadFile(BucketName.EMPLOYEE_AVATAR.getBucketName(), inputStream, "default.png", request.getFullName());
-            }
-        }
+    @PostMapping
+    public ResponseEntity<ApiResponse<UUID>> createEmployeeProfile(
+            @Valid @RequestBody CreateEmployeeProfileRequest request
+    ) throws ResourceNotFoundException {
+        EmployeeProfile emp = employeeProfileService.createEmployeeProfile(request);
 
-        request.setAvatar(fileUrl); // gắn link ảnh vào DTO
-
-        boolean success = employeeProfileService.createEmployeeProfile(request, token);
-        String message = success ? "Create Employee Successfully" : "Create Employee Failed";
-
-
-        ApiResponse<String> response = new ApiResponse<>(
+        ApiResponse<UUID> response = new ApiResponse<>(
                 HttpStatus.OK.value(),
-                message,
+                "Create employee successfully",
                 LocalDateTime.now(),
-                null
+                emp.getId()
         );
         return ResponseEntity.ok(response);
     }
+
 
 
     // 1. Lấy tất cả nhân viên
