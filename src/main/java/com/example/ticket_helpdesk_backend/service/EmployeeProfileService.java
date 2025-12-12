@@ -139,7 +139,7 @@ public class EmployeeProfileService {
         // Trả về code cuối
         return count == 0 ? baseCode : baseCode + count;
     }
-    
+
     private String removeVietnameseAccent(String input) {
         if (input == null) return null;
 
