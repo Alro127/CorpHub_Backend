@@ -145,10 +145,11 @@ public class TicketService {
 
         for (EmployeeProfile e : employees) {
             desc.append(String.format(
-                    "- Tên: %s\n  Email: %s\n  Phòng ban: %s\n\n",
+                    "- Tên: %s\n  Email: %s\n  Phòng ban: %s\n Mã nhân viên: %s\n\n",
                     e.getFullName(),
                     e.getPersonalEmail() != null ? e.getPersonalEmail() : "(chưa có)",
-                    e.getDepartment() != null ? e.getDepartment().getName() : "Chưa xác định"
+                    e.getDepartment() != null ? e.getDepartment().getName() : "Chưa xác định",
+                    e.getCode()
             ));
         }
 
@@ -160,7 +161,8 @@ public class TicketService {
                         "employeeProfileId", e.getId(),
                         "fullName", e.getFullName(),
                         "personalEmail", e.getPersonalEmail(),
-                        "department", e.getDepartment() != null ? e.getDepartment().getName() : "Chưa xác định"
+                        "department", e.getDepartment() != null ? e.getDepartment().getName() : "Chưa xác định",
+                        "code", e.getCode()
                 ))
                 .collect(Collectors.collectingAndThen(Collectors.toList(), list -> {
                     try {

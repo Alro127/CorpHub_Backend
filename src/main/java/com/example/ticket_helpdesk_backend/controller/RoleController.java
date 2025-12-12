@@ -2,7 +2,9 @@ package com.example.ticket_helpdesk_backend.controller;
 
 import com.example.ticket_helpdesk_backend.dto.ApiResponse;
 import com.example.ticket_helpdesk_backend.dto.DepartmentDto;
+import com.example.ticket_helpdesk_backend.dto.RoleDto;
 import com.example.ticket_helpdesk_backend.service.DepartmentService;
+import com.example.ticket_helpdesk_backend.service.RoleService;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,19 +22,17 @@ import java.util.List;
 @RequiredArgsConstructor
 public class RoleController {
     @Autowired
-    private final DepartmentService departmentService;
-    @Autowired
-    private JwtUtil jwtUtil;
-
+    private final RoleService roleService;
 
     @GetMapping
     public ResponseEntity<?> getAllRoles() {
-        List<DepartmentDto> departmentDtoList = departmentService.getDepartmentDtoList();
-        ApiResponse<List<DepartmentDto>> apiResponse = new ApiResponse<>(
+        List<RoleDto> allRoles = roleService.getAllRoles().stream().map(RoleDto::fromEntity).toList();
+        ApiResponse<List<RoleDto>> apiResponse = new ApiResponse<>(
                 HttpStatus.OK.value(),
-                "All departments found",
+                "All roles found",
                 LocalDateTime.now(),
-                departmentDtoList);
+                allRoles
+        );
 
         return ResponseEntity.ok(apiResponse);
     }

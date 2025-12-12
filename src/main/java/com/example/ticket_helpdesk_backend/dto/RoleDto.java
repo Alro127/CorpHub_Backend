@@ -22,4 +22,11 @@ public class RoleDto implements Serializable {
     @NotNull
     @Size(max = 50)
     String name;
+
+    public static RoleDto fromEntity(Role role) {
+        RoleDto roleDto = new RoleDto();
+        roleDto.setId(role.getId());
+        roleDto.setName(role.getName());
+        return roleDto;
+    }
 }

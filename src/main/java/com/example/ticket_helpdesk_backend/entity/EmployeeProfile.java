@@ -21,7 +21,7 @@ public class EmployeeProfile {
     private UUID id;
 
     @Column(length = 50, unique = true)
-    private String code; // Mã nhân viên (A001,...)
+    private String code; // Mã nhân viên được tạo dựa trên họ và tên + số nguời trùng tên trong db
 
     @Nationalized
     @Column(nullable = false, length = 150)
