@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.consts.BucketName;
 import com.example.ticket_helpdesk_backend.consts.UserRole;
 import com.example.ticket_helpdesk_backend.dto.PositionChangeAttachmentDto;
 import com.example.ticket_helpdesk_backend.dto.PositionChangeRequestCreateDto;
@@ -21,7 +22,6 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class PositionChangeRequestService {
-
 
     private final PositionChangeRequestRepository requestRepository;
     private final EmployeeProfileRepository employeeProfileRepository;
@@ -171,7 +171,20 @@ public class PositionChangeRequestService {
     public PositionChangeRequestDetailDto getRequest(UUID id) {
         PositionChangeRequest request = requestRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Request not found"));
-        return PositionChangeRequestDetailDto.mapEntityToDetailDto(request);
+        PositionChangeRequestDetailDto dto = PositionChangeRequestDetailDto.mapEntityToDetailDto(request);
+
+        if (dto.getAttachments() != null) {
+            dto.getAttachments().forEach(att -> {
+                if (att.getFileUrl() != null && !att.getFileUrl().isBlank()) {
+                    String url = fileStorageService.getPresignedUrl(
+                            BucketName.EMPLOYEE_DOCUMENT.getBucketName(),
+                            att.getFileUrl()
+                    );
+                    att.setFileUrl(url);
+                }
+            });
+        }
+        return dto;
     }
 
     public List<PositionChangeRequestDetailDto> getRequestsByEmployee(UUID employeeId) {

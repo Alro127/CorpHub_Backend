@@ -34,6 +34,8 @@ public class EmployeeProfileResponse {
     private UserSummary user; // Thông tin tài khoản
     private List<ActivityTimelineResponse> timeline; // Nhật ký hoạt động
 
+    private EmployeeAdministrativeInfoDto employeeAdministrativeInfoDto;
+
     // ---- Inner class ----
     @Data
     @NoArgsConstructor
@@ -61,6 +63,7 @@ public class EmployeeProfileResponse {
         res.setAvatarUrl(avatarUrl);
         res.setActive(profile.getUser() != null ? profile.getUser().getActive() : null);
         res.setDepartmentName(profile.getDepartment() != null ? profile.getDepartment().getName() : null);
+        res.setEmployeeAdministrativeInfoDto(EmployeeAdministrativeInfoDto.fromEntity(profile.getAdministrativeInfo()));
 
         // user summary
         User u = profile.getUser();
