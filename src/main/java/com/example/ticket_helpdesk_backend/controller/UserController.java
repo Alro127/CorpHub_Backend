@@ -42,20 +42,6 @@ public class UserController {
     @Autowired
     JwtUtil jwtUtil;
 
-//    @PreAuthorize("@securityService.hasRole('ADMIN')")
-//    @GetMapping("/get-all")
-//    public ResponseEntity<?> getAllUser() {
-//        List<UserDto> userDtoList = userService.getAllUser();
-//        ApiResponse<List<UserDto>> apiResponse = new ApiResponse<>(
-//                HttpStatus.OK.value(),
-//                "All user found",
-//                LocalDateTime.now(),
-//                userDtoList
-//        );
-//
-//        return ResponseEntity.ok(apiResponse);
-//    }
-
     @PreAuthorize("@securityService.hasRole('ADMIN') or @securityService.hasRole('MANAGER')")
     @GetMapping("/employee")
     public ResponseEntity<?> getEmployees(        @RequestHeader("Authorization") String authHeader,

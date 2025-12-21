@@ -127,24 +127,6 @@ public class EmployeeProfileController {
         return ResponseEntity.ok(response);
     }
 
-
-
-//    @GetMapping("/me")
-//    public ResponseEntity<?> getMyEmployeeProfile(@RequestHeader("Authorization") String authHeader) {
-//        String token = authHeader.substring(7);
-//        EmployeeProfile employeeProfile = employeeProfileService.getMyEmployeeProfile(token);
-//        String avatar = fileStorageService.getPresignedUrl("employee-avatars", employeeProfile.getAvatar());
-//        EmployeeProfileResponse profile = EmployeeProfileResponse.toResponse(employeeProfile, avatar);
-//
-//        ApiResponse<?> response = new ApiResponse<>(
-//                HttpStatus.OK.value(),
-//                "Get employee profile successfully",
-//                LocalDateTime.now(),
-//                profile
-//        );
-//        return ResponseEntity.ok(response);
-//    }
-
     //@PreAuthorize("@securityService.hasRole('EMPLOYEE')")
     @PatchMapping("/me/contact-info")
     public ApiResponse<?> updateMyContactInfo(
@@ -249,6 +231,7 @@ public class EmployeeProfileController {
                 dto
         );
     }
+
     @PreAuthorize("@securityService.hasRole('HR') or @securityService.hasRole('ADMIN')")
     @GetMapping("/{id}/full-detail")
     public ResponseEntity<?> getEmployeeFullDetail(@PathVariable UUID id) throws ResourceNotFoundException {

@@ -1,15 +1,10 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.consts.UserRole;
 import com.example.ticket_helpdesk_backend.dto.*;
-import com.example.ticket_helpdesk_backend.entity.Department;
-import com.example.ticket_helpdesk_backend.entity.EmployeeProfile;
-import com.example.ticket_helpdesk_backend.entity.Position;
-import com.example.ticket_helpdesk_backend.entity.User;
+import com.example.ticket_helpdesk_backend.entity.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
-import com.example.ticket_helpdesk_backend.repository.DepartmentRepository;
-import com.example.ticket_helpdesk_backend.repository.EmployeeProfileRepository;
-import com.example.ticket_helpdesk_backend.repository.PositionRepository;
-import com.example.ticket_helpdesk_backend.repository.UserRepository;
+import com.example.ticket_helpdesk_backend.repository.*;
 import com.example.ticket_helpdesk_backend.util.JwtUtil;
 import jakarta.transaction.Transactional;
 import org.modelmapper.ModelMapper;
@@ -32,6 +27,8 @@ public class DepartmentService {
     private UserRepository userRepository;
     @Autowired
     private PositionRepository positionRepository;
+    @Autowired
+    private RoleRepository roleRepository;
     @Autowired
     private ModelMapper modelMapper;
     @Autowired
@@ -183,15 +180,33 @@ public class DepartmentService {
         departmentRepository.deleteById(id);
     }
 
-    public DepartmentManagementDto assignManager(UUID departmentId, UUID managerId) throws ResourceNotFoundException {
+    @Transactional
+    public DepartmentManagementDto assignManager(UUID departmentId, UUID managerId)
+            throws ResourceNotFoundException {
+
         Department department = departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new ResourceNotFoundException("Department not found"));
+
         EmployeeProfile manager = employeeProfileRepository.findById(managerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Manager not found"));
+                .orElseThrow(() -> new ResourceNotFoundException("Employee not found"));
+
+        // 1️⃣ Check trạng thái
+        if (!manager.getUser().getActive()) {
+            throw new RuntimeException("Employee is not active, cannot assign as manager");
+        }
+
+        // 2️⃣ khác phòng ban
+        if (!manager.getDepartment().getId().equals(departmentId)) {
+            // log warning / audit
+            throw new RuntimeException("Assign manager from different department");
+        }
+
         department.setManager(manager);
-        Department updated = departmentRepository.save(department);
-        return DepartmentManagementDto.fromEntity(updated);
+        Role role = roleRepository.findByName(UserRole.ROLE_MANAGER.name()).orElseThrow();
+        manager.getUser().setRole(role);
+        return DepartmentManagementDto.fromEntity(departmentRepository.save(department));
     }
+
 
     @Transactional
     public void moveDepartment(UUID dragId, UUID newParentId) throws ResourceNotFoundException {
