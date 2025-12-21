@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.service;
 
+import com.example.ticket_helpdesk_backend.config.CompanyLocationProperties;
 import com.example.ticket_helpdesk_backend.consts.WorkScheduleStatus;
 import com.example.ticket_helpdesk_backend.dto.AttendanceRecordRequest;
 import com.example.ticket_helpdesk_backend.dto.AttendanceRecordResponse;
@@ -8,6 +9,7 @@ import com.example.ticket_helpdesk_backend.entity.AttendanceRecord;
 import com.example.ticket_helpdesk_backend.entity.User;
 import com.example.ticket_helpdesk_backend.entity.WorkSchedule;
 import com.example.ticket_helpdesk_backend.exception.AuthException;
+import com.example.ticket_helpdesk_backend.exception.BusinessException;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.repository.AttendanceRecordRepository;
 import com.example.ticket_helpdesk_backend.repository.UserRepository;
@@ -15,6 +17,7 @@ import com.example.ticket_helpdesk_backend.repository.WorkScheduleRepository;
 import com.example.ticket_helpdesk_backend.specification.AttendanceRecordSpecifications;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +35,26 @@ public class AttendanceRecordService {
     private final WorkScheduleRepository workScheduleRepository;
     private final AttendanceRecordRepository attendanceRecordRepository;
     private final WorkScheduleService workScheduleService;
+    private final CompanyLocationProperties companyLocation;
+
+    private double calculateDistance(
+            double lat1, double lng1,
+            double lat2, double lng2
+    ) {
+        final double R = 6371000; // Earth radius (m)
+        double dLat = Math.toRadians(lat2 - lat1);
+        double dLng = Math.toRadians(lng2 - lng1);
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2)
+                + Math.cos(Math.toRadians(lat1))
+                * Math.cos(Math.toRadians(lat2))
+                * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+
+        return R * c;
+    }
+
 
     public AttendanceRecordResponse toResponse(AttendanceRecord r) {
         AttendanceRecordResponse dto = new AttendanceRecordResponse();
@@ -58,6 +81,24 @@ public class AttendanceRecordService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        double distance = calculateDistance(
+                request.getLat(),
+                request.getLng(),
+                companyLocation.getLat(),
+                companyLocation.getLng()
+        );
+
+        if (distance > companyLocation.getRadiusMeter()) {
+            throw new BusinessException(
+                    HttpStatus.UNPROCESSABLE_ENTITY,
+                    "ATTENDANCE_OUT_OF_RANGE",
+                    String.format(
+                            "You are %.0fm away from the allowed attendance area (max %.0fm)",
+                            distance,
+                            companyLocation.getRadiusMeter()
+                    )
+            );
+        }
         LocalDateTime now = LocalDateTime.now();
 
         WorkSchedule schedule = workScheduleRepository.findById(workScheduleId)

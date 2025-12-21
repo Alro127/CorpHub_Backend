@@ -164,5 +164,22 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body(apiResponse);
     }
 
+    @ExceptionHandler(BusinessException.class)
+    public ResponseEntity<ApiResponse<?>> handleBusinessException(BusinessException ex) {
+
+        ApiResponse<?> apiResponse = new ApiResponse<>(
+                ex.getStatus().value(),
+                ex.getMessage(),
+                LocalDateTime.now(),
+                Map.of(
+                        "errorCode", ex.getErrorCode()
+                )
+        );
+
+        return ResponseEntity
+                .status(ex.getStatus())
+                .body(apiResponse);
+    }
+
 
 }
