@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.controller;
 
+import com.example.ticket_helpdesk_backend.consts.RoomRequirementStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
 import com.example.ticket_helpdesk_backend.service.RoomRequirementService;
@@ -29,8 +30,9 @@ public class RoomRequirementController {
     @GetMapping
     public ResponseEntity<?> getRoomRequirements(
             @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size) {
-        Page<RoomRequirementDto> pageData = roomRequirementService.getAllRoomRequirements(page, size);
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) RoomRequirementStatus status) {
+        Page<RoomRequirementDto> pageData = roomRequirementService.getAllRoomRequirements(page, size, status);
         ApiResponse<List<RoomRequirementDto>> response = new ApiResponse<> (
             HttpStatus.OK.value(),
             "Fetch room requirements successfully",

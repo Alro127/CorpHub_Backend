@@ -44,9 +44,13 @@ public class RoomRequirementService {
         return roomRequirementRepository.findById(id).orElse(null);
     }
 
-    public Page<RoomRequirementDto> getAllRoomRequirements(int page, int size) {
+    public Page<RoomRequirementDto> getAllRoomRequirements(int page, int size, RoomRequirementStatus status) {
         Pageable pageable = PageRequest.of(page, size);
-        Page<RoomRequirement> roomRequirements = roomRequirementRepository.findAll(pageable);
+
+        Specification<RoomRequirement> spec = Specification
+                .where(RoomRequirementSpecifications.hasStatus(status));
+
+        Page<RoomRequirement> roomRequirements = roomRequirementRepository.findAll(spec, pageable);
         return roomRequirements.map(RoomRequirementDto::toRoomRequirementDto);
     }
 

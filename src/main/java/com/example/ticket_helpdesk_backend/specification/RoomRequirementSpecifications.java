@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.specification;
 
+import com.example.ticket_helpdesk_backend.consts.RoomRequirementStatus;
 import com.example.ticket_helpdesk_backend.entity.RoomRequirement;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -55,4 +56,12 @@ public class RoomRequirementSpecifications {
                 .where(hasRoomId(roomId))
                 .and(overlapsWith(start, end));
     }
+
+    public static Specification<RoomRequirement> hasStatus(RoomRequirementStatus status) {
+        return (root, query, cb) -> {
+            if (status == null) return null;// null = bỏ filter
+            return cb.equal(root.get("status"), status);
+        };
+    }
+
 }
