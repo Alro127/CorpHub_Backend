@@ -11,6 +11,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -156,37 +157,27 @@ public class EmployeeProfileService {
         return input.substring(0, 1).toUpperCase() + input.substring(1);
     }
 
-//    public List<EmployeeProfileResponse> getAllEmployeeProfiles() {
-//        return employeeProfileRepository.findAll().stream()
-//                .map(profile -> {
-//                    String avatarUrl = null;
-//                    if (profile.getAvatar() != null) {
-//                        avatarUrl = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
-//                    }
-//                    return EmployeeProfileResponse.toResponse(profile, avatarUrl);
-//                })
-//                .toList();
-//    }
-    public Page<EmployeeProfileResponse> getAllEmployeeProfiles(int page, int size, String keyword) {
-        Pageable pageable = PageRequest.of(page, size);
+public Page<EmployeeProfileResponse> getAllEmployeeProfiles(int page, int size, String keyword) {
 
-        Page<EmployeeProfile> pageResult;
+    Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "fullName"));
 
-        if (keyword != null && !keyword.isEmpty()) {
-            pageResult = employeeProfileRepository.findByFullNameContainingIgnoreCase(keyword, pageable);
-        } else {
-            pageResult = employeeProfileRepository.findAll(pageable);
-        }
+    Page<EmployeeProfile> pageResult;
 
-        // ✅ Map entity → DTO kèm avatar presigned URL
-        return pageResult.map(profile -> {
-            String avatarUrl = null;
-            if (profile.getAvatar() != null) {
-                avatarUrl = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
-            }
-            return EmployeeProfileResponse.fromEntity(profile, avatarUrl);
-        });
+    if (keyword != null && !keyword.isEmpty()) {
+        pageResult = employeeProfileRepository.findByFullNameContainingIgnoreCase(keyword, pageable);
+    } else {
+        pageResult = employeeProfileRepository.findAll(pageable);
     }
+
+    return pageResult.map(profile -> {
+        String avatarUrl = null;
+        if (profile.getAvatar() != null) {
+            avatarUrl = fileStorageService.getPresignedUrl("employee-avatars", profile.getAvatar());
+        }
+        return EmployeeProfileResponse.fromEntity(profile, avatarUrl);
+    });
+}
+
 
 
     public List<EmployeeProfile> getEmployeesByDepartment(UUID departmentId) {
