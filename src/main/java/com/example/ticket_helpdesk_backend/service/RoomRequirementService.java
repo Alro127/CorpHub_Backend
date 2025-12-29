@@ -117,7 +117,7 @@ public class RoomRequirementService {
             roomRequirement.setStatus(RoomRequirementStatus.ACCEPTED);
             roomRequirementRepository.save(roomRequirement);
 
-            room.setStatus(RoomStatus.RESERVED);
+            room.setStatus(RoomStatus.BUSY);
 
             Meeting meeting = roomRequirement.getMeeting();
             meeting.setLocation(room.getName());

@@ -283,9 +283,8 @@ public class MeetingService {
 
         if (meeting.isMeetingRoom()) {
             RoomRequirement roomRequirement = roomRequirementRepository.findByMeetingId(meetingId);
-            if (roomRequirement == null) return false;
+            if (roomRequirement == null || roomRequirement.getStatus() != RoomRequirementStatus.ACCEPTED) return false;
             roomRequirement.setStatus(RoomRequirementStatus.CLOSED);
-            roomRequirementRepository.save(roomRequirement);
         }
 
         meeting.setReady(true);
