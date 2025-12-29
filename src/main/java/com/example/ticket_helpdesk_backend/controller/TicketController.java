@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.controller;
 
+import com.example.ticket_helpdesk_backend.consts.TicketStatus;
 import com.example.ticket_helpdesk_backend.dto.*;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.exception.ResourceNotFoundException;
@@ -46,7 +47,7 @@ public class TicketController {
             @RequestHeader("Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) TicketStatus status,
             @RequestParam(required = false) String priority,
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) LocalDate from,
@@ -81,7 +82,7 @@ public class TicketController {
             @RequestHeader("Authorization") String authHeader,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) TicketStatus status,
             @RequestParam(required = false) String priority,
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) LocalDate from,
@@ -117,7 +118,7 @@ public class TicketController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) Boolean isRequester,
-            @RequestParam(required = false) String status,
+            @RequestParam(required = false) TicketStatus status,
             @RequestParam(required = false) String priority,
             @RequestParam(required = false) UUID categoryId,
             @RequestParam(required = false) LocalDate from,

@@ -1,5 +1,6 @@
 package com.example.ticket_helpdesk_backend.specification;
 
+import com.example.ticket_helpdesk_backend.consts.TicketStatus;
 import com.example.ticket_helpdesk_backend.entity.Ticket;
 import com.example.ticket_helpdesk_backend.entity.User;
 import jakarta.persistence.criteria.Join;
@@ -59,13 +60,17 @@ public class TicketSpecifications {
 
     /** 🔵 Ticket nhận bởi phòng ban */
     public static Specification<Ticket> receivedByDepartment(UUID departmentId) {
-        return (root, query, cb) -> cb.equal(root.get("department").get("id"), departmentId);
+        return (root, query, cb) -> cb.and(
+                cb.equal(root.get("department").get("id"), departmentId),
+                cb.notEqual(root.get("status"), TicketStatus.OPEN)
+        );
     }
 
+
     /** 🟩 Lọc theo trạng thái (bỏ qua nếu null hoặc rỗng) */
-    public static Specification<Ticket> hasStatus(String status) {
+    public static Specification<Ticket> hasStatus(TicketStatus status) {
         return (root, query, cb) -> {
-            if (status == null || status.isBlank()) {
+            if (status == null ) {
                 return cb.conjunction(); // không thêm điều kiện
             }
             return cb.equal(root.get("status"), status);
